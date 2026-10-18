@@ -18,7 +18,7 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 8. **(privacy) The `/prompts` folder is excluded from git** because it names the organisation and its focus.
 9. **(privacy) The seeded address is a neighbourhood plus "shared with confirmed visitors".** No street address is seeded, and the Visit page says exact directions come with confirmation.
 10. **(privacy) No social links are seeded.** The footer shows them only if staff add them in the admin, and only as plain outbound links.
-11. **(privacy) Referrer-Policy is `no-referrer` site-wide**, including an HTML meta tag and `referrerPolicy` on API calls, so outbound links and the quick exit never reveal where the visitor came from.
+11. **(privacy) No referrer ever leaves the site.** The SPA page and images use `no-referrer` (HTML meta tag), so outbound links and the quick exit never reveal where the visitor came from. API calls and the API host use `same-origin`: under `no-referrer` browsers send `Origin: null` on POST, which fails Django's CSRF origin check. `same-origin` still sends nothing to other sites.
 12. **(privacy) The admin path is configurable** through `DJANGO_ADMIN_PATH`, so production can move it away from `/admin/`.
 13. **(privacy) `/media/` responses carry `X-Robots-Tag: noindex, nofollow`.**
 

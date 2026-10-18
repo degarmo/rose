@@ -105,7 +105,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   try {
     response = await fetch(`${config.apiBaseUrl}${path}`, {
       credentials: 'same-origin',
-      referrerPolicy: 'no-referrer',
+      referrerPolicy: 'same-origin',
       ...init,
       headers: { Accept: 'application/json', ...init.headers },
     })
@@ -194,7 +194,7 @@ export async function postForBlob(path: string, payload: unknown): Promise<Blob>
   const response = await fetch(`${config.apiBaseUrl}${path}`, {
     method: 'POST',
     credentials: 'same-origin',
-    referrerPolicy: 'no-referrer',
+    referrerPolicy: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': await getCsrfToken() },
     body: JSON.stringify(payload),
   })
