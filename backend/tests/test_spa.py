@@ -74,3 +74,8 @@ def test_private_spa_routes_are_noindex(client, dist):
     assert client.get("/members/feed")["X-Robots-Tag"] == "noindex, nofollow"
     assert client.get("/account")["X-Robots-Tag"] == "noindex, nofollow"
     assert "X-Robots-Tag" not in client.get("/events")
+
+
+def test_the_membership_page_is_public_but_its_confirmation_is_not(client, dist):
+    assert "X-Robots-Tag" not in client.get("/join")
+    assert client.get("/join/confirming")["X-Robots-Tag"] == "noindex, nofollow"

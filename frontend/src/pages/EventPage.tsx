@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router'
 import { DetailItem } from '@/components/content/DetailItem'
 import { RICH_TEXT } from '@/components/content/richText'
 import { RSVPPanel } from '@/components/content/RSVPPanel'
-import { ErrorState, LoadingState } from '@/components/content/States'
+import { ErrorState, HeroLoading } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
 import { api, ApiError, type EventDetail, type RSVPState } from '@/lib/api'
@@ -39,7 +39,7 @@ export function EventPage() {
             <ArrowLeft aria-hidden="true" className="size-4" />
             All events
           </ButtonLink>
-          {state.status === 'loading' && <LoadingState label="Loading event" />}
+          {state.status === 'loading' && <HeroLoading label="Loading event" />}
           {event && (
             <>
               <div className="mt-6 flex flex-wrap gap-2">
@@ -53,7 +53,8 @@ export function EventPage() {
         </div>
       </div>
 
-      <Section spacing="tight">
+      {/* Room for the details while they load, so the footer does not jump. */}
+      <Section spacing="tight" className={state.status === 'loading' ? 'min-h-[60svh]' : undefined}>
         {state.status === 'error' && <ErrorState title="This event did not load" onRetry={state.retry} />}
         {event && (
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr] lg:gap-16">

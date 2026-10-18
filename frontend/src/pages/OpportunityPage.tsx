@@ -1,7 +1,7 @@
 import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react'
 import { useParams } from 'react-router'
 import { DetailItem } from '@/components/content/DetailItem'
-import { ErrorState, LoadingState } from '@/components/content/States'
+import { ErrorState, HeroLoading } from '@/components/content/States'
 import { PaywallPanel } from '@/components/membership/PaywallPanel'
 import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
@@ -38,7 +38,7 @@ export function OpportunityPage() {
             <ArrowLeft aria-hidden="true" className="size-4" />
             All opportunities
           </ButtonLink>
-          {state.status === 'loading' && <LoadingState label="Loading details" />}
+          {state.status === 'loading' && <HeroLoading label="Loading details" />}
           {opportunity && (
             <>
               <div className="mt-6 flex flex-wrap gap-2">
@@ -53,7 +53,8 @@ export function OpportunityPage() {
         </div>
       </div>
 
-      <Section width="narrow" spacing="tight">
+      {/* Room for the details while they load, so the footer does not jump. */}
+      <Section width="narrow" spacing="tight" className={state.status === 'loading' ? 'min-h-[60svh]' : undefined}>
         {state.status === 'error' && <ErrorState title="This page did not load" onRetry={state.retry} />}
         {opportunity && (
           <>

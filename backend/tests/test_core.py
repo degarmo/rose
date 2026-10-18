@@ -18,6 +18,7 @@ def test_robots_txt_is_closed_outside_production(client):
 
 def test_production_robots_lists_private_paths_but_never_the_admin(client, settings):
     settings.DJANGO_ENV = "production"
+    settings.SITE_INDEXABLE = True
     settings.ADMIN_PATH = "staff-a8f3/"
     body = client.get("/robots.txt").content.decode()
     assert "Disallow: /members" in body and "Disallow: /account" in body
@@ -116,3 +117,15 @@ def test_csrf_failure_is_json():
     response = APIClient(enforce_csrf_checks=True).post("/api/contact/", {}, format="json")
     assert response.status_code == 403
     assert response.json()["detail"].startswith("CSRF Failed")
+
+
+def test_staging_is_never_indexable(client, settings):
+    settings.DJANGO_ENV = "staging"
+    settings.SITE_INDEXABLE = True
+    settings.STAGING_BASIC_AUTH_USER = ""
+    from django.test import RequestFactory
+
+    from apps.core.views import robots_txt
+
+    body = robots_txt(RequestFactory().get("/robots.txt")).content.decode()
+    assert body == "User-agent: *\nDisallow: /\n"

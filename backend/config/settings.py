@@ -55,12 +55,19 @@ env = environ.Env(
     STAFF_SESSION_HOURS=(int, 12),
     BACKUP_ENABLED=(bool, False),
     BACKUP_RETENTION_DAYS=(int, 30),
+    SITE_INDEXABLE=(bool, None),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
 DJANGO_ENV = env("DJANGO_ENV")
 DEPLOYED_ENVS = ("staging", "production")
 IS_DEPLOYED = DJANGO_ENV in DEPLOYED_ENVS
+
+# Whether search engines may index the public pages (robots.txt). Production
+# only by default; staging is always closed whatever this says.
+SITE_INDEXABLE = env("SITE_INDEXABLE")
+if SITE_INDEXABLE is None:
+    SITE_INDEXABLE = DJANGO_ENV == "production"
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG")

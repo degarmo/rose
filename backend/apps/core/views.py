@@ -23,8 +23,9 @@ CLOSED_ROBOTS = "User-agent: *\nDisallow: /\n"
 
 @require_GET
 def robots_txt(request):
-    """Production lists the private paths; every other environment is closed to crawlers."""
-    body = PUBLIC_ROBOTS if settings.DJANGO_ENV == "production" else CLOSED_ROBOTS
+    """Indexable sites list the private paths; staging and development are closed to crawlers."""
+    indexable = settings.SITE_INDEXABLE and settings.DJANGO_ENV != "staging"
+    body = PUBLIC_ROBOTS if indexable else CLOSED_ROBOTS
     return HttpResponse(body, content_type="text/plain")
 
 

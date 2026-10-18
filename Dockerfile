@@ -41,6 +41,8 @@ RUN pip install -r requirements.txt
 COPY --chown=app:app backend/ ./
 COPY --from=frontend --chown=app:app /srv/frontend/dist /srv/frontend/dist
 COPY docs/image-manifest.json /srv/docs/image-manifest.json
+# Pre-compressed copies (gzip and Brotli) that WhiteNoise serves to browsers that accept them.
+RUN python -m whitenoise.compress /srv/frontend/dist
 
 # Static files are collected at build time; no database or secret is involved.
 RUN DJANGO_SECRET_KEY=build-only DATABASE_URL=sqlite:////tmp/build.sqlite3 \

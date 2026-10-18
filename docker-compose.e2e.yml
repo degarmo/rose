@@ -41,6 +41,8 @@ x-app: &app
     CONTACT_RATE_LIMIT: 3/h
     # The tests sign the same known accounts in many times an hour.
     LOGIN_RATE_LIMIT_EMAIL: 500/h
+    # Closed to crawlers unless a measurement run (Lighthouse SEO) opens it.
+    SITE_INDEXABLE: ${SITE_INDEXABLE:-false}
   depends_on:
     db:
       condition: service_healthy

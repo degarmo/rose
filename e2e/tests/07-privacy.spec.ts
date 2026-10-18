@@ -34,31 +34,43 @@ function expectDocumentHeaders(response: Response | null, referrer = 'no-referre
   expect(headers['permissions-policy']).toContain('geolocation=()')
 }
 
-/** Visit a route, failing on any request that leaves the site (or its storage bucket). */
-async function visit(page: Page, path: string, offsite: string[]) {
+interface Watch {
+  offsite: string[]
+  errors: string[]
+}
+
+/** Visit a route, failing on any request that leaves the site (or its storage
+ * bucket) and on any browser console error, which includes CSP violations. */
+async function visit(page: Page, path: string, watch: Watch) {
   const response = await page.goto(path, { waitUntil: 'networkidle' })
   await expect(page.locator('#root')).not.toBeEmpty()
-  expect(offsite, `requests leaving the site from ${path}`).toEqual([])
+  expect(watch.offsite, `requests leaving the site from ${path}`).toEqual([])
+  expect(watch.errors, `console errors on ${path}`).toEqual([])
   return response
 }
 
-function watchRequests(page: Page, baseURL: string) {
-  const offsite: string[] = []
+function watchRequests(page: Page, baseURL: string): Watch {
+  const watch: Watch = { offsite: [], errors: [] }
   const allowed = allowedHosts(baseURL)
   page.on('request', (request) => {
     const url = request.url()
     if (url.startsWith('data:') || url.startsWith('blob:')) return
-    if (!allowed.has(new URL(url).host)) offsite.push(url)
+    if (!allowed.has(new URL(url).host)) watch.offsite.push(url)
   })
-  return offsite
+  page.on('console', (message) => {
+    // The 404 page's own document is expected to be a 404.
+    if (message.type() === 'error' && !/status of 404/.test(message.text())) watch.errors.push(message.text())
+  })
+  page.on('pageerror', (error) => watch.errors.push(error.message))
+  return watch
 }
 
 test.describe('Privacy and accessibility on every page @smoke', () => {
   for (const path of PUBLIC_ROUTES) {
     test(`public ${path}`, async ({ page, baseURL }) => {
       await confirmAge(page.context(), baseURL!)
-      const offsite = watchRequests(page, baseURL!)
-      const response = await visit(page, path, offsite)
+      const watch = watchRequests(page, baseURL!)
+      const response = await visit(page, path, watch)
       expectDocumentHeaders(response)
       const robots = response!.headers()['x-robots-tag']
       if (path.startsWith('/account')) expect(robots).toBe('noindex, nofollow')
@@ -67,8 +79,8 @@ test.describe('Privacy and accessibility on every page @smoke', () => {
   }
 
   test('the age gate itself', async ({ page, baseURL }) => {
-    const offsite = watchRequests(page, baseURL!)
-    const response = await visit(page, '/', offsite)
+    const watch = watchRequests(page, baseURL!)
+    const response = await visit(page, '/', watch)
     expectDocumentHeaders(response)
     await expect(page.getByRole('button', { name: 'I am 18 or older' })).toBeVisible()
     expect(await seriousA11yViolations(page)).toEqual([])
@@ -76,11 +88,11 @@ test.describe('Privacy and accessibility on every page @smoke', () => {
 
   test('an event and a class page', async ({ page, baseURL, request }) => {
     await confirmAge(page.context(), baseURL!)
-    const offsite = watchRequests(page, baseURL!)
+    const watch = watchRequests(page, baseURL!)
     const events = (await (await request.get('/api/events/')).json()) as Array<{ slug: string }>
     const classes = (await (await request.get('/api/education/opportunities/')).json()) as Array<{ slug: string }>
     for (const path of [`/events/${events[0].slug}`, ...(classes[0] ? [`/education/${classes[0].slug}`] : [])]) {
-      expectDocumentHeaders(await visit(page, path, offsite))
+      expectDocumentHeaders(await visit(page, path, watch))
       expect(await seriousA11yViolations(page)).toEqual([])
     }
   })
@@ -99,9 +111,9 @@ test.describe('Members area', () => {
     const data = fixtures().viewports[info.project.name]
     await confirmAge(page.context(), baseURL!)
     await apiLogin(page, baseURL!, data.feed.friend, fixtures().password)
-    const offsite = watchRequests(page, baseURL!)
+    const watch = watchRequests(page, baseURL!)
     for (const path of MEMBER_ROUTES) {
-      const response = await visit(page, path, offsite)
+      const response = await visit(page, path, watch)
       expectDocumentHeaders(response)
       expect(response!.headers()['x-robots-tag']).toBe('noindex, nofollow')
       expect(await seriousA11yViolations(page), path).toEqual([])

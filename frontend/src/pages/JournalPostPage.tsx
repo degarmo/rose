@@ -18,7 +18,8 @@ export function JournalPostPage() {
   }
 
   return (
-    <Section width="default" className="pt-32">
+    // Room for the post while it loads, so the footer does not jump.
+    <Section width="default" className={state.status === 'loading' ? 'min-h-[100svh] pt-32' : 'pt-32'}>
       <ButtonLink to="/journal" variant="link" className="mb-8">
         <ArrowLeft aria-hidden="true" className="size-4" />
         Journal

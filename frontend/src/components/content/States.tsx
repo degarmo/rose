@@ -65,3 +65,22 @@ export function EmptyState({ title, message }: { title: string; message: string 
     </div>
   )
 }
+
+/**
+ * Placeholder for a page hero while it loads: roughly the size of a badge row,
+ * a two-line heading and a summary, so nothing jumps when the content arrives.
+ */
+export function HeroLoading({ label }: { label: string }) {
+  return (
+    <div role="status">
+      <span className="sr-only">{label}</span>
+      <div aria-hidden="true" className="animate-pulse">
+        <div className="mt-6 h-7 w-32 rounded-full bg-surface-raised" />
+        <div className="mt-6 h-[1.05em] w-4/5 rounded-lg bg-surface-raised text-5xl sm:text-6xl" />
+        <div className="mt-2 h-[1.05em] w-1/2 rounded-lg bg-surface-raised text-5xl sm:text-6xl" />
+        <div className="mt-6 h-[1.6em] w-full max-w-2xl rounded bg-surface-raised text-lg sm:text-xl" />
+        <div className="mt-1 h-[1.6em] w-2/3 max-w-xl rounded bg-surface-raised text-lg sm:text-xl" />
+      </div>
+    </div>
+  )
+}

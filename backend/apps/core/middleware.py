@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.db import DatabaseError, connection
 from django.http import HttpResponse
 
-PRIVATE_PATH_PREFIXES = ("/api/", "/members", "/account", "/media/", "/join", "/dev/")
+PRIVATE_PATH_PREFIXES = ("/api/", "/members", "/account", "/media/", "/join/confirming", "/dev/")
 HEALTH_PATH = "/healthz"
 PAYMENT_WEBHOOK_PREFIX = "/api/payments/webhook/"
 

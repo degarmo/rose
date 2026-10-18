@@ -45,6 +45,8 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
+    // Never inline files as data: URLs; the CSP (font-src 'self') would block them.
+    assetsInlineLimit: 0,
   },
   test: {
     environment: 'jsdom',
