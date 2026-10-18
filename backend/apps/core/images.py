@@ -6,9 +6,11 @@ and ICC data), re-encoded as WebP and given a random filename.
 """
 
 import uuid
+import warnings
 from io import BytesIO
 from pathlib import PurePosixPath
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import models
@@ -17,24 +19,82 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_DIMENSION = 2400
 WEBP_QUALITY = 82
-MAX_PIXELS = 40_000_000
+
+INVALID = "Upload a JPEG, PNG, WebP or HEIC photo."
+TOO_BIG = "That photo is too large. Try one under 15 MB and 40 megapixels."
+HEIF_BRANDS = {b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"mif1", b"msf1"}
 
 
 def random_filename(extension="webp"):
     return f"{uuid.uuid4().hex}.{extension}"
 
 
+def sniff_format(head):
+    """The real format from the first bytes, whatever the file name or content type says."""
+    if head.startswith(b"\xff\xd8\xff"):
+        return "jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    if head[4:8] == b"ftyp" and head[8:12] in HEIF_BRANDS:
+        return "heic"
+    return None
+
+
+def _size(source):
+    size = getattr(source, "size", None)
+    if size is None:
+        position = source.tell()
+        source.seek(0, 2)
+        size = source.tell()
+        source.seek(position)
+    return size
+
+
+def validate_upload(source):
+    """Reject anything that is not a reasonably sized JPEG, PNG, WebP or HEIC.
+
+    Checks the byte size, the magic bytes and the pixel dimensions from the
+    header, before any pixels are decoded, so a decompression bomb is refused
+    without being expanded.
+    """
+    if _size(source) > settings.UPLOAD_MAX_BYTES:
+        raise ValidationError(TOO_BIG)
+    source.seek(0)
+    head = source.read(16)
+    source.seek(0)
+    if sniff_format(head) is None:
+        raise ValidationError(INVALID)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(source) as header:
+                width, height = header.size
+    except (Image.DecompressionBombWarning, Image.DecompressionBombError) as exc:
+        raise ValidationError(TOO_BIG) from exc
+    except (UnidentifiedImageError, OSError) as exc:
+        raise ValidationError(INVALID) from exc
+    finally:
+        source.seek(0)
+    if width * height > settings.UPLOAD_MAX_PIXELS or max(width, height) > settings.UPLOAD_MAX_SIDE:
+        raise ValidationError(TOO_BIG)
+
+
 def open_clean(source):
     """Decode an image and return an oriented, metadata-free pixel copy."""
+    validate_upload(source)
     try:
-        source.seek(0)
-        with Image.open(source) as original:
-            if original.width * original.height > MAX_PIXELS:
-                raise ValidationError("Image is too large.")
-            original.load()
-            oriented = ImageOps.exif_transpose(original)
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
-        raise ValidationError("Upload a valid image file.") from exc
+        with warnings.catch_warnings():
+            # Anything over MAX_IMAGE_PIXELS is refused, not merely warned about.
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(source) as original:
+                original.load()
+                oriented = ImageOps.exif_transpose(original)
+    except (Image.DecompressionBombWarning, Image.DecompressionBombError) as exc:
+        raise ValidationError(TOO_BIG) from exc
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as exc:
+        raise ValidationError(INVALID) from exc
 
     has_alpha = oriented.mode in ("RGBA", "LA") or (
         oriented.mode == "P" and "transparency" in oriented.info

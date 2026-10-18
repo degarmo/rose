@@ -1,0 +1,15 @@
+{% extends "admin/login.html" %}
+
+{% block content %}
+{% if error %}<p class="errornote">{{ error }}</p>{% endif %}
+<div id="content-main">
+  <form method="post" id="login-form">{% csrf_token %}
+    <div class="form-row">
+      <label class="required" for="{{ form.token.id_for_label }}">Six-digit code from your authenticator app, or a backup code</label>
+      {{ form.token }}
+    </div>
+    <div class="submit-row"><input type="submit" value="Log in"></div>
+  </form>
+  <p class="help">Lost your phone? Use one of your backup codes. Each works once. If you have none left, ask another administrator to reset your two-step login.</p>
+</div>
+{% endblock %}

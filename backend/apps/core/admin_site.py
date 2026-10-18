@@ -5,6 +5,7 @@ from django.http import FileResponse, Http404
 from django.template.response import TemplateResponse
 from django.urls import path
 
+from . import admin_auth
 from .consent_images import consent_image_field_names, consent_image_models
 from .manifest import STATUS_LABELS, entry_status, find_entry, image_file, load_manifest
 
@@ -14,8 +15,22 @@ class RoseAdminSite(admin.AdminSite):
     site_title = "Rose"
     index_title = "Site content"
 
+    def has_permission(self, request):
+        """Staff only, and only after the two-step check (apps.core.admin_auth)."""
+        return super().has_permission(request) and request.user.is_verified()
+
+    def login(self, request, extra_context=None):
+        return admin_auth.admin_login(request, self)
+
     def get_urls(self):
         extra = [
+            path("login/verify/", self._pre_auth(admin_auth.otp_verify), name="otp_verify"),
+            path("login/set-up/", self._pre_auth(admin_auth.otp_enrol), name="otp_enrol"),
+            path(
+                "login/backup-codes/",
+                self._pre_auth(admin_auth.otp_backup_codes),
+                name="otp_backup_codes",
+            ),
             path(
                 "image-review/",
                 self.admin_view(self.image_review_view),
@@ -28,6 +43,12 @@ class RoseAdminSite(admin.AdminSite):
             ),
         ]
         return extra + super().get_urls()
+
+    def _pre_auth(self, view):
+        def wrapped(request):
+            return view(request, self)
+
+        return wrapped
 
     def image_review_view(self, request):
         """Read-only overview of every site image and why it is shown or hidden."""

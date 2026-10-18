@@ -6,11 +6,8 @@ account that viewed it, which deters leaking in the first place.
 
 from io import BytesIO
 
-from django.core.cache import caches
 from PIL import Image, ImageDraw, ImageFont
 
-CACHE_ALIAS = "watermarks"
-CACHE_SECONDS = 10 * 60
 OPACITY = 34
 WEBP_QUALITY = 82
 
@@ -52,14 +49,3 @@ def watermark_bytes(image_bytes, label):
     buffer = BytesIO()
     combined.save(buffer, format="WEBP", quality=WEBP_QUALITY, exif=b"", xmp=b"")
     return buffer.getvalue()
-
-
-def cached_watermark(cache_key, image_bytes_loader, label):
-    """Watermarked bytes for one viewer and image, cached briefly and privately."""
-    cache = caches[CACHE_ALIAS]
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached
-    marked = watermark_bytes(image_bytes_loader(), label)
-    cache.set(cache_key, marked, timeout=CACHE_SECONDS)
-    return marked

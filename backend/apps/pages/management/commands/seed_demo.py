@@ -9,11 +9,12 @@ import secrets
 from datetime import datetime, time, timedelta
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.core.models import SeedMarker
 from apps.education.models import Opportunity
 from apps.events.models import RSVP, Event
 from apps.journal.models import Post, PostImage
@@ -313,6 +314,9 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if settings.DJANGO_ENV in settings.DEPLOYED_ENVS:
+            raise CommandError(f"seed_demo never runs in {settings.DJANGO_ENV}.")
+        SeedMarker.objects.get_or_create(pk=1)
         site_settings = SiteSettings.load()
         for field, value in SITE_SETTINGS.items():
             setattr(site_settings, field, value)

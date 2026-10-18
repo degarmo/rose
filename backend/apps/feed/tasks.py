@@ -1,10 +1,13 @@
+from datetime import timedelta
+
 from celery import shared_task
+from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.core.email import send_neutral_mail, site_link
-from apps.core.private_media import private_media
+from apps.core.private_media import WATERMARK_PREFIX, private_media
 
 from . import services
 from .models import DataExport
@@ -64,3 +67,21 @@ def purge_expired_exports():
         export.delete()
         count += 1
     return count
+
+
+@shared_task
+def purge_old_watermarks():
+    """Delete watermarked copies older than WATERMARK_RETENTION_DAYS.
+
+    The private bucket's lifecycle rule does the same; this covers local disk and
+    any bucket where the rule was not set up.
+    """
+    media = private_media()
+    cutoff = timezone.now() - timedelta(days=settings.WATERMARK_RETENTION_DAYS)
+    removed = 0
+    for folder in media.list_dirs(WATERMARK_PREFIX):
+        for name in media.iter_prefix(folder):
+            if media.modified(name) < cutoff:
+                media.storage.delete(name)
+                removed += 1
+    return removed

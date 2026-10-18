@@ -21,6 +21,8 @@ class AuditLog(models.Model):
         DOOR_DESK = "door_desk", "Door desk"
         EXPORT = "export", "Data export"
         PRIVATE_DATA = "private_data", "Private data viewed"
+        SECURITY = "security", "Staff security"
+        OPERATIONS = "operations", "Operations"
 
     category = models.CharField(max_length=20, choices=Category.choices, db_index=True)
     action = models.CharField(max_length=40)
@@ -72,3 +74,15 @@ def audit(
         target_ref=(target_ref or "")[:32],
         reason=reason,
     )
+
+
+class SeedMarker(models.Model):
+    """Written by seed_demo. Its presence stops staging and production from starting."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "demo seed marker"
+
+    def __str__(self):
+        return f"Demo data loaded {self.created_at:%Y-%m-%d}"

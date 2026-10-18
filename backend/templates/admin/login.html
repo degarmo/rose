@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/login.css' %}">{% endblock %}
+{% block bodyclass %}{{ block.super }} login{% endblock %}
+{% block usertools %}{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block content %}
+{% if error %}<p class="errornote">{{ error }}</p>{% elif form.errors %}<p class="errornote">{% for e in form.non_field_errors %}{{ e }}{% empty %}Check the email and password.{% endfor %}</p>{% endif %}
+<div id="content-main">
+  <form action="{{ app_path }}" method="post" id="login-form">{% csrf_token %}
+    <div class="form-row">
+      <label class="required" for="id_username">Email</label>
+      <input type="email" name="username" id="id_username" autocomplete="username" required autofocus value="{{ form.username.value|default:'' }}">
+    </div>
+    <div class="form-row">
+      <label class="required" for="id_password">Password</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+      <input type="hidden" name="next" value="{{ next }}">
+    </div>
+    <div class="submit-row"><input type="submit" value="Continue"></div>
+  </form>
+  <p class="help">Staff accounts also need a code from an authenticator app.</p>
+</div>
+{% endblock %}

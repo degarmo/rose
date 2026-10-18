@@ -12,8 +12,8 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile, File
 from django.db import transaction
 from django.utils import timezone
-from PIL import Image, UnidentifiedImageError
 
+from apps.core import images
 from apps.core.models import AuditLog, audit
 from apps.core.private_media import private_media
 
@@ -87,16 +87,12 @@ def step_away(user):
 
 
 def validate_upload(upload):
-    if upload.size > settings.FEED_MAX_UPLOAD_BYTES:
-        raise FeedError("image_too_large", "Each image must be under 15 MB.")
+    """Checked before the raw file is stored: size, real format and pixel dimensions."""
     try:
-        upload.seek(0)
-        with Image.open(upload) as probe:
-            probe.verify()
-    except (UnidentifiedImageError, OSError) as exc:
-        raise FeedError("image_invalid", "One of the files is not an image we can use.") from exc
-    finally:
-        upload.seek(0)
+        images.validate_upload(upload)
+    except ValidationError as exc:
+        code = "image_too_large" if exc.message == images.TOO_BIG else "image_invalid"
+        raise FeedError(code, exc.message) from exc
 
 
 def _first_posts_need_review(author):
@@ -541,6 +537,9 @@ def erase_feed_data(user):
         for export in DataExport.objects.filter(user=user):
             media.delete(export.file_name)
         DataExport.objects.filter(user=user).delete()
+
+        # Copies of other members' photos that carry this person's name.
+        media.delete_viewer_copies(user.pk)
 
         profile = user.profile
         media.delete(profile.avatar.name)

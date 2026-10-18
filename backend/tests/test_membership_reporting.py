@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from apps.core.models import AuditLog
 from apps.memberships.models import Payment
+from tests.conftest import staff_login
 
 pytestmark = pytest.mark.django_db
 
@@ -41,7 +42,7 @@ def test_summary_needs_view_permission(client, django_user_model):
     staff = django_user_model.objects.create_user(
         email="s@example.org", display_name="no_perms", password="pw-123456789", is_staff=True
     )
-    client.force_login(staff)
+    staff_login(client, staff)
     assert client.get(reverse("admin:memberships_summary")).status_code == 403
 
 
@@ -50,7 +51,7 @@ def rows(response):
 
 
 def test_export_is_logged_and_has_no_emails(client, desk_staff, members):
-    client.force_login(desk_staff)
+    staff_login(client, desk_staff)
     response = client.post(reverse("admin:memberships_export"))
     assert response.status_code == 200
     assert "no-store" in response["Cache-Control"]
@@ -66,7 +67,7 @@ def test_export_is_logged_and_has_no_emails(client, desk_staff, members):
 def test_only_superusers_can_include_email_and_it_is_logged(
     client, desk_staff, admin_client, members
 ):
-    client.force_login(desk_staff)
+    staff_login(client, desk_staff)
     assert (
         client.post(reverse("admin:memberships_export"), {"include_email": "on"}).status_code == 403
     )

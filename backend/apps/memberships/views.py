@@ -91,6 +91,8 @@ class JoinView(CsrfProtectedAPIView):
 class CheckoutView(CsrfProtectedAPIView):
     """Pay online for your current membership: a retry after a failure, or a renewal."""
 
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -105,6 +107,7 @@ class CheckoutView(CsrfProtectedAPIView):
 
 
 class CancelView(CsrfProtectedAPIView):
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -119,6 +122,7 @@ class CancelView(CsrfProtectedAPIView):
 
 
 class AutoRenewView(CsrfProtectedAPIView):
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
     permission_classes = [IsAuthenticated]
 
     def post(self, request):

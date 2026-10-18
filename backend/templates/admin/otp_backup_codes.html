@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <h1>Your backup codes</h1>
+  <p>If you lose your phone, each of these codes lets you log in once. Write them down or keep them in a password manager. They will not be shown again.</p>
+  <ul>{% for code in codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul>
+  <p>Never photograph or share these codes.</p>
+  <p><a class="button" href="{% url 'admin:index' %}">I have saved them</a></p>
+</div>
+{% endblock %}

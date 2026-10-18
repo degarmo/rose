@@ -5,6 +5,7 @@ still reach them. They are hidden (404) from anyone with no feed entitlement
 and no feed history.
 """
 
+from django.conf import settings
 from django.http import FileResponse, Http404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -22,6 +23,8 @@ class FeedAccountBase(CsrfProtectedAPIView):
     permission_classes = [IsAuthenticated]
 
     def initial(self, request, *args, **kwargs):
+        if not settings.FEED_ENABLED:
+            raise Http404
         super().initial(request, *args, **kwargs)
         if not access.feed_account_visible(request.user):
             raise Http404
@@ -97,6 +100,8 @@ class StepAwayView(FeedAccountBase):
 
 
 class EraseView(FeedAccountBase):
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
+
     def post(self, request):
         if str(request.data.get("display_name", "")) != request.user.display_name:
             return Response(
@@ -112,6 +117,8 @@ class EraseView(FeedAccountBase):
 
 
 class ExportView(FeedAccountBase):
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
+
     def post(self, request):
         services.request_export(request.user)
         return Response(account_feed_payload(request.user), status=status.HTTP_202_ACCEPTED)
@@ -119,6 +126,8 @@ class ExportView(FeedAccountBase):
 
 class ExportDownloadView(CsrfProtectedAPIView):
     """Single-use zip download. The token is the credential, so no sign-in is needed."""
+
+    write_limit = "TOKEN_RATE_LIMIT"
 
     def post(self, request):
         export = services.claim_export(str(request.data.get("token", "")))

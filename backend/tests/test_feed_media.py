@@ -101,17 +101,17 @@ def test_watermark_applied_when_enabled(member_client, photo, settings):
     client, viewer = member_client(display_name="watching_one")
     response = client.get(photo["url"])
     assert response.status_code == 200
-    marked = response.content
+    marked = b"".join(response.streaming_content)
     original = private_media().read(photo["image"].image.name)
     assert marked != original
     with Image.open(BytesIO(marked)) as marked_image, Image.open(BytesIO(original)) as source:
         assert marked_image.size == source.size
         assert marked_image.format == "WEBP"
         assert len(marked_image.getexif()) == 0
-    assert client.get(photo["url"]).content == marked
+    assert b"".join(client.get(photo["url"]).streaming_content) == marked
 
     other, _ = member_client(display_name="another_one")
-    assert other.get(photo["url"]).content != marked
+    assert b"".join(other.get(photo["url"]).streaming_content) != marked
 
 
 def test_avatar_media_rules(member_client, image_upload):

@@ -145,7 +145,6 @@ def test_no_public_endpoint_leaks_private_values(member, api_client):
         "/api/faqs/",
         "/api/education/opportunities/",
         "/api/education/opportunities/class/",
-        "/api/health/",
         "/api/csrf/",
     ]
     for url in endpoints:

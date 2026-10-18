@@ -302,10 +302,8 @@ class MembershipAdmin(admin.ModelAdmin):
             "results": results,
             "searched": bool(query.strip()),
         }
-        response = TemplateResponse(request, "admin/memberships/door_desk.html", context)
-        # The camera is allowed on this one page, for scanning reference codes.
-        response["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
-        return response
+        # The camera policy for this page is set by PrivacyHeadersMiddleware.
+        return TemplateResponse(request, "admin/memberships/door_desk.html", context)
 
     def _handle_desk_action(self, request):
         """Returns {membership_pk: name} for a signature reveal, or None after an action."""

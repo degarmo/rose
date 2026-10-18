@@ -1,13 +1,13 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 
+from apps.core import spa
 from apps.core import views as core_views
 
 api_patterns = [
     path("csrf/", core_views.csrf_token, name="csrf"),
-    path("health/", core_views.health, name="health"),
     path("", include("apps.pages.urls")),
     path("education/", include("apps.education.urls")),
     path("contact/", include("apps.contact.urls")),
@@ -28,3 +28,6 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Last: every other path is a client-side route of the single-page app.
+urlpatterns += [re_path(r"^(?P<path>.*)$", spa.spa, name="spa")]

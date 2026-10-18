@@ -9,14 +9,22 @@ from apps.core.ratelimit import client_ip, hashed_ip_key
 pytestmark = pytest.mark.django_db
 
 
-def test_robots_txt_disallows_everything_on_api_host(client):
+def test_robots_txt_is_closed_outside_production(client):
     response = client.get("/robots.txt")
     assert response.status_code == 200
     assert response["Content-Type"].startswith("text/plain")
     assert response.content.decode() == "User-agent: *\nDisallow: /\n"
 
 
-@pytest.mark.parametrize("url", ["/api/health/", "/api/faqs/", "/admin/login/", "/members/x"])
+def test_production_robots_lists_private_paths_but_never_the_admin(client, settings):
+    settings.DJANGO_ENV = "production"
+    settings.ADMIN_PATH = "staff-a8f3/"
+    body = client.get("/robots.txt").content.decode()
+    assert "Disallow: /members" in body and "Disallow: /account" in body
+    assert "staff-a8f3" not in body and "admin" not in body
+
+
+@pytest.mark.parametrize("url", ["/api/csrf/", "/api/faqs/", "/admin/login/", "/members/x"])
 def test_private_paths_are_noindex(client, url):
     response = client.get(url)
     assert response["X-Robots-Tag"] == "noindex, nofollow"
@@ -31,12 +39,12 @@ def test_robots_txt_has_no_robots_header(client):
 
 
 def test_security_headers_present(client):
-    response = client.get("/api/health/")
+    response = client.get("/api/csrf/")
     csp = response["Content-Security-Policy"]
     assert "default-src 'self'" in csp
     assert "frame-ancestors 'none'" in csp
     assert response["X-Frame-Options"] == "DENY"
-    assert response["Referrer-Policy"] == "same-origin"
+    assert response["Referrer-Policy"] == "no-referrer"
     assert "geolocation=()" in response["Permissions-Policy"]
 
 
@@ -50,7 +58,10 @@ def test_csrf_endpoint_returns_token_and_httponly_cookie(client):
 
 
 def test_health(client):
-    assert client.get("/api/health/").json() == {"status": "ok"}
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.content == b"ok"
+    assert response["Cache-Control"] == "no-store"
 
 
 def test_password_hashing_and_cookie_baseline():

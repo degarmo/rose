@@ -1,3 +1,5 @@
+import json
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -138,13 +140,9 @@ def admin_user(django_user_model):
 
 @pytest.fixture
 def private_root(settings, tmp_path):
-    """Private media goes to a temp folder; watermark cache stays in memory."""
+    """Private media, including watermarked copies, goes to a temp folder."""
     root = tmp_path / "private"
     settings.PRIVATE_MEDIA_ROOT = root
-    settings.CACHES = {
-        **settings.CACHES,
-        "watermarks": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
-    }
     return root
 
 
@@ -278,3 +276,112 @@ def desk_staff(django_user_model):
         )
     )
     return user
+
+
+def staff_login(client, user):
+    """Log a staff member in as if they had passed the two-step check."""
+    from django_otp import DEVICE_ID_SESSION_KEY
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    device = TOTPDevice.objects.filter(user=user, confirmed=True).first()
+    if device is None:
+        device = TOTPDevice.objects.create(user=user, name="Test app", confirmed=True)
+    # Permission changes raise the session epoch; log in with the current one.
+    user.refresh_from_db()
+    client.force_login(user)
+    session = client.session
+    session[DEVICE_ID_SESSION_KEY] = device.persistent_id
+    session.save()
+    return client
+
+
+@pytest.fixture
+def admin_client(admin_user):
+    """pytest-django's admin_client (its own Client), plus a verified second step."""
+    from django.test import Client
+
+    return staff_login(Client(), admin_user)
+
+
+S3_TEST_ENDPOINT = os.environ.get("S3_TEST_ENDPOINT", "http://localhost:9000")
+S3_TEST_KEY = os.environ.get("S3_TEST_ACCESS_KEY", "minio-local")
+S3_TEST_SECRET = os.environ.get("S3_TEST_SECRET_KEY", "minio-local-secret")
+
+
+@pytest.fixture
+def s3(settings, tmp_path):
+    """Real S3 storage on the local MinIO, with fresh public and private buckets.
+
+    Start it with `docker compose up -d minio`. CI sets REQUIRE_S3_TESTS=1, which
+    turns a missing MinIO into a failure instead of a skip.
+    """
+    import uuid
+
+    import boto3
+    from botocore.config import Config
+    from botocore.exceptions import BotoCoreError, ClientError
+
+    client = boto3.client(
+        "s3",
+        endpoint_url=S3_TEST_ENDPOINT,
+        aws_access_key_id=S3_TEST_KEY,
+        aws_secret_access_key=S3_TEST_SECRET,
+        region_name="us-east-1",
+        config=Config(
+            connect_timeout=2, retries={"max_attempts": 1}, s3={"addressing_style": "path"}
+        ),
+    )
+    try:
+        client.list_buckets()
+    except (BotoCoreError, ClientError) as exc:
+        if os.environ.get("REQUIRE_S3_TESTS"):
+            pytest.fail(f"MinIO is required here but unreachable: {exc}")
+        pytest.skip("MinIO is not running (docker compose up -d minio)")
+
+    run = uuid.uuid4().hex[:10]
+    public, private = f"t{run}-public", f"t{run}-private"
+    client.create_bucket(Bucket=public)
+    client.create_bucket(Bucket=private)
+    client.put_bucket_policy(
+        Bucket=public,
+        Policy=json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"AWS": ["*"]},
+                        "Action": ["s3:GetObject"],
+                        "Resource": [f"arn:aws:s3:::{public}/*"],
+                    }
+                ],
+            }
+        ),
+    )
+    settings.STORAGE_BACKEND = "s3"
+    settings.S3_ENDPOINT_URL = S3_TEST_ENDPOINT
+    settings.S3_BROWSER_ENDPOINT_URL = S3_TEST_ENDPOINT
+    settings.S3_REGION = "us-east-1"
+    settings.S3_ACCESS_KEY_ID = S3_TEST_KEY
+    settings.S3_SECRET_ACCESS_KEY = S3_TEST_SECRET
+    settings.S3_PUBLIC_BUCKET = public
+    settings.S3_PRIVATE_BUCKET = private
+    settings.S3_PUBLIC_BASE_URL = f"{S3_TEST_ENDPOINT}/{public}"
+    settings.S3_ADDRESSING_STYLE = "path"
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "default": {"BACKEND": "apps.core.storage.PublicS3Storage"},
+        "private": {"BACKEND": "apps.core.storage.PrivateS3Storage"},
+    }
+    settings.PRIVATE_MEDIA_ROOT = tmp_path / "unused-private"
+
+    def keys(bucket, prefix=""):
+        pages = client.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix=prefix)
+        return sorted(item["Key"] for page in pages for item in page.get("Contents", []))
+
+    yield type("S3", (), {"client": client, "public": public, "private": private, "keys": keys})
+
+    for bucket in (public, private):
+        for key in keys(bucket):
+            client.delete_object(Bucket=bucket, Key=key)
+        client.delete_bucket(Bucket=bucket)

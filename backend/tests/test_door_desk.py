@@ -10,6 +10,7 @@ from django.utils import timezone
 from apps.core.models import AuditLog
 from apps.memberships import desk
 from apps.memberships.models import AgreementSignature, IdCheck, Membership, Payment
+from tests.conftest import staff_login
 
 pytestmark = pytest.mark.django_db
 TYPED = "Morgan Legalname"
@@ -17,7 +18,7 @@ TYPED = "Morgan Legalname"
 
 @pytest.fixture
 def desk_client(client, desk_staff):
-    client.force_login(desk_staff)
+    staff_login(client, desk_staff)
     return client
 
 
@@ -83,8 +84,15 @@ def test_desk_needs_permission(client, django_user_model):
     plain_staff = django_user_model.objects.create_user(
         email="s@example.org", display_name="plain_staff", password="pw-123456789", is_staff=True
     )
-    client.force_login(plain_staff)
+    staff_login(client, plain_staff)
     assert client.get(desk_url()).status_code == 403
+
+
+def test_desk_needs_the_two_step_check(client, desk_staff):
+    client.force_login(desk_staff)
+    response = client.get(desk_url())
+    assert response.status_code == 302
+    assert response["Location"].startswith(reverse("admin:login"))
 
 
 # Actions

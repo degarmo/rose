@@ -13,7 +13,6 @@ from rest_framework.response import Response
 from apps.accounts.models import User, feed_visible_q
 from apps.core.private_media import private_media
 from apps.core.text import caption_to_html
-from apps.core.watermark import cached_watermark
 
 from . import access, services
 from .api import FeedAPIView
@@ -374,18 +373,14 @@ def guidelines_payload(guidelines):
 # Private media
 
 
-def deliver_image(request, file_name, cache_key):
+def deliver_image(request, file_name):
     media = private_media()
     if not media.exists(file_name):
         raise Http404
     if not settings.FEED_WATERMARK:
         return media.deliver(request, file_name)
-    today = timezone.localdate().isoformat()
-    label = f"{request.user.display_name}  {today}"
-    content = cached_watermark(
-        f"{cache_key}:{request.user.pk}:{today}", lambda: media.read(file_name), label
-    )
-    return media.deliver(request, file_name, content=content)
+    label = f"{request.user.display_name}  {timezone.localdate().isoformat()}"
+    return media.deliver_watermarked(request, file_name, request.user.pk, label)
 
 
 class MediaView(FeedAPIView):
@@ -402,7 +397,7 @@ class MediaView(FeedAPIView):
             raise Http404
         if not image.image_is_displayable("image") and image.post.author_id != request.user.pk:
             raise Http404
-        return deliver_image(request, image.image.name, f"img:{image.public_id}")
+        return deliver_image(request, image.image.name)
 
 
 class AvatarMediaView(FeedAPIView):
@@ -414,4 +409,4 @@ class AvatarMediaView(FeedAPIView):
             profile.hidden_by_report or not profile.image_is_displayable("avatar")
         ):
             raise Http404
-        return deliver_image(request, profile.avatar.name, f"avatar:{key}")
+        return deliver_image(request, profile.avatar.name)

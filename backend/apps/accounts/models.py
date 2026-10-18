@@ -2,8 +2,9 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.core.validators import RegexValidator
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
+from django.utils.crypto import salted_hmac
 
 from apps.core.consent_images import consented_image
 from apps.core.private_media import private_storage
@@ -22,6 +23,7 @@ PRIVATE_USER_FIELDS = frozenset(
         "is_superuser",
         "is_staff",
         "email_verified_at",
+        "session_epoch",
     }
 )
 
@@ -85,6 +87,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    # Part of the session hash: raising it ends every session this person has
+    # ("Sign out everywhere", and any change to staff or active status).
+    session_epoch = models.PositiveIntegerField(default=0, editable=False)
 
     objects = UserManager()
 
@@ -103,6 +108,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_full_name(self):
         return self.display_name
+
+    def _get_session_auth_hash(self, secret=None):
+        key_salt = "apps.accounts.User.session_auth_hash"
+        return salted_hmac(
+            key_salt, f"{self.password}:{self.session_epoch}", secret=secret, algorithm="sha256"
+        ).hexdigest()
+
+    def sign_out_everywhere(self):
+        User.objects.filter(pk=self.pk).update(session_epoch=F("session_epoch") + 1)
+        self.refresh_from_db(fields=["session_epoch"])
 
     @property
     def email_verified(self):

@@ -47,6 +47,8 @@ def after_commit(task, *args):
 class SessionView(CsrfProtectedAPIView):
     """Who is signed in. Returns `user: null` rather than an error when nobody is."""
 
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
+
     def get(self, request):
         return Response(session_payload(request))
 
@@ -90,6 +92,8 @@ class RegisterView(CsrfProtectedAPIView):
 
 
 class VerifyEmailView(CsrfProtectedAPIView):
+    write_limit = "TOKEN_RATE_LIMIT"
+
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -149,6 +153,18 @@ class LogoutView(CsrfProtectedAPIView):
         return Response(session_payload(request))
 
 
+class SignOutEverywhereView(CsrfProtectedAPIView):
+    """Ends every session this account has, on every device, including this one."""
+
+    permission_classes = [IsAuthenticated]
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
+
+    def post(self, request):
+        request.user.sign_out_everywhere()
+        logout(request)
+        return Response(session_payload(request))
+
+
 class PasswordResetRequestView(CsrfProtectedAPIView):
     def post(self, request):
         email = str(request.data.get("email", ""))
@@ -172,6 +188,8 @@ class PasswordResetRequestView(CsrfProtectedAPIView):
 
 
 class PasswordResetConfirmView(CsrfProtectedAPIView):
+    write_limit = "TOKEN_RATE_LIMIT"
+
     def post(self, request):
         user = user_from_reset_params(
             str(request.data.get("uid", "")), str(request.data.get("token", ""))
@@ -193,6 +211,7 @@ class PasswordResetConfirmView(CsrfProtectedAPIView):
 
 
 class ChangePasswordView(CsrfProtectedAPIView):
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -206,6 +225,7 @@ class ChangePasswordView(CsrfProtectedAPIView):
 
 
 class DeleteAccountView(CsrfProtectedAPIView):
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
     permission_classes = [IsAuthenticated]
 
     def post(self, request):

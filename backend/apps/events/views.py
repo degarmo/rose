@@ -100,6 +100,8 @@ class EventDetailView(generics.RetrieveAPIView):
 class EventRSVPView(CsrfProtectedAPIView):
     """POST to RSVP or change party size and note; DELETE to cancel."""
 
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
+
     permission_classes = [IsAuthenticated]
 
     def get_event(self, slug):
@@ -137,6 +139,8 @@ class EventRSVPView(CsrfProtectedAPIView):
 
 class CancelByTokenView(CsrfProtectedAPIView):
     """Cancel from the link in an email, without signing in."""
+
+    write_limit = "TOKEN_RATE_LIMIT"
 
     def post(self, request):
         rsvp = rsvp_from_cancel_token(str(request.data.get("token", "")))

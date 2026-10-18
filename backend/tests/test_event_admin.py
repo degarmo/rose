@@ -9,6 +9,7 @@ from django.utils import timezone
 from apps.events.models import RSVP, AttendeeExport, Event
 from apps.events.recurrence import repeat_weekly
 from apps.events.services import submit_rsvp
+from tests.conftest import staff_login
 
 pytestmark = pytest.mark.django_db
 
@@ -115,9 +116,12 @@ def test_csv_export_is_logged_and_formula_safe(admin_client, admin_user, make_ev
 def test_door_list_requires_permissions(client, make_user, make_event):
     event = make_event()
     staff = make_user(is_staff=True)
-    client.force_login(staff)
+    staff_login(client, staff)
     assert client.get(f"/admin/events/event/{event.pk}/door/").status_code == 403
     staff.user_permissions.add(Permission.objects.get(codename="view_rsvp"))
+    # A permission change ends existing sessions; sign in again.
+    assert client.get(f"/admin/events/event/{event.pk}/door/").status_code == 302
+    staff_login(client, staff)
     assert client.get(f"/admin/events/event/{event.pk}/door/").status_code == 200
     assert client.get(f"/admin/events/event/{event.pk}/door/export/").status_code == 403
     assert AttendeeExport.objects.count() == 0
