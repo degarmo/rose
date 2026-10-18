@@ -195,7 +195,7 @@ export function Composer({ open, onClose, onPosted }: ComposerProps) {
               <input
                 ref={fileInput}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                 multiple
                 className="sr-only"
                 id="composer-files"

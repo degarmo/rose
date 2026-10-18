@@ -26,7 +26,17 @@ interface ImageManifest {
 const manifest = rawManifest as unknown as ImageManifest
 const byFilename = new Map(manifest.images.map((image) => [image.filename, image]))
 
-export const IMAGE_BASE_PATH = '/images'
+/**
+ * Where site imagery lives: the public bucket in production (the server puts
+ * its address in a meta tag when it serves index.html), /images in development.
+ */
+function siteImagesBase(): string {
+  const meta = typeof document === 'undefined' ? null : document.querySelector('meta[name="rose-site-images"]')
+  const value = meta?.getAttribute('content')?.trim()
+  return (value || '/images/').replace(/\/$/, '')
+}
+
+export const IMAGE_BASE_PATH = siteImagesBase()
 
 /** An image may render only when it shows no faces, or everyone visible consented. */
 export function isDisplayable(image: Pick<ManifestImage, 'faces_visible' | 'consent_confirmed'>) {

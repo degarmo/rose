@@ -364,6 +364,7 @@ export const api = {
   changeDisplayName: (display_name: string) =>
     send<Session>('PATCH', '/account/session/', { display_name }),
   deleteAccount: (password: string) => post<Session>('/account/delete/', { password }),
+  signOutEverywhere: () => post<Session>('/account/sign-out-everywhere/'),
   myRSVPs: () => request<MyRSVPItem[]>('/account/rsvps/'),
 
   events: (category: EventCategory | '' = '') =>

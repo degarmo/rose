@@ -1,8 +1,9 @@
-import { CalendarDays, EyeOff, LogOut, MailWarning, Trash2 } from 'lucide-react'
+import { CalendarDays, EyeOff, LogOut, MailWarning, MonitorSmartphone, Trash2 } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
+import { ConfirmDialog } from '@/components/members/ConfirmDialog'
 import { Badge, Button, Card, FormField, Input, Modal, Section, useToast } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
 import { formatEventDate } from '@/lib/format'
@@ -135,6 +136,47 @@ function UpcomingRSVPs() {
         </li>
       ))}
     </ul>
+  )
+}
+
+function SignOutEverywhere() {
+  const auth = useAuth()
+  const navigate = useNavigate()
+  const toast = useToast()
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  async function confirm() {
+    setBusy(true)
+    try {
+      auth.applySession(await api.signOutEverywhere())
+      navigate('/account/login', { replace: true })
+    } catch (error) {
+      toast.show({ tone: 'error', title: 'That did not work', message: error instanceof Error ? error.message : undefined })
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <p className="leading-relaxed text-fg-muted">
+        Lost a phone, or signed in on a shared computer? This signs you out on every device, including this one.
+      </p>
+      <Button variant="ghost" className="mt-6" onClick={() => setOpen(true)}>
+        <MonitorSmartphone aria-hidden="true" className="size-4" />
+        Sign out everywhere
+      </Button>
+      <ConfirmDialog
+        open={open}
+        title="Sign out everywhere?"
+        confirmLabel="Sign out everywhere"
+        busy={busy}
+        onClose={() => setOpen(false)}
+        onConfirm={() => void confirm()}
+      >
+        <p>Every device signed in to this account will need your password again, including this one.</p>
+      </ConfirmDialog>
+    </>
   )
 }
 
@@ -296,6 +338,9 @@ export function AccountPage() {
         </Panel>
         <Panel id="password" title="Password">
           <PasswordForm />
+        </Panel>
+        <Panel id="sessions" title="Devices">
+          <SignOutEverywhere />
         </Panel>
         <Panel id="delete" title="Delete account">
           <DeleteAccount />
