@@ -8,7 +8,6 @@ post status. Nothing here is ever deleted by opting out; only erasure deletes.
 import secrets
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Max, Q
 
@@ -357,55 +356,16 @@ class Report(models.Model):
         ]
 
 
-class ImmutableQuerySet(models.QuerySet):
-    def update(self, **kwargs):
-        raise ValidationError("Moderation actions cannot be changed.")
+class ModerationActionType(models.TextChoices):
+    """Moderation actions, recorded in core.AuditLog under the moderation category."""
 
-    def delete(self):
-        raise ValidationError("Moderation actions cannot be deleted.")
-
-
-class ModerationAction(models.Model):
-    """Append-only log of every moderation decision."""
-
-    class Action(models.TextChoices):
-        APPROVE = "approve", "Approve"
-        REMOVE = "remove", "Remove"
-        DISMISS = "dismiss", "Dismiss report"
-        WARN = "warn", "Warn"
-        SUSPEND = "suspend", "Suspend"
-        BAN = "ban", "Ban"
-        ERASE = "erase", "Erase member content"
-
-    actor = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    actor_label = models.CharField(max_length=30)
-    target_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    target_label = models.CharField(max_length=120)
-    target_type = models.CharField(max_length=10)
-    target_ref = models.CharField(max_length=32, blank=True)
-    action = models.CharField(max_length=10, choices=Action.choices)
-    reason = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = ImmutableQuerySet.as_manager()
-
-    class Meta:
-        ordering = ["-created_at", "-pk"]
-
-    def __str__(self):
-        return f"{self.get_action_display()}: {self.target_label} by {self.actor_label}"
-
-    def save(self, *args, **kwargs):
-        if self.pk is not None:
-            raise ValidationError("Moderation actions cannot be changed.")
-        super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        raise ValidationError("Moderation actions cannot be deleted.")
+    APPROVE = "approve", "Approve"
+    REMOVE = "remove", "Remove"
+    DISMISS = "dismiss", "Dismiss report"
+    WARN = "warn", "Warn"
+    SUSPEND = "suspend", "Suspend"
+    BAN = "ban", "Ban"
+    ERASE = "erase", "Erase member content"
 
 
 class DataExport(models.Model):

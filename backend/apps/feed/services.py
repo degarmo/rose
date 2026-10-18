@@ -14,6 +14,7 @@ from django.db import transaction
 from django.utils import timezone
 from PIL import Image, UnidentifiedImageError
 
+from apps.core.models import AuditLog, audit
 from apps.core.private_media import private_media
 
 from . import access
@@ -29,7 +30,7 @@ from .models import (
     Follow,
     Guidelines,
     GuidelinesAcceptance,
-    ModerationAction,
+    ModerationActionType,
     Mute,
     Notification,
     Report,
@@ -384,14 +385,14 @@ def _log(actor, action, target_type, target, target_user, reason=""):
         "user": lambda t: f"Member {t.display_name}",
     }[target_type](target)
     ref = getattr(target, "public_id", "") or getattr(target, "display_name", "")
-    return ModerationAction.objects.create(
-        actor=actor,
-        actor_label=actor.display_name,
+    return audit(
+        AuditLog.Category.MODERATION,
+        action,
+        actor,
+        label,
+        target_type,
         target_user=target_user,
-        target_label=label[:120],
-        target_type=target_type,
-        target_ref=ref[:32],
-        action=action,
+        target_ref=ref,
         reason=reason,
     )
 
@@ -405,8 +406,8 @@ def _resolve_reports(target_type, target, resolution):
 
 
 def moderate(actor, action, target_type, target, reason="", days=None):
-    """Apply one moderation decision and log it. Returns the ModerationAction."""
-    A = ModerationAction.Action
+    """Apply one moderation decision and log it. Returns the AuditLog entry."""
+    A = ModerationActionType
     # Reports may have changed the target since it was loaded.
     target.refresh_from_db()
     if target_type in ("profile", "user"):
@@ -511,7 +512,7 @@ def moderate(actor, action, target_type, target, reason="", days=None):
 def staff_erase(actor, user, confirmation):
     if confirmation != user.display_name:
         raise FeedError("confirm", "Type the member's display name exactly to confirm.")
-    action = _log(actor, ModerationAction.Action.ERASE, "user", user, user, "Erased by staff")
+    action = _log(actor, ModerationActionType.ERASE, "user", user, user, "Erased by staff")
     from .tasks import erase_member_feed
 
     on_commit(lambda: erase_member_feed.delay(user.pk, notify=False))

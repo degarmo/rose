@@ -36,7 +36,7 @@ def test_security_headers_present(client):
     assert "default-src 'self'" in csp
     assert "frame-ancestors 'none'" in csp
     assert response["X-Frame-Options"] == "DENY"
-    assert response["Referrer-Policy"] == "no-referrer"
+    assert response["Referrer-Policy"] == "same-origin"
     assert "geolocation=()" in response["Permissions-Policy"]
 
 

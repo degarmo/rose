@@ -1,8 +1,9 @@
 import pytest
 from django.core.exceptions import ValidationError
 
+from apps.core.models import AuditLog
 from apps.feed import services
-from apps.feed.models import FeedComment, FeedPost, ModerationAction, Notification, Report
+from apps.feed.models import FeedComment, FeedPost, Notification, Report
 
 pytestmark = pytest.mark.django_db
 
@@ -105,9 +106,10 @@ def test_moderation_actions_and_log(member_client, make_post, admin_user):
     services.moderate(admin_user, "suspend", "user", author, days=3)
     assert author_client.get("/api/members/feed/").status_code == 404
 
-    log = list(ModerationAction.objects.order_by("created_at").values_list("action", flat=True))
+    log = list(AuditLog.objects.order_by("created_at").values_list("action", flat=True))
     assert log == ["dismiss", "remove", "warn", "suspend"]
-    assert all(a.actor_label == "house_admin" for a in ModerationAction.objects.all())
+    assert all(a.actor_label == "house_admin" for a in AuditLog.objects.all())
+    assert set(AuditLog.objects.values_list("category", flat=True)) == {"moderation"}
 
 
 def test_ban_hides_content_and_access(member_client, make_post, admin_user):
@@ -129,20 +131,20 @@ def test_moderation_log_is_immutable(admin_user, make_member):
     with pytest.raises(ValidationError):
         action.delete()
     with pytest.raises(ValidationError):
-        ModerationAction.objects.all().delete()
+        AuditLog.objects.all().delete()
     with pytest.raises(ValidationError):
-        ModerationAction.objects.update(reason="x")
-    assert ModerationAction.objects.get().reason == ""
+        AuditLog.objects.update(reason="x")
+    assert AuditLog.objects.get().reason == ""
 
 
 def test_moderation_log_read_only_in_admin(admin_client, admin_user, make_member):
     action = services.moderate(admin_user, "warn", "user", make_member())
-    url = f"/admin/feed/moderationaction/{action.pk}/change/"
-    assert admin_client.get("/admin/feed/moderationaction/add/").status_code == 403
+    url = f"/admin/core/auditlog/{action.pk}/change/"
+    assert admin_client.get("/admin/core/auditlog/add/").status_code == 403
     assert admin_client.post(url, {"reason": "edited"}).status_code == 403
-    delete_url = f"/admin/feed/moderationaction/{action.pk}/delete/"
+    delete_url = f"/admin/core/auditlog/{action.pk}/delete/"
     assert admin_client.post(delete_url, {"post": "yes"}).status_code == 403
-    assert ModerationAction.objects.filter(pk=action.pk).exists()
+    assert AuditLog.objects.filter(pk=action.pk).exists()
 
 
 def test_moderation_queue_view(admin_client, member_client, make_post, settings):
@@ -167,7 +169,7 @@ def test_moderation_queue_view(admin_client, member_client, make_post, settings)
     )
     pending.refresh_from_db()
     assert pending.status == FeedPost.Status.PUBLISHED
-    assert ModerationAction.objects.filter(action="approve").exists()
+    assert AuditLog.objects.filter(action="approve").exists()
     assert Notification.objects.filter(recipient=author, kind="moderation").exists()
 
 
@@ -184,4 +186,37 @@ def test_staff_erase_needs_confirmation(admin_client, member_client, make_post):
         {"target_type": "user", "target_ref": "erase_me", "action": "erase", "confirm": "erase_me"},
     )
     assert not FeedPost.objects.filter(pk=post.pk).exists()
-    assert ModerationAction.objects.filter(action="erase").exists()
+    assert AuditLog.objects.filter(action="erase").exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_moderation_log_migrates_into_audit_log_without_loss():
+    from datetime import timedelta
+
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
+    from django.utils import timezone
+
+    executor = MigrationExecutor(connection)
+    executor.migrate([("feed", "0002_default_guidelines"), ("core", "0001_audit_log")])
+    old_apps = executor.loader.project_state([("feed", "0002_default_guidelines")]).apps
+    Old = old_apps.get_model("feed", "ModerationAction")
+    when = timezone.now() - timedelta(days=40)
+    old = Old.objects.create(
+        actor_label="moderator_one",
+        target_label="Post abc by someone",
+        target_type="post",
+        target_ref="abc",
+        action="remove",
+        reason="No consent",
+    )
+    Old.objects.filter(pk=old.pk).update(created_at=when)
+
+    executor = MigrationExecutor(connection)
+    executor.loader.build_graph()
+    executor.migrate(executor.loader.graph.leaf_nodes())
+
+    moved = AuditLog.objects.get(target_ref="abc")
+    assert (moved.category, moved.action, moved.reason) == ("moderation", "remove", "No consent")
+    assert moved.actor_label == "moderator_one"
+    assert moved.created_at == when

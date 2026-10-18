@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from apps.accounts.models import Profile, User
+from apps.core.models import AuditLog
 from apps.core.private_media import private_media
 
 from . import services
@@ -19,7 +20,7 @@ from .models import (
     FeedImage,
     FeedPost,
     Guidelines,
-    ModerationAction,
+    ModerationActionType,
     Notification,
     Report,
 )
@@ -63,38 +64,12 @@ class GuidelinesAdmin(admin.ModelAdmin):
             self.message_user(request, f"Published version {drafts[-1].version}.")
 
 
-@admin.register(ModerationAction)
-class ModerationActionAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "action", "target_label", "actor_label", "reason")
-    list_filter = ("action", "target_type")
-    search_fields = ("target_label", "actor_label", "reason")
-    fields = (
-        "created_at",
-        "action",
-        "target_type",
-        "target_label",
-        "target_ref",
-        "actor_label",
-        "reason",
-    )
-    readonly_fields = fields
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-
 class ModerationForm(forms.Form):
     target_type = forms.ChoiceField(
         choices=[("post", "Post"), ("comment", "Comment"), ("profile", "Profile"), ("user", "User")]
     )
     target_ref = forms.CharField(max_length=40)
-    action = forms.ChoiceField(choices=ModerationAction.Action.choices)
+    action = forms.ChoiceField(choices=ModerationActionType.choices)
     reason = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 2}))
     days = forms.IntegerField(required=False, min_value=1, max_value=365)
     confirm = forms.CharField(required=False)
@@ -168,7 +143,7 @@ class FeedPostAdmin(admin.ModelAdmin):
             data = form.cleaned_data
             target = resolve_target(data["target_type"], data["target_ref"])
             try:
-                if data["action"] == ModerationAction.Action.ERASE:
+                if data["action"] == ModerationActionType.ERASE:
                     member = target if isinstance(target, User) else target.author
                     services.staff_erase(request.user, member, data["confirm"])
                 else:
@@ -223,8 +198,8 @@ class FeedPostAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
             "pending": pending,
             "report_groups": report_groups,
-            "actions_log": ModerationAction.objects.all()[:50],
-            "action_choices": ModerationAction.Action.choices,
+            "actions_log": AuditLog.objects.filter(category=AuditLog.Category.MODERATION)[:50],
+            "action_labels": dict(ModerationActionType.choices),
         }
         return TemplateResponse(request, "admin/feed/moderation.html", context)
 
