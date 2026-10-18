@@ -67,7 +67,8 @@ class ConsentImageMixin(models.Model):
         for field in consent_image_field_names(self):
             if not getattr(self, field):
                 continue
-            if not getattr(self, f"{field}_alt", "").strip():
+            alt_required = getattr(self._meta.get_field(field), "consent_alt_required", True)
+            if alt_required and not getattr(self, f"{field}_alt", "").strip():
                 errors[f"{field}_alt"] = ALT_REQUIRED
             if published and not self.image_is_displayable(field):
                 errors[f"{field}_consent_confirmed"] = CONSENT_REQUIRED
@@ -81,20 +82,34 @@ class ConsentImageMixin(models.Model):
 
 
 @cache
-def consented_image(field, upload_to, required=False):
-    """Build (once) the abstract model that adds `field` and its consent fields."""
+def consented_image(field, upload_to, required=False, storage=None, alt_required=True):
+    """Build (once) the abstract model that adds `field` and its consent fields.
+
+    `storage` is a callable returning a Storage (use private storage for anything
+    members upload). `alt_required=False` keeps alt text encouraged but optional,
+    which is how member uploads work.
+    """
+    image_kwargs = {
+        "upload_to": RandomizedUploadTo(upload_to),
+        "blank": not required,
+        "help_text": "Metadata is stripped and the file renamed on upload.",
+    }
+    if storage is not None:
+        image_kwargs["storage"] = storage
+    image_field = SanitizedImageField(**image_kwargs)
+    image_field.consent_alt_required = alt_required
     attrs = {
         "__module__": __name__,
         "Meta": type("Meta", (), {"abstract": True}),
-        field: SanitizedImageField(
-            upload_to=RandomizedUploadTo(upload_to),
-            blank=not required,
-            help_text="Metadata is stripped and the file renamed on upload.",
-        ),
+        field: image_field,
         f"{field}_alt": models.CharField(
             max_length=200,
             blank=True,
-            help_text="Required when an image is set. Describe what it shows.",
+            help_text=(
+                "Required when an image is set. Describe what it shows."
+                if alt_required
+                else "Encouraged. Describe what it shows."
+            ),
         ),
         f"{field}_faces_visible": models.BooleanField(
             default=False, help_text="Tick if any identifiable face is visible."
@@ -119,11 +134,15 @@ def consent_image_payload(obj, field, request=None):
     }
 
 
-def consent_image_models():
+def consent_image_models(include_private=True):
+    """Models using the pattern. Private (member) uploads are reviewed through
+    moderation, not the public Image review page, so callers can leave them out."""
     from django.apps import apps
 
     return [
         model
         for model in apps.get_models()
-        if issubclass(model, ConsentImageMixin) and consent_image_field_names(model)
+        if issubclass(model, ConsentImageMixin)
+        and consent_image_field_names(model)
+        and (include_private or not getattr(model, "private_media", False))
     ]

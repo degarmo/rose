@@ -27,6 +27,10 @@ env = environ.Env(
     PASSWORD_RESET_RATE_LIMIT_IP=(str, "5/h"),
     PASSWORD_RESET_RATE_LIMIT_EMAIL=(str, "3/h"),
     RSVP_RETENTION_DAYS=(int, 30),
+    FEED_WATERMARK=(bool, True),
+    FEED_PREMODERATION_POSTS=(int, 3),
+    FEED_MAX_POSTS_PER_DAY=(int, 10),
+    FEED_MAX_COMMENTS_PER_HOUR=(int, 60),
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
     EMAIL_SENDER_NAME=(str, "Rose"),
 )
@@ -126,9 +130,13 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = env.path("DJANGO_MEDIA_ROOT", default=BASE_DIR / "media")
+# Member uploads live here. Nothing under it is ever served by URL; only by
+# access-checked views (apps.core.private_media).
+PRIVATE_MEDIA_ROOT = Path(env.str("PRIVATE_MEDIA_ROOT", default=str(BASE_DIR / "private_media")))
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "private": {"BACKEND": "apps.core.private_media.PrivateFileSystemStorage"},
     "staticfiles": {
         "BACKEND": (
             "django.contrib.staticfiles.storage.StaticFilesStorage"
@@ -139,6 +147,15 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Watermarked image variants: short-lived, per viewer, on private disk, never in
+# Redis (which also carries the task queue and must not fill up).
+CACHES["watermarks"] = {
+    "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+    "LOCATION": str(PRIVATE_MEDIA_ROOT / "watermark-cache"),
+    "TIMEOUT": 600,
+    "OPTIONS": {"MAX_ENTRIES": 2000},
+}
 
 # Site imagery lives in the repository, outside the backend folder.
 IMAGE_MANIFEST_PATH = env.path(
@@ -185,6 +202,17 @@ LOGIN_LOCKOUT_SECONDS = 15 * 60
 # --- Events ---------------------------------------------------------------
 RSVP_RETENTION_DAYS = env("RSVP_RETENTION_DAYS")
 
+# --- Member feed ----------------------------------------------------------
+FEED_WATERMARK = env("FEED_WATERMARK")
+FEED_PREMODERATION_POSTS = env("FEED_PREMODERATION_POSTS")
+FEED_MAX_POSTS_PER_DAY = env("FEED_MAX_POSTS_PER_DAY")
+FEED_MAX_COMMENTS_PER_HOUR = env("FEED_MAX_COMMENTS_PER_HOUR")
+FEED_WARNING_COOLDOWN_HOURS = 24
+FEED_EXPORT_TTL_HOURS = 24
+FEED_MAX_IMAGES_PER_POST = 10
+FEED_MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FILES = 12
+
 # --- Celery ---------------------------------------------------------------
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6380/0")
 CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER")
@@ -200,6 +228,10 @@ CELERY_BEAT_SCHEDULE = {
     "purge-old-rsvps": {
         "task": "apps.events.tasks.purge_expired_rsvps",
         "schedule": 60 * 60 * 6,
+    },
+    "purge-expired-exports": {
+        "task": "apps.feed.tasks.purge_expired_exports",
+        "schedule": 60 * 60,
     },
 }
 
@@ -247,7 +279,7 @@ CONTENT_SECURITY_POLICY = {
         "default-src": [SELF],
         "script-src": [SELF],
         "style-src": [SELF],
-        "img-src": [SELF, "data:"],
+        "img-src": [SELF, "data:", "blob:"],
         "font-src": [SELF],
         "connect-src": [SELF],
         "object-src": [NONE],

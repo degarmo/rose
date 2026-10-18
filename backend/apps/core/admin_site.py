@@ -45,7 +45,7 @@ class RoseAdminSite(admin.AdminSite):
         manifest_rows.sort(key=lambda row: (row["status"] == "shown", row["entry"]["filename"]))
 
         upload_rows = []
-        for model in consent_image_models():
+        for model in consent_image_models(include_private=False):
             for field in consent_image_field_names(model):
                 for obj in model.objects.exclude(**{field: ""}):
                     upload_rows.append(

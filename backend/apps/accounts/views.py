@@ -10,6 +10,7 @@ from apps.contact.models import anonymize_messages_from
 from apps.core.api import CsrfProtectedAPIView, too_many_requests
 from apps.core.ratelimit import is_over_limit
 from apps.events.services import release_places_held_by
+from apps.feed.services import erase_feed_data
 
 from . import lockout, tasks
 from .models import User
@@ -213,6 +214,8 @@ class DeleteAccountView(CsrfProtectedAPIView):
         email = user.email
         with transaction.atomic():
             release_places_held_by(user)
+            # The same routine as "Leave and erase", so member files are removed too.
+            erase_feed_data(user)
             anonymize_messages_from(email)
             # Cascades to the profile and every RSVP.
             user.delete()

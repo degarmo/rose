@@ -5,6 +5,11 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.core.consent_images import consented_image
+from apps.core.private_media import private_storage
+
+BIO_MAX_LENGTH = 160
+
 # Fields that identify a real person. They are never serialized to any public
 # or member-facing endpoint; tests/test_privacy.py enforces this.
 PRIVATE_USER_FIELDS = frozenset(
@@ -109,8 +114,13 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.save(update_fields=["email_verified_at"])
 
 
-class Profile(models.Model):
+class Profile(
+    consented_image("avatar", upload_to="avatars", storage=private_storage, alt_required=False)
+):
     """Member-facing presence. Everything social is opt-in and off by default."""
+
+    # Avatars are member uploads: private storage, reviewed through moderation.
+    private_media = True
 
     class Visibility(models.TextChoices):
         PRIVATE = "private", "Private (only me and staff)"
@@ -128,10 +138,47 @@ class Profile(models.Model):
         max_length=16, choices=Visibility.choices, default=Visibility.PRIVATE
     )
     feed_status_changed_at = models.DateTimeField(null=True, blank=True)
+
+    # Entitlement. Staff grant it for comped members and volunteers; it stays
+    # alongside paid membership once that exists.
+    feed_access_granted = models.BooleanField(
+        default=False, help_text="Lets this person use the member feed."
+    )
+    feed_access_granted_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+", editable=False
+    )
+    feed_access_granted_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    joined_feed_at = models.DateTimeField(null=True, blank=True, editable=False)
+    bio = models.CharField(max_length=BIO_MAX_LENGTH, blank=True)
+    avatar_key = models.CharField(max_length=32, blank=True, editable=False)
+    hide_from_directory = models.BooleanField(
+        default=True, help_text="Leave on to stay out of the member directory search."
+    )
+    always_show_sensitive = models.BooleanField(default=False)
+    hidden_by_report = models.BooleanField(
+        default=False, help_text="Avatar, bio and profile page hidden pending review."
+    )
+
+    feed_suspended_until = models.DateTimeField(null=True, blank=True)
+    feed_banned_at = models.DateTimeField(null=True, blank=True)
+    posting_cooldown_until = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Profile for {self.user.display_name}"
+
+    def consent_publish_state(self):
+        return self.participates_in_feed
+
+    @property
+    def is_feed_banned(self):
+        return self.feed_banned_at is not None
+
+    def is_feed_suspended(self, now=None):
+        return bool(
+            self.feed_suspended_until and self.feed_suspended_until > (now or timezone.now())
+        )
 
     def set_feed_participation(self, participates):
         """Opt in or out. Opting out hides content; it never deletes it."""
@@ -146,7 +193,14 @@ def feed_visible_q(author_field="author"):
     """Filter for content whose author currently participates in the feed.
 
     Every feed query must use this, e.g. `Post.objects.filter(feed_visible_q())`.
-    Pass `author_field=None` to filter User rows directly.
+    Pass `author_field=None` to filter User rows directly. Banned members'
+    content is hidden too.
     """
     prefix = f"{author_field}__" if author_field else ""
-    return Q(**{f"{prefix}is_active": True, f"{prefix}profile__participates_in_feed": True})
+    return Q(
+        **{
+            f"{prefix}is_active": True,
+            f"{prefix}profile__participates_in_feed": True,
+            f"{prefix}profile__feed_banned_at__isnull": True,
+        }
+    )
