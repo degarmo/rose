@@ -100,4 +100,5 @@ def test_feed_visible_q_targets_author_relation():
     assert dict(q.children) == {
         "author__is_active": True,
         "author__profile__participates_in_feed": True,
+        "author__profile__feed_banned_at__isnull": True,
     }

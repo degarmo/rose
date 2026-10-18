@@ -1,0 +1,20 @@
+<form method="post" class="mod-form">
+  {% csrf_token %}
+  <input type="hidden" name="target_type" value="{{ target_type }}">
+  <input type="hidden" name="target_ref" value="{{ ref }}">
+  <label>Action
+    <select name="action">
+      <option value="approve">Approve</option>
+      <option value="remove">Remove (reason sent to the author)</option>
+      <option value="dismiss">Dismiss report</option>
+      <option value="warn">Warn the member</option>
+      <option value="suspend">Suspend the member</option>
+      <option value="ban">Ban the member</option>
+      <option value="erase">Erase all of the member's content</option>
+    </select>
+  </label>
+  <label>Reason <input type="text" name="reason" maxlength="400"></label>
+  <label>Days <input type="number" name="days" min="1" max="365"></label>
+  <label>To erase, type their display name <input type="text" name="confirm" autocomplete="off"></label>
+  <button type="submit" class="button">Apply</button>
+</form>

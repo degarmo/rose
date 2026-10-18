@@ -30,7 +30,12 @@ def test_factory_builds_the_four_fields_once():
 
 
 def test_every_image_model_uses_the_pattern():
-    assert set(consent_image_models()) == {Opportunity, Event, PostImage}
+    from apps.accounts.models import Profile
+    from apps.feed.models import FeedImage
+
+    assert set(consent_image_models()) == {Opportunity, Event, PostImage, Profile, FeedImage}
+    # Member uploads are private and reviewed in moderation, not on the public review page.
+    assert set(consent_image_models(include_private=False)) == {Opportunity, Event, PostImage}
     for model in consent_image_models():
         assert issubclass(model, ConsentImageMixin)
     assert consent_image_field_names(PostImage) == ["image"]

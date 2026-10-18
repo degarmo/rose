@@ -1,0 +1,12 @@
+.moderation .intro { max-width: 60rem; }
+.moderation h2 { margin-top: 2rem; }
+.mod-card { border: 1px solid var(--hairline-color); border-radius: 6px; padding: 0.9rem 1rem; margin: 0.75rem 0; max-width: 60rem; background: var(--body-bg); }
+.mod-card.is-hidden { border-left: 4px solid var(--error-fg); }
+.mod-card header { font-size: 0.95rem; }
+.mod-card .flag { color: var(--error-fg); font-weight: 600; margin-left: 0.5rem; }
+.mod-card .thumbs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.6rem 0; }
+.mod-card .thumbs img { width: 140px; height: 140px; object-fit: cover; border-radius: 4px; }
+.mod-card .text { white-space: normal; }
+.mod-card .details { margin: 0.25rem 0; padding-left: 1.2rem; color: var(--body-quiet-color); }
+.mod-form { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: end; margin-top: 0.6rem; }
+.mod-form label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.8rem; }

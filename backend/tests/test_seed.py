@@ -2,6 +2,7 @@ import pytest
 from django.core.management import call_command
 from django.utils import timezone
 
+from apps.accounts.models import User
 from apps.education.models import Opportunity
 from apps.pages.models import FAQItem, SiteSettings
 
@@ -76,3 +77,35 @@ def test_seed_hides_credentials_when_not_debug(capsys, settings):
     out = capsys.readouterr().out
     assert "demo.verified@example.org" not in out
     assert "Demo accounts" not in out
+
+
+def test_seed_member_feed_only_in_debug(settings, private_root, capsys):
+    from apps.feed.models import Block, FeedPost, Follow, Report
+
+    settings.DEBUG = False
+    call_command("seed_demo")
+    assert not FeedPost.objects.exists()
+
+    settings.DEBUG = True
+    call_command("seed_demo")
+    assert "demo.member@example.org" in capsys.readouterr().out
+    participants = User.objects.filter(
+        profile__participates_in_feed=True, profile__feed_banned_at__isnull=True
+    )
+    assert participants.count() >= 8
+    assert User.objects.filter(
+        display_name="stepped_away", profile__participates_in_feed=False
+    ).exists()
+    assert User.objects.filter(
+        display_name="banned_one", profile__feed_banned_at__isnull=False
+    ).exists()
+    assert FeedPost.objects.filter(author__in=participants).count() >= 30
+    assert FeedPost.objects.filter(is_sensitive=True).exists()
+    assert FeedPost.objects.filter(status="pending", author__display_name="brand_new").count() == 2
+    assert Report.objects.filter(resolved_at__isnull=True).count() == 2
+    assert FeedPost.objects.filter(status="hidden_by_report").count() == 1
+    assert Block.objects.count() == 1 and Follow.objects.exists()
+
+    call_command("seed_demo")
+    assert FeedPost.objects.filter(author__in=participants).count() >= 30
+    assert Report.objects.count() == 2

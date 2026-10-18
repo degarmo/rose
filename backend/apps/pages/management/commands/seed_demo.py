@@ -337,6 +337,8 @@ class Command(BaseCommand):
         users = self.seed_users()
         events = self.seed_events(users)
         post_count = self.seed_journal(events)
+        if settings.DEBUG:
+            self.seed_member_feed(users["verified"])
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -369,6 +371,16 @@ class Command(BaseCommand):
                 label = "verified" if verified else "not verified"
                 self.stdout.write(f"  {email}  {password}  ({label})")
         return users
+
+    def seed_member_feed(self, demo_verified):
+        from apps.feed.demo import seed_feed
+
+        demo_member = seed_feed(demo_verified)
+        password = secrets.token_urlsafe(12)
+        demo_member.set_password(password)
+        demo_member.save(update_fields=["password"])
+        self.stdout.write("Member feed demo account (DEBUG only):")
+        self.stdout.write(f"  {demo_member.email}  {password}  (feed member)")
 
     def upsert_event(self, slug, **values):
         values.setdefault("is_published", True)

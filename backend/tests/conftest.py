@@ -132,3 +132,68 @@ def admin_user(django_user_model):
     return django_user_model.objects.create_superuser(
         email="admin@example.org", display_name="house_admin", password="admin-test-password-1"
     )
+
+
+@pytest.fixture
+def private_root(settings, tmp_path):
+    """Private media goes to a temp folder; watermark cache stays in memory."""
+    root = tmp_path / "private"
+    settings.PRIVATE_MEDIA_ROOT = root
+    settings.CACHES = {
+        **settings.CACHES,
+        "watermarks": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    }
+    return root
+
+
+@pytest.fixture
+def make_member(make_user, private_root):
+    """A verified, entitled member who has joined the feed and accepted the guidelines."""
+    from apps.feed import services
+    from apps.feed.models import Guidelines
+
+    def make(**kwargs):
+        user = make_user(**kwargs)
+        user.profile.feed_access_granted = True
+        user.profile.save()
+        services.join_feed(user, Guidelines.current().version)
+        user.refresh_from_db()
+        return user
+
+    return make
+
+
+@pytest.fixture
+def member_client(make_member):
+    """Return (client, user) for a feed member, with CSRF enforced."""
+
+    def build(user=None, **kwargs):
+        user = user or make_member(**kwargs)
+        client = APIClient(enforce_csrf_checks=True)
+        client.force_login(user)
+        return csrf_client_for(client), user
+
+    return build
+
+
+@pytest.fixture
+def image_upload(gps_image_path):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    def make(name="photo.jpg"):
+        return SimpleUploadedFile(name, gps_image_path.read_bytes(), content_type="image/jpeg")
+
+    return make
+
+
+@pytest.fixture
+def make_post(image_upload, settings):
+    """Create a published post through the service (premoderation off unless asked)."""
+    from apps.feed import services
+
+    def make(author, caption="Hello", images=0, **kwargs):
+        settings.FEED_PREMODERATION_POSTS = kwargs.pop("premoderation", 0)
+        uploads = [image_upload() for _ in range(images)]
+        return services.create_post(author, caption, uploads, attested=bool(uploads), **kwargs)
+
+    return make
