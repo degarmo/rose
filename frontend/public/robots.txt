@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /members
+Disallow: /account
+Disallow: /api
+Disallow: /exit

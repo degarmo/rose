@@ -1,0 +1,257 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens. Primitives first, then semantic aliases that components use.
+ * Contrast (WCAG 2.1, on canvas #0D0A0B): fg 16.3:1, fg-muted 9.4:1,
+ * fg-subtle 5.3:1, rose 7.0:1, blush 11.6:1, brass 7.7:1, cream on primary 8.4:1.
+ * See docs/design-system.md.
+ */
+@theme {
+  --color-ink-950: #0d0a0b;
+  --color-ink-900: #151012;
+  --color-ink-800: #1e1719;
+  --color-ink-700: #2a2023;
+  --color-ink-600: #3a2c2f;
+  --color-ink-500: #6b5a57;
+
+  --color-cream-100: #f2e8da;
+  --color-cream-300: #bfb1a3;
+  --color-cream-500: #8f8279;
+
+  --color-oxblood-900: #4a1019;
+  --color-oxblood-700: #7b1e2e;
+  --color-oxblood-600: #922638;
+  --color-rose-300: #d4848f;
+  --color-blush-200: #e6bdb5;
+  --color-brass-400: #c29b62;
+
+  --color-red-300: #f08c8c;
+  --color-green-300: #9cc5a1;
+
+  /* Semantic */
+  --color-canvas: var(--color-ink-950);
+  --color-surface: var(--color-ink-900);
+  --color-surface-raised: var(--color-ink-800);
+  --color-surface-sunken: #090708;
+  --color-border: var(--color-ink-600);
+  --color-border-strong: var(--color-ink-500);
+  --color-fg: var(--color-cream-100);
+  --color-fg-muted: var(--color-cream-300);
+  --color-fg-subtle: var(--color-cream-500);
+  --color-primary: var(--color-oxblood-700);
+  --color-primary-hover: var(--color-oxblood-600);
+  --color-primary-deep: var(--color-oxblood-900);
+  --color-on-primary: var(--color-cream-100);
+  --color-accent: var(--color-blush-200);
+  --color-rose: var(--color-rose-300);
+  --color-highlight: var(--color-brass-400);
+  --color-danger: var(--color-red-300);
+  --color-success: var(--color-green-300);
+
+  --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --ease-velvet: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --duration-slow: 900ms;
+  --duration-base: 300ms;
+
+  --animate-toast-in: toast-in 400ms var(--ease-velvet);
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Manrope's standard ligatures turn "(c)" into a copyright sign. */
+    font-variant-ligatures: no-common-ligatures;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-canvas);
+  }
+
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-highlight);
+    outline-offset: 3px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-variant-ligatures: common-ligatures;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  dialog::backdrop {
+    background: rgb(9 7 8 / 0.8);
+    backdrop-filter: blur(6px);
+  }
+
+  .noscript {
+    padding: 2rem;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* Scroll reveal. JS adds .is-visible; reduced motion shows content at once. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity var(--duration-slow) var(--ease-velvet),
+      transform var(--duration-slow) var(--ease-velvet);
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  .reveal-image {
+    clip-path: inset(6% 6% 6% 6%);
+    opacity: 0;
+    transition:
+      clip-path 1400ms var(--ease-velvet),
+      opacity 1400ms var(--ease-velvet);
+  }
+
+  .reveal-image.is-visible {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+
+  /* Placeholder textures, used until real imagery exists. */
+  .texture-velvet {
+    background:
+      radial-gradient(120% 90% at 30% 20%, rgb(146 38 56 / 0.55), transparent 60%),
+      radial-gradient(90% 80% at 80% 90%, rgb(74 16 25 / 0.9), transparent 70%),
+      linear-gradient(160deg, #2a0d14, #0d0a0b 70%);
+  }
+
+  .texture-candle {
+    background:
+      radial-gradient(40% 50% at 50% 62%, rgb(232 176 104 / 0.45), transparent 70%),
+      radial-gradient(70% 80% at 50% 70%, rgb(123 30 46 / 0.4), transparent 75%),
+      linear-gradient(180deg, #0d0a0b, #1a0f0d 60%, #0d0a0b);
+  }
+
+  .texture-silk {
+    background:
+      linear-gradient(115deg, transparent 20%, rgb(230 189 181 / 0.16) 35%, transparent 50%),
+      linear-gradient(115deg, transparent 45%, rgb(230 189 181 / 0.1) 60%, transparent 75%),
+      linear-gradient(160deg, #3d1520, #1a0b10 55%, #0d0a0b);
+  }
+
+  .texture-leather {
+    background-color: #1c1210;
+    background-image:
+      radial-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1.5px),
+      radial-gradient(rgb(0 0 0 / 0.35) 1px, transparent 1.5px),
+      radial-gradient(80% 70% at 30% 30%, rgb(122 64 40 / 0.35), transparent 70%),
+      linear-gradient(150deg, #2b1a14, #0f0a09);
+    background-size:
+      5px 5px,
+      7px 7px,
+      100% 100%,
+      100% 100%;
+    background-position:
+      0 0,
+      2px 3px,
+      0 0,
+      0 0;
+  }
+
+  .texture-shadow {
+    background:
+      radial-gradient(60% 90% at 70% 40%, rgb(242 232 218 / 0.08), transparent 70%),
+      linear-gradient(100deg, #0d0a0b 30%, #1e1719 55%, #0d0a0b 80%);
+  }
+
+  .texture-architecture {
+    background:
+      radial-gradient(50% 70% at 50% 100%, rgb(194 155 98 / 0.18), transparent 70%),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 46px,
+        rgb(194 155 98 / 0.08) 46px 48px
+      ),
+      linear-gradient(180deg, #1e1719, #0d0a0b);
+  }
+
+  .texture-rose {
+    background:
+      radial-gradient(circle at 50% 50%, rgb(212 132 143 / 0.35) 0 8%, transparent 9%),
+      repeating-radial-gradient(
+        circle at 50% 50%,
+        rgb(123 30 46 / 0.55) 0 6px,
+        rgb(74 16 25 / 0.5) 6px 12px
+      ),
+      radial-gradient(circle at 50% 50%, transparent 30%, #0d0a0b 62%);
+    background-blend-mode: normal, multiply, normal;
+  }
+
+  .grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    background-image: radial-gradient(rgb(255 255 255 / 0.6) 0.5px, transparent 0.6px);
+    background-size: 3px 3px;
+    mix-blend-mode: overlay;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .reveal-image {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

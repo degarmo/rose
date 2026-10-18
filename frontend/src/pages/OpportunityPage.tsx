@@ -1,0 +1,101 @@
+import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react'
+import { useParams } from 'react-router'
+import { ErrorState, LoadingState } from '@/components/content/States'
+import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
+import { api, ApiError } from '@/lib/api'
+import { formatEventDate, paragraphs } from '@/lib/format'
+import { useAsync } from '@/lib/useAsync'
+import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { NotFoundPage } from './NotFoundPage'
+
+export function OpportunityPage() {
+  const { slug = '' } = useParams()
+  const state = useAsync(() => api.opportunity(slug), slug)
+  const opportunity = state.status === 'success' ? state.data : null
+  useDocumentMeta({ title: opportunity?.title ?? 'Education', description: opportunity?.summary })
+
+  if (state.status === 'error' && state.error instanceof ApiError && state.error.isNotFound) {
+    return <NotFoundPage />
+  }
+
+  return (
+    <article>
+      <div className="relative isolate flex min-h-[55svh] items-end overflow-hidden pb-12 pt-32">
+        <ImageFrame
+          remote={opportunity?.hero_image}
+          alt=""
+          fill
+          placeholder="candle"
+          priority
+          reveal={false}
+          className="-z-20"
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/70 to-canvas/20" />
+        <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
+          <ButtonLink to="/education" variant="link">
+            <ArrowLeft aria-hidden="true" className="size-4" />
+            All opportunities
+          </ButtonLink>
+          {state.status === 'loading' && <LoadingState label="Loading details" />}
+          {opportunity && (
+            <>
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Badge tone="brass">{opportunity.level_label}</Badge>
+                <Badge>{opportunity.category_label}</Badge>
+              </div>
+              <h1 className="mt-6 text-5xl leading-[1.05] text-fg sm:text-6xl">{opportunity.title}</h1>
+              <p className="mt-6 text-lg leading-relaxed text-fg-muted sm:text-xl">{opportunity.summary}</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      <Section width="narrow" spacing="tight">
+        {state.status === 'error' && <ErrorState title="This page did not load" onRetry={state.retry} />}
+        {opportunity && (
+          <>
+            {(opportunity.starts_at || opportunity.location_label) && (
+              <dl className="grid gap-4 border-y border-border py-6 sm:grid-cols-2">
+                {opportunity.starts_at && (
+                  <div className="flex gap-3">
+                    <CalendarDays aria-hidden="true" className="mt-0.5 size-5 text-highlight" />
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">When</dt>
+                      <dd className="mt-1 text-fg">
+                        <time dateTime={opportunity.starts_at}>{formatEventDate(opportunity.starts_at)}</time>
+                      </dd>
+                    </div>
+                  </div>
+                )}
+                {opportunity.location_label && (
+                  <div className="flex gap-3">
+                    <MapPin aria-hidden="true" className="mt-0.5 size-5 text-highlight" />
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">Where</dt>
+                      <dd className="mt-1 text-fg">{opportunity.location_label}</dd>
+                    </div>
+                  </div>
+                )}
+              </dl>
+            )}
+            <div className="mt-10 space-y-6 text-lg leading-relaxed text-fg-muted">
+              {paragraphs(opportunity.body).map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </div>
+            <div className="mt-12 flex flex-col gap-3 sm:flex-row">
+              {opportunity.cta_label && opportunity.cta_url && (
+                <ButtonLink to={opportunity.cta_url} size="lg">
+                  {opportunity.cta_label}
+                </ButtonLink>
+              )}
+              <ButtonLink to="/visit" size="lg" variant="ghost">
+                Plan your first visit
+              </ButtonLink>
+            </div>
+          </>
+        )}
+      </Section>
+    </article>
+  )
+}
