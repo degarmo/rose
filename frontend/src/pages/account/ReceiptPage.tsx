@@ -23,7 +23,7 @@ export default function ReceiptPage() {
   if (receipt.status === 'error' && receipt.error instanceof ApiError && receipt.error.isNotFound) return <NotFoundPage />
 
   return (
-    <Section className="pt-32 print:pt-0" width="narrow">
+    <Section className="pt-32 print:bg-white print:pt-0" width="narrow">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <ButtonLink to="/account#membership" variant="link">
           <ArrowLeft aria-hidden="true" className="size-4" />

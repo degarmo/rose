@@ -165,7 +165,8 @@ function DeleteAccount() {
     <>
       <p className="leading-relaxed text-fg-muted">
         Deleting your account removes your profile and every RSVP straight away. Any message you sent us is kept
-        without your name, email or phone number. This cannot be undone.
+        without your name, email or phone number. An open membership is cancelled, and payment records are kept for
+        our accounts with nothing that identifies you. This cannot be undone.
       </p>
       <Button variant="ghost" className="mt-6 border-danger/60 text-danger hover:bg-primary-deep" onClick={() => setOpen(true)}>
         <Trash2 aria-hidden="true" className="size-4" />

@@ -255,3 +255,12 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Receipts print on white paper, without the site's dark canvas. */
+@media print {
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+}

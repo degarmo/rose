@@ -1,5 +1,5 @@
 import { CalendarHeart, Check, GraduationCap, KeyRound, Lock, UserPlus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { PageHero } from '@/components/content/PageHero'
 import { Reveal } from '@/components/content/Reveal'
@@ -220,9 +220,21 @@ function JoinFlow({ tiers, options, existing, reloadOptions }: { tiers: Tier[]; 
   const toast = useToast()
   const [step, setStep] = useState<Step>({ name: 'tiers' })
   const [busy, setBusy] = useState(false)
+  const top = useRef<HTMLDivElement>(null)
   const agreement = options.agreement
 
-  if (step.name === 'done') return <JoinConfirmation membership={step.membership} />
+  useEffect(() => {
+    // On a phone the next step would otherwise start above the screen.
+    if (step.name !== 'tiers') top.current?.scrollIntoView?.({ block: 'start' })
+  }, [step.name])
+
+  if (step.name === 'done') {
+    return (
+      <div ref={top} className="scroll-mt-24">
+        <JoinConfirmation membership={step.membership} />
+      </div>
+    )
+  }
   if (isOpen(existing)) return <ExistingMembership membership={existing} />
   if (!agreement || tiers.length === 0) {
     return (
@@ -260,7 +272,7 @@ function JoinFlow({ tiers, options, existing, reloadOptions }: { tiers: Tier[]; 
   const verified = Boolean(auth.user?.email_verified)
 
   return (
-    <div className="flex flex-col gap-8">
+    <div ref={top} className="flex scroll-mt-24 flex-col gap-8">
       <Stepper current={current} />
       {step.name === 'tiers' && (
         <>

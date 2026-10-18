@@ -264,3 +264,5 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 170. The QR encoder (`qrcode`) is loaded on demand, so the public bundle stays small, and every QR is made on the device.
 171. The sandbox checkout page is a lazily loaded route that renders the site's 404 whenever its API is absent, which is always in production.
 
+172. An RSVP made while a membership was active stays when the membership lapses, but it can no longer be updated, only cancelled; once cancelled, the membership panel replaces the form. The person may renew at the door, and hosts check entry there. Cancelling it automatically would release a place without telling them.
+173. Receipts print on white with the header, footer and Leave control hidden.
