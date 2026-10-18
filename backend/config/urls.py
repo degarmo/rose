@@ -1,0 +1,27 @@
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
+
+from apps.core import views as core_views
+
+admin.site.site_header = "Rose administration"
+admin.site.site_title = "Rose"
+admin.site.index_title = "Site content"
+
+api_patterns = [
+    path("csrf/", core_views.csrf_token, name="csrf"),
+    path("health/", core_views.health, name="health"),
+    path("", include("apps.pages.urls")),
+    path("education/", include("apps.education.urls")),
+    path("contact/", include("apps.contact.urls")),
+]
+
+urlpatterns = [
+    path("robots.txt", core_views.robots_txt, name="robots"),
+    path(settings.ADMIN_PATH, admin.site.urls),
+    path("api/", include(api_patterns)),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
