@@ -2,7 +2,7 @@
 
 Choices made where the brief did not specify. Privacy-over-convenience calls are marked **(privacy)**.
 
-Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 onwards).
+Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134) and prompt 04 (135 onwards).
 
 ## Prompt 01
 
@@ -94,7 +94,7 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 
 ### Events and RSVP
 
-64. Audiences: `public` events are visible to everyone and need a verified account to RSVP. `account` events are hidden from signed-out visitors everywhere: list, detail, calendar, ICS and journal links. `members` events are visible, but RSVP shows "Members only". Prompt 04 changes only the members branch of `events.access.can_rsvp`.
+64. Audiences: `public` events are visible to everyone and need a verified account to RSVP. `account` events are hidden from signed-out visitors everywhere: list, detail, calendar, ICS and journal links. `members` events are visible to everyone, and RSVP needs the `members_events` entitlement (an active or grace membership whose tier grants it). Others see the membership panel instead of the form. This rule is final.
 65. `can_rsvp` checks, in order: unpublished, account-only while signed out, past the RSVP deadline, members only, not open yet, signed out, unverified.
 66. RSVPs close when the event starts unless staff set `rsvp_closes_at`, which cannot be after the event ends.
 67. `max_party_size` is 1 or 2 per event (default 2, meaning one guest). Capacity counts people, not RSVPs.
@@ -144,10 +144,10 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 
 ### Access and entitlement
 
-100. Feed access lives in `apps/feed/access.py`. `has_feed_entitlement()` holds the entitlement rule: today only the staff grant (`Profile.feed_access_granted`, with who and when recorded by the admin). **Prompt 04 adds paid membership as a second entitlement inside this one function; the staff-granted path stays permanently** for comped members and volunteers.
+100. Feed access lives in `apps/feed/access.py`. `has_feed_entitlement()` holds the entitlement rule: the `feed` entitlement from `memberships.access.entitlements`, which comes from an active or grace membership whose tier grants the feed, or from the staff grant (`Profile.feed_access_granted`, with who and when recorded by the admin). The staff grant stays permanently for volunteers. This rule is final.
 101. **(privacy)** The 404 check runs before CSRF and before anything else, through a session authentication class that defers CSRF until access is confirmed. Without that, a POST from someone without access would get a CSRF 403 and confirm the endpoint exists.
 102. Suspended and banned members get the same 404 as everyone else. A banned member's content is hidden through `feed_visible_q()`. A suspended member's content stays visible.
-103. Join, step away, erase and export live under `/api/account/feed/`, not `/api/members/`, so people who stepped away or were banned can still reach them. Those endpoints are 404 for anyone with no entitlement and no feed history, and `/account` shows no feed section to them.
+103. Join, step away, erase and export live under `/api/account/feed/`, not `/api/members/`, so people who stepped away or were banned can still reach them. Those endpoints are 404 for anyone with no entitlement and no feed history, and `/account` shows them a "Member community" panel explaining that the feed comes with membership.
 104. A posting cooldown comes from a moderator's warning: 24 hours (`FEED_WARNING_COOLDOWN_HOURS`). The member can still read, like and comment.
 105. Rejoining goes through the same three-step flow, including the guidelines.
 
@@ -186,7 +186,7 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 
 125. One report per person per item; repeats are accepted silently. "Other" needs a short description. Comments and profiles can be auto-hidden too. For a profile, hiding means the profile page, avatar and bio disappear for others while their posts stay.
 126. The moderation queue is a custom admin page with a form per item: approve, remove (a reason is required and goes to the author in-app), dismiss (restores hidden content), warn (24-hour posting pause), suspend for N days, ban, and erase (type the display name to confirm). Moderation actions refresh the target from the database first, because reports may have changed it since it was loaded.
-127. `ModerationAction` is append-only in three places: the model refuses save-after-create and delete, its queryset refuses update and delete, and the admin has no add, change or delete permission. A member's deletion only clears the actor or target link; the labels stay.
+127. The moderation log (now `core.AuditLog`, decision 140) is append-only in three places: the model refuses save-after-create and delete, its queryset refuses update and delete, and the admin has no add, change or delete permission. A member's deletion only clears the actor or target link; the labels stay.
 128. Reporters never receive notifications about outcomes. Authors are told about removals, warnings, suspensions and approvals in-app. A ban sends no notification, because the person can no longer see the feed.
 
 ### Media and leak deterrence
@@ -203,3 +203,64 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 ### Seed
 
 134. The feed seed runs only with `DEBUG` on. Demo feed accounts get random passwords. Only `demo.member@example.org` has its password printed, so a second account is available for testing. The verified demo account is granted access but not joined, so the join flow can be tried.
+
+## Prompt 04
+
+### Entitlements
+
+135. `memberships/access.py` is the single source of paid access. `entitlements(user)` is the active tier's flags plus `feed` from the staff grant. Active and grace are entitled; pending, expired, cancelled and suspended are not. `events.access.can_rsvp` and `feed.access.has_feed_entitlement` both read it, and neither has any remaining extension point.
+136. **(privacy)** Members-only education is enforced in the serializer. For anyone without `members_education`, the body is `null` and the call to action is blanked, in both the list and the detail. Only the title, summary, schedule and the names of the tiers that unlock it are public. The UI's panel is just the explanation.
+
+### Model choices
+
+137. A month is 30 days and a year is 365 days, counted from the moment a period starts. Fixed lengths make renewals and grace predictable at the door and avoid month-end edge cases.
+138. Reference codes are six characters as `XXX-XXX` from an alphabet without look-alikes (no 0, O, 1, I or L), generated with `secrets`. They identify a membership, not a person, and the door desk accepts them with or without the dash and in any case.
+139. **(privacy)** `Membership.user` is nullable. Deleting an account cancels any open membership (stopping online renewals through the provider), keeps membership and payment rows for the books with the person detached, and deletes the agreement signature with the account. Financial records outliving the account is the minimum a nonprofit's accounts need; nothing in them identifies the person afterwards.
+140. `feed.ModerationAction` became `core.AuditLog` with a `category` (moderation, door desk, export, private data). A data migration copies every row, keeping its time, and the reverse migration copies them back. Append-only in the model, queryset and admin, as before.
+141. `Payment` is immutable the same way. A refund is a new row with `status=refunded` pointing at the original, and refunding more than what is left is refused. A refund does not change the membership's status; staff suspend or leave it as they judge.
+142. `Payment.provider_payment_ref` is NULL (not blank) for in-person payments, so the uniqueness constraint on `(provider_payment_ref, status)` applies only to processor payments.
+143. `created_at` on memberships and payments defaults to now but can be set, so the demo seed can create history without bypassing payment immutability.
+144. Agreements are versioned. Once published, an agreement's title and body cannot be edited or deleted in the admin, so a signature always refers to the exact text signed. Joining sends the version the person read; if it changed meanwhile, they are asked to read the new one.
+
+### Joining and payment
+
+145. **(privacy)** An online payment from someone with no ID check on file records the payment but does not activate. The membership stays `pending_payment` with `paid_awaiting_id_check`, never expires while waiting, and the door desk's "Activate" finishes it after the check. The brief requires an ID check before first activation; this keeps that true for online payments too.
+146. Activation only ever comes from a stored webhook event or a staff action. The `/join/confirming` page only polls `/api/membership/me/` (every 2 seconds, for about a minute) and says "Still confirming" if nothing has arrived.
+147. Webhook events are stored before they are applied, and an event that cannot be applied (for example, no matching membership) is kept with its error and still answered with 200. The processor would otherwise retry forever an event that can never apply; staff can read it in Admin > Webhook events.
+148. Joining is rate limited to 10 an hour per account. Webhooks are rate limited to 120 a minute per hashed IP, far above any processor's real rate.
+149. The sandbox delivers its webhooks through a Celery task that builds a signed request and calls the real webhook view in-process, so routing, signature checking and the event service all run exactly as for a processor. Its signing secret is derived from `SECRET_KEY`. It exists only with DEBUG on and the sandbox enabled.
+150. **(privacy)** Unpaid reference codes lapse after `MEMBERSHIP_PENDING_EXPIRY_DAYS` (default 30), so abandoned sign-ups do not linger as open memberships.
+151. The in-person method is always offered, including next to an online processor.
+152. Cancelling a pending membership ends it at once. Cancelling a running one sets `cancel_at_period_end`: access continues to the period end, then it becomes cancelled without a grace period and without reminders. Nothing is refunded automatically.
+153. Auto-renew is offered only for online memberships with a subscription. Turning it back on calls the provider's `resume_subscription`, added to the interface for this.
+
+### Door desk and reporting
+
+154. **(privacy)** The door desk shows display name, code, tier, status, period end, whether an ID check is on file and recent payments. Never the email or the typed legal name. "Show signature name" reveals the name for that one page view and writes an audit entry; nothing about the name goes into the log itself.
+155. **(privacy)** QR scanning decodes camera frames on the tablet with a vendored copy of jsQR 1.4.0 (Apache-2.0, `static/memberships/vendor/`), not a CDN. The door desk page alone sends `Permissions-Policy: camera=(self)`; the middleware now keeps a policy a view sets and applies the camera-off policy everywhere else.
+156. Door desk actions need the `memberships.change_membership` permission and reporting needs `view_membership`, so a "Door desk" group can be given to volunteers without the rest of the admin. The seed creates that group and a `desk_volunteer` account in development.
+157. Renew extends from the later of now and the current period end, so paying early never loses days and paying late never backdates. Reinstating sets the membership active and leaves the daily lifecycle to move it on if its period already ended.
+158. A comp is recorded as a zero-amount `comp` payment with the reason as its note, so every period has a payment row, and the summary's revenue table leaves comps out.
+159. **(privacy)** The CSV export contains display name, tier, status, period end and source. Contact email is added only when a superuser ticks "Include contact email", and that is logged as a separate action. Cells starting with `=`, `+`, `-` or `@` are prefixed with `'` so a spreadsheet never runs them. The export is POST-only and `no-store`.
+160. Revenue in the summary is by local month and method, with refunds subtracted. "New" is a membership's first succeeded payment in the month; "renewed" is any later one.
+
+### Lifecycle and email
+
+161. The lifecycle runs once a day at 06:00 Chicago. Reminders go at 14 and 3 days before the period end, once each, only to active memberships that do not renew automatically and are not cancelling. Moving to grace and expiry each send one note.
+162. **(privacy)** Membership email subjects are "Your reference code", "Your account is ready" and "A note about your account". Bodies use "your account" and "membership" and never name the organisation, its activities or the tier.
+163. Receipts carry the merchant display name (`MERCHANT_DISPLAY_NAME`), date, amount, method, a reference (`CODE-paymentid`) and the word "Membership". Not the tier name.
+
+### Import and development tools
+
+164. `import_members` validates the whole file first and writes nothing if any row has a problem, so a half-imported list never needs untangling. It is a dry run unless `--commit` is given. New accounts get an unusable password and a verified email (the address came from the organisation's own records), and the invite tells them to choose a password through "Forgot password" rather than carrying a reset token, which would expire in two hours.
+165. **(privacy)** Imported ID checks are recorded against an inactive `system_import` account, and an imported paid-up member with `id_checked=no` waits for the door desk like an online payment does (decision 145). Email addresses appear in the command's output only with DEBUG on; otherwise rows are referred to by line number.
+166. `membership_clock --days N` (DEBUG only) moves every membership date back N days and runs the lifecycle, which is the same as the calendar moving forward. It exists for walkthroughs and manual testing.
+167. Seeded tiers and the agreement are flagged `is_placeholder` (not editable in the admin). With DEBUG off they are never offered and joining is refused while the placeholder agreement is current, so placeholder prices or text can never reach production. The join page labels them "Placeholder price" and "Placeholder text".
+
+### Frontend
+
+168. The header's "Join" reads "Membership" for anyone with any membership, past or present (`Account.has_membership`, the caller's own only).
+169. One `PaywallPanel` is used everywhere paid content is gated: locked classes, members-only RSVPs and the member community on `/account`. It picks log in and register, "Become a member" or "See my membership" from the session.
+170. The QR encoder (`qrcode`) is loaded on demand, so the public bundle stays small, and every QR is made on the device.
+171. The sandbox checkout page is a lazily loaded route that renders the site's 404 whenever its API is absent, which is always in production.
+

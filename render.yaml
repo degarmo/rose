@@ -24,6 +24,17 @@ envVarGroups:
         value: "true"
       - key: PRIVATE_MEDIA_ROOT
         value: /var/data/private
+      # In-person payments only until a real processor is added (see docs/payments.md).
+      # The sandbox provider refuses to start here because DJANGO_DEBUG is false.
+      - key: PAYMENT_PROVIDERS
+        value: manual
+      # Shown on receipts; the processor's statement descriptor should match. Keep it neutral.
+      - key: MERCHANT_DISPLAY_NAME
+        value: Rose
+      - key: MEMBERSHIP_GRACE_DAYS
+        value: "7"
+      - key: MEMBERSHIP_PENDING_EXPIRY_DAYS
+        value: "30"
 
 services:
   - type: web

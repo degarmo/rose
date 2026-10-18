@@ -6,7 +6,7 @@
 Browser --> rose-web (static SPA) --/api, /media rewrite--> rose-api (Django + DRF)
                                                                |-- Postgres
                                                                |-- Redis (cache, rate limits, Celery queue)
-                                                               `-- Celery worker + beat (email, reminders, retention)
+                                                               `-- Celery worker + beat (email, reminders, retention, membership lifecycle)
 ```
 
 The browser only ever talks to one origin. In development the Vite dev server proxies
@@ -22,8 +22,8 @@ token is ever stored in browser storage.
 | `config/settings.py` | All settings, read from the environment through django-environ. Production hardening turns on when `DJANGO_DEBUG` is false. |
 | `config/celery.py` | Celery app. Reads `CELERY_*` settings; beat schedule lives in settings. |
 | `config/urls.py` | `/robots.txt`, the admin (path from `DJANGO_ADMIN_PATH`) and everything under `/api/`. |
-| `templates/admin/` | Admin additions: Image review, door list, Repeat weekly form, and the index link to Image review. |
-| `apps/core` | Shared helpers with no models: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface), `watermark.py` (per-viewer tiled watermark), `images.py` (EXIF/GPS stripping, random names), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py`, `views.py`. |
+| `templates/admin/` | Admin additions: Image review, door list, Repeat weekly form, feed moderation, the membership Door desk and Membership summary, and the index shortcuts. |
+| `apps/core` | `AuditLog` (append-only record of moderation, door desk, export and private-data actions, with the `audit()` helper) and shared helpers: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface), `watermark.py` (per-viewer tiled watermark), `images.py` (EXIF/GPS stripping, random names), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py`, `views.py`. |
 | `apps/accounts` | `User` (email login, `display_name`, private `legal_name`, `phone`, `email_verified_at`), `Profile`, registration, verification, login lockout, password reset and change, display-name change, account deletion. Email tasks in `tasks.py`. |
 | `apps/pages` | `SiteSettings`, `SocialLink`, `FAQItem`; `seed_demo` command and its generated placeholder art (`demo_media.py`). |
 | `apps/education` | `Opportunity` (uses the consented image pattern). |
@@ -31,7 +31,7 @@ token is ever stored in browser storage.
 | `apps/events` | `Event`, `RSVP`, `AttendeeExport`; `access.can_rsvp()`, `services.py` (capacity and waitlist under a row lock), `tasks.py` (RSVP emails, reminders, retention purge), `ics.py`, `recurrence.py` (Repeat weekly), admin door list and CSV export. |
 | `apps/journal` | Staff-written public posts: `Post` and `PostImage` (1 to 10 images, consented image pattern), cursor-paginated API. |
 | `apps/feed` | The opt-in member feed. `access.py` (who may see and post), `visibility.py` (what one member may see), `services.py` (posting, likes, comments, follows, blocks, mutes, reports, moderation, erase, export), `tasks.py` (image processing, erase, export, expiry), `api.py` (404-first base view), `views.py` under `/api/members/`, `account_views.py` under `/api/account/feed/`, admin moderation queue. |
-| `apps/memberships` | Empty shell for prompt 4. |
+| `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access), `join.py`, `desk.py` (door desk actions), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
 
 ### API
@@ -55,6 +55,12 @@ token is ever stored in browser storage.
 | GET | `/api/journal/posts/[<slug>/]` | Cursor-paginated, 12 per page. |
 | GET, POST | `/api/account/feed/`, `join/`, `guidelines/`, `step-away/`, `erase/`, `export/`, `export/download/` | Feed controls on /account. 404 unless the person is entitled or has feed history. |
 | any | `/api/members/...` | The feed. Every path and method returns 404 unless `can_view_feed` passes, before CSRF or anything else is checked. See below. |
+| GET | `/api/membership/tiers/`, `options/` | Tiers on offer; payment methods and the current agreement. Placeholders are never offered with DEBUG off. |
+| GET | `/api/membership/me/` | The caller's own membership, payments and entitlements. |
+| POST | `/api/membership/join/`, `checkout/`, `cancel/`, `auto-renew/` | Join (rate limited, 10 an hour), pay online again, cancel, toggle renewal. |
+| GET | `/api/membership/receipts/<id>/` | A neutral receipt for one of the caller's own payments. |
+| POST | `/api/payments/webhook/<provider>/` | Provider webhooks: CSRF-exempt, rate limited, signature checked by the adapter, 200 only once stored. |
+| GET, POST | `/api/payments/sandbox/<token>/` | Development only (404 unless DEBUG and the sandbox are on): the fake hosted checkout. |
 
 ### Background work
 
@@ -64,6 +70,8 @@ token is ever stored in browser storage.
 | `events.tasks.send_rsvp_email` | On commit after RSVP changes | Confirmation, waitlist, promoted, cancellation. |
 | `events.tasks.send_due_reminders` | Beat, every 15 minutes | 24-hour reminder, once per RSVP. |
 | `events.tasks.purge_expired_rsvps` | Beat, every 6 hours | Deletes RSVPs `RSVP_RETENTION_DAYS` after the event ends and keeps `final_going_count` and `final_checked_in_count`. |
+| `memberships.tasks.run_lifecycle` | Beat, daily at 06:00 Chicago | Active to grace to expired, cancelled at period end, stale unpaid codes expire, renewal reminders at 14 and 3 days. |
+| `memberships.tasks.deliver_sandbox_events` | Development only | Posts the sandbox checkout's signed webhooks through the real endpoint. |
 
 ## Member feed
 
@@ -82,7 +90,7 @@ flowchart TD
     M --> P[private_media.deliver: Cache-Control private, no-store]
 
     E{has_feed_entitlement} --> G[Profile.feed_access_granted by staff]
-    E -.-> H[Prompt 04: paid membership]
+    E --> H[Active or grace membership whose tier grants the feed]
     A --- E
 ```
 
@@ -114,16 +122,84 @@ erDiagram
     User ||--o{ Notification : receives
     User ||--o{ Report : files
     Report }o--|| FeedPost : "or comment, or profile"
-    ModerationAction }o--|| User : "actor (append-only)"
+    AuditLog }o--|| User : "actor (append-only)"
     User ||--o{ DataExport : requests
 ```
 
-- **Access** (`apps/feed/access.py`): `can_view_feed` = signed in, active, email verified, entitled, not banned or suspended, and opted in. `has_feed_entitlement` is the single place prompt 04 adds paid membership; staff grants stay. `can_post` adds the current guidelines version and no posting cooldown.
+- **Access** (`apps/feed/access.py`): `can_view_feed` = signed in, active, email verified, entitled, not banned or suspended, and opted in. `has_feed_entitlement` asks `memberships.access.entitlements`: an active or grace membership whose tier grants the feed, or the staff grant. `can_post` adds the current guidelines version and no posting cooldown.
 - **Opting out** (`Profile.participates_in_feed=False`) hides every post, comment, like, avatar and bio at once through `feed_visible_q()`; nothing is deleted, and rejoining restores it all. Banned members are hidden the same way.
 - **Leave and erase** (`services.erase_feed_data`, run by `tasks.erase_member_feed`) deletes posts, image files, comments, likes, follows, blocks and mutes they created, notifications and exports. Account deletion calls the same routine.
 - **Images**: the browser renders redactions on a canvas and uploads only the result. The server stores the raw upload in private `incoming/`, a worker strips metadata and re-encodes to WebP with a random name, and the raw file is deleted. Posts show "Processing" to their author until then.
 - **Private media**: no feed file has a URL. `MediaView` and `AvatarMediaView` re-check access, blocks and post status on every request, watermark the image with the viewer's display name and date (`FEED_WATERMARK`), cache that per viewer for 10 minutes on private disk, and answer with `Cache-Control: private, no-store`.
-- **Moderation**: `/admin/feed/feedpost/moderation/` lists open reports grouped by item, pending first posts and the action log. Every action writes an append-only `ModerationAction`.
+- **Moderation**: `/admin/feed/feedpost/moderation/` lists open reports grouped by item, pending first posts and the action log. Every action writes an append-only `core.AuditLog` entry in the moderation category.
+
+## Membership and payments
+
+Paid membership lives in `apps/memberships`. The payment layer, its event table and
+settings are in [payments.md](payments.md).
+
+### Membership states
+
+One person has at most one open (non-terminal) membership, enforced by a partial unique
+constraint. Expired and cancelled rows stay as history, and joining again makes a new row.
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending_payment: join (agreement signed)
+    pending_payment --> active: door desk records payment, ID checked
+    pending_payment --> active: webhook payment_succeeded (ID already on file)
+    pending_payment --> pending_payment: webhook payment_succeeded, no ID yet (paid_awaiting_id_check)
+    pending_payment --> active: door desk "Activate" after ID check
+    pending_payment --> active: comp (reason, ID checked)
+    pending_payment --> expired: unpaid for MEMBERSHIP_PENDING_EXPIRY_DAYS
+    pending_payment --> cancelled: member cancels
+    active --> active: renewal (desk or webhook) extends the period
+    active --> grace: period ends (lifecycle)
+    active --> cancelled: period ends with cancel_at_period_end
+    grace --> active: renewal
+    grace --> expired: MEMBERSHIP_GRACE_DAYS later
+    active --> suspended: staff, with reason
+    grace --> suspended: staff, with reason
+    suspended --> active: reinstate, with reason
+    expired --> active: door desk records payment or renews
+    cancelled --> active: door desk records payment
+    expired --> [*]
+    cancelled --> [*]
+```
+
+Active and grace are entitled. Activation never comes from the browser returning from a
+checkout: only from a stored webhook event or a staff action at the door desk.
+
+### Entitlement flow
+
+```mermaid
+flowchart LR
+    U[request.user] --> A{signed in and active?}
+    A -- no --> N[nothing]
+    A -- yes --> M[active_membership: status active or grace]
+    M --> T[tier flags: grants_feed_access, grants_members_events, grants_members_education]
+    U --> G[Profile.feed_access_granted by staff]
+    T --> E[entitlements]
+    G -->|adds feed| E
+    E --> R[events.access.can_rsvp: members audience needs members_events]
+    E --> F[feed.access.has_feed_entitlement: needs feed]
+    E --> O[education serializer: members_only needs members_education, else body and call to action withheld]
+```
+
+### Staff tools
+
+- **Door desk** (`/admin/memberships/membership/door-desk/`): built for a tablet. Search by
+  reference code (typed, or scanned with the camera and decoded on the tablet by the
+  vendored jsQR) or display name. Actions: record payment and activate (needs "Photo ID
+  checked, 18+" if there is no earlier ID check), activate after an online payment, renew,
+  comp (reason), suspend and reinstate (reason), refund (a new row; online refunds also go to
+  the provider). The typed signature name appears only after "Show signature name", which is
+  logged. This page alone sends `Permissions-Policy: camera=(self)`.
+- **Membership summary** (`/admin/memberships/membership/summary/`): counts by status and
+  tier, new, renewed and expired this month, and revenue by month and method for 12 months
+  with refunds subtracted. The CSV export is POST-only and logged; contact email is included
+  only when a superuser ticks the box, which is logged separately.
+- Every door desk action, export and signature reveal writes `core.AuditLog`.
 
 ## Frontend (`/frontend/src`)
 
@@ -145,10 +221,8 @@ erDiagram
 
 **Prompt 3: member social feed.** Built; see "Member feed" above.
 
-**Prompt 4: paid membership.** Add models to `apps/memberships`. Two functions change and
-nothing else: the members branch inside `apps.events.access.can_rsvp`, and the second
-entitlement inside `apps.feed.access.has_feed_entitlement` (staff grants stay). Replace
-`pages/JoinPage.tsx`. Store only the payment provider's identifiers, never card data.
+**Prompt 4: paid membership.** Built; see "Membership and payments" above. A real
+processor is one adapter class (see `docs/payments.md`).
 
 **Prompt 5: hardening and deploy.** Finalise `render.yaml` (domains, plans, the
 `rose-api.onrender.com` rewrite target), configure SMTP through `EMAIL_URL`, set
@@ -156,7 +230,7 @@ entitlement inside `apps.feed.access.has_feed_entitlement` (staff grants stay). 
 media to S3-compatible storage behind `apps.core.private_media` (a new backend whose
 `deliver()` returns short-lived signed URLs for watermarked variants); the API, worker and
 beat must share it, which a Render disk cannot do. Add retention for contact messages, the
-attendee export log and the moderation log.
+attendee export log and the audit log.
 
 ## Privacy checklist
 
@@ -176,7 +250,8 @@ Check every change against this list.
       `/events/cancel` are disallowed and carry `noindex, nofollow`.
 - [ ] **Private user fields never leave the server.** Only `AccountSerializer` (marked
       `self_only`) includes an email, and only `session_payload()` uses it, for the caller.
-      `tests/test_privacy.py` checks every serializer.
+      `MyMembershipSerializer` is the other `self_only` serializer, used only by
+      `membership_payload(request.user)`. `tests/test_privacy.py` checks every serializer.
 - [ ] **Social participation is opt-in** through `Profile.participates_in_feed` and
       `feed_visible_q()`.
 - [ ] **Uploads are sanitised** by `SanitizedImageField`.
@@ -215,7 +290,7 @@ Check every change against this list.
 - [ ] **Sensitive posts blur** until the viewer taps View (or opts to always show them).
 - [ ] **Reports**: "posted without consent" and "may involve someone under 18" hide at once;
       three distinct reporters hide anything. Reporters never learn outcomes.
-- [ ] **Moderation is logged** in an append-only `ModerationAction`; first posts are
+- [ ] **Moderation is logged** in the append-only `core.AuditLog`; first posts are
       pre-moderated; posting and commenting are rate limited.
 - [ ] **No email for feed activity.** Notifications are in-app only; likes are grouped and
       nameless.
@@ -236,3 +311,31 @@ Check every change against this list.
       aggregate counts remain on the event.
 - [ ] **Calendar files are discreet by default**: "Rose - Evening" and no location, unless the
       person ticks the box to include details.
+
+### Payment privacy rules
+
+- [ ] **No card data, ID numbers, dates of birth or ID images, ever.** Card details stay with
+      the processor's hosted checkout. `IdCheck` records only that staff saw a valid photo ID
+      showing 18+, who checked and when.
+- [ ] **Membership status and payments are self-only.** `/api/membership/me/` and receipts
+      return only the caller's own; other people get `null` or 404. No endpoint lists members.
+      `tests/test_membership_privacy.py` crawls every API route as the owner, someone else and
+      anonymously.
+- [ ] **The typed signature name is staff-only.** It is never serialized (`JoinSerializer`
+      takes it write-only), never emailed, and on the door desk it appears only after "Show
+      signature name", which is logged.
+- [ ] **Provider references never reach the browser.** Customer, subscription and payment
+      references stay on the server.
+- [ ] **Payments are immutable.** No edit or delete in the model, queryset or admin; refunds
+      are new rows pointing at the original.
+- [ ] **Neutral billing.** Receipts show only the merchant display name, date, amount,
+      reference and "Membership". Membership email uses "Your reference code", "Your account is
+      ready" and "A note about your account", and never names the organisation or activities.
+- [ ] **Every staff action is logged** in `core.AuditLog`: door desk actions, signature
+      reveals, CSV exports and the contact-email option.
+- [ ] **Development-only pieces cannot run in production.** The sandbox provider raises
+      `ImproperlyConfigured` with DEBUG off, its API is 404, the default provider list is
+      manual-only, and placeholder tiers and agreements are never offered.
+- [ ] **Account deletion detaches, never erases, money.** Open memberships are cancelled (and
+      online renewals stopped); membership and payment rows stay for the accounts with the
+      person removed; the signature is deleted with the account.

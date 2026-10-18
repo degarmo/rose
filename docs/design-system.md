@@ -182,7 +182,7 @@ toast.show({ tone: 'error', title: 'Your message was not sent', message: 'Please
 
 - **QuickExit**: the Leave control. Variants `floating` (large screens), `compact` (phone header) and `inline` (footer, menu). It must appear on every page.
 - **AgeGate**: renders instead of the app until age is confirmed.
-- **Header / Footer / Layout**: shared chrome. Navigation items live in `navigation.ts`. The desktop nav appears from `xl`; below that the menu sheet is used.
+- **Header / Footer / Layout**: shared chrome. Navigation items live in `navigation.ts`. The desktop nav appears from `xl`; below that the menu sheet is used. "Join" reads "Membership" for anyone whose account has, or has had, a membership (`Account.has_membership`). Header, footer and the Leave control are hidden when printing, so a receipt prints alone.
 - **AccountMenu**: "Log in" (with a `next` back to the current page), or the display name with a Lucide `User` icon and a small menu (My account, Log out). Closes on outside click, Escape and navigation.
 - **AuthProvider / useAuth**: session state from `/api/account/session/`. `applySession()` takes the session returned by login, logout and account changes. Nothing is stored in browser storage.
 
@@ -210,7 +210,7 @@ A Sunday-first, six-week grid. On phones each event is a rose dot, and from `sm`
 <RSVPPanel event={event} onChange={(rsvp) => setRsvp(rsvp)} />
 ```
 
-Covers every state: signed out (log in or register, returning to this page), unverified (resend link), open, waitlist, full, closed, opens soon, members only (disabled button), going and waitlisted (update, cancel with confirmation, and "Add to calendar" with an unticked "include details" box). The submit button disables and relabels while saving. Errors go to a toast.
+Covers every state: signed out (log in or register, returning to this page), unverified (resend link), open, waitlist, full, closed, opens soon, members only (an inline `PaywallPanel`), going and waitlisted (update, cancel with confirmation, and "Add to calendar" with an unticked "include details" box). The submit button disables and relabels while saving. Errors go to a toast.
 
 ### Carousel
 
@@ -223,6 +223,56 @@ One square image at a time. Previous and next buttons, arrow keys when focused, 
 ### PostView and JournalTile
 
 `PostView` is the shared layout for the journal modal and the permalink page: the carousel, then author and relative date, the sanitised caption, and an RSVP button (linked event) or the post's CTA. `JournalTile` is a square, Instagram-style grid tile with a Lucide `Layers` icon on multi-image posts. Use them in a `grid-cols-3` grid with tight gaps (`gap-0.5` on phones, up to `gap-2`).
+
+## Membership (`components/membership`)
+
+### PaywallPanel
+
+```tsx
+<PaywallPanel
+  title="For members"
+  benefit="Members-only classes come with membership."
+  tiers={opportunity.paywall?.tiers}
+/>
+<PaywallPanel variant="inline" headingLevel="h3" title="For members" benefit="..." />
+```
+
+The one way the site says "this comes with membership". It reads the session and picks its
+actions itself:
+
+| Viewer | Actions |
+| --- | --- |
+| Signed out | "Log in" (returning to this page) and "Create an account" (then on to `/join`) |
+| Signed in, never a member | "Become a member" to `/join` |
+| Has, or had, a membership | "See my membership" to `/account#membership`, with a line that the current membership does not include this or is not active |
+
+`tiers` adds "Included with Monthly and Annual memberships." `variant="card"` (default)
+stands alone in a `Card`; `variant="inline"` sits inside another card, as in the RSVP panel.
+Use it on the opportunity page for locked classes, in the RSVP panel for members-only
+evenings and on `/account` where the member community would be. Never show locked content
+behind it: the server withholds the body and the call to action, and the panel is only the
+explanation. Copy says what membership adds; it never says what someone lacks.
+
+### ReferenceCode
+
+```tsx
+<ReferenceCode code="R7K-42Q" size="lg" />
+```
+
+The reference code in large monospaced type next to a QR code generated on the device
+(the `qrcode` package, loaded on demand). Nothing about the code is sent to a third party.
+Codes use an alphabet without look-alikes (no 0, O, 1, I or L) so they survive being read
+aloud.
+
+### Join flow and account card
+
+`pages/join/` holds the three-step join (Choose, Agreement, Payment), the confirmation with
+what to bring, the "Confirming" page that polls after an online checkout, and the
+development-only sandbox checkout. The agreement box must be scrolled to the end before the
+"I have read and agree" box enables, and the typed name enables the button. The account
+`MembershipCard` shows tier, status badge, period line, code and QR, the auto-renew switch
+(online memberships only), payments with Receipt links, and Cancel behind a
+`ConfirmDialog`. Receipts (`/account/receipts/:id`) are a print-friendly page.
 
 ## Members area (`components/members`)
 

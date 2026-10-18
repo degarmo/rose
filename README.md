@@ -115,10 +115,32 @@ If ports 5433, 6380, 8000 or 5173 are taken, override them, for example
 
 ## Member feed
 
-Staff give someone feed access from Admin > Accounts > Profiles ("Grant member feed access").
-They then join from `/account`. Moderators work from Admin > Feed > Feed posts > "Open queue"
+Members whose tier includes the feed, and anyone staff give access to from Admin > Accounts >
+Profiles ("Grant member feed access"), can join it from `/account`. Moderators work from Admin > Feed > Feed posts > "Open queue"
 (`/admin/feed/feedpost/moderation/`). Member uploads live in `backend/private_media/` and are
 only ever served through access-checked views; never point a web server at that folder.
+
+## Membership and payments
+
+- **Joining**: `/join` (tier, agreement, then pay at the door or online). Staff work from
+  Admin > "Door desk" on a tablet, and see counts, revenue and the logged CSV export under
+  "Membership summary". How payments work, and how to add a real processor, is in
+  [docs/payments.md](docs/payments.md).
+- **Development payments**: with `DJANGO_DEBUG=True` the sandbox provider is on, so the
+  online path works end to end with Pay, Fail and Cancel buttons and no money. The Celery
+  worker must be running (or `CELERY_TASK_ALWAYS_EAGER=True`), because it delivers the
+  sandbox webhooks. `SITE_URL` must be the address you open the site on, since the checkout
+  redirects there.
+- **Demo data**: `seed_demo` (DEBUG only) adds three placeholder tiers, a placeholder
+  agreement, members in every status with payment history, two members-only classes and a
+  `desk_volunteer` account with door desk permissions only. It prints their passwords.
+- **Moving the clock** (DEBUG only): `python manage.py membership_clock --days 10
+  [--member demo_active]` pretends days have passed and runs the daily lifecycle, so you can
+  watch active become grace and then expired.
+- **Importing existing members**: `python manage.py import_members members.csv` checks the
+  file (columns `email,display_name,tier_slug,period_end,id_checked`) and writes nothing.
+  Add `--commit` to import. Any problem row stops the whole import. Each person gets a neutral
+  "Your account is ready" email. Email addresses are only printed with DEBUG on.
 
 ## Adding images
 
@@ -139,7 +161,7 @@ otherwise, and images in that state are never shown on the site.
 ```
 backend/    Django project "config", apps under backend/apps/, admin templates, Dockerfile
 frontend/   Vite + React + TypeScript + Tailwind, Vitest tests
-docs/       Architecture, decisions, design system, image manifest
+docs/       Architecture, decisions, design system, payments, image manifest
 scripts/    fetch_images.py
 render.yaml Hosting blueprint stub (not deployed)
 ```
