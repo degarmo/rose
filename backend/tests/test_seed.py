@@ -36,3 +36,43 @@ def test_seeded_cta_urls_are_valid():
     call_command("seed_demo")
     for opportunity in Opportunity.objects.all():
         opportunity.full_clean()
+
+
+def test_seed_events_journal_and_demo_users(capsys, settings):
+    from apps.accounts.models import User
+    from apps.events.models import RSVP, Event
+    from apps.journal.models import Post
+
+    settings.DEBUG = True
+    call_command("seed_demo")
+    out = capsys.readouterr().out
+    assert "demo.verified@example.org" in out
+
+    education = Event.objects.filter(category="education")
+    assert education.count() == 4
+    assert all(event.opportunity_id for event in education)
+    assert all(timezone.localtime(e.starts_at).weekday() == 3 for e in education)
+    socials = Event.objects.filter(category="social")
+    assert sorted({timezone.localtime(e.starts_at).weekday() for e in socials}) == [4, 5]
+    assert socials.count() == 8
+    assert Event.objects.filter(audience="members").count() == 1
+
+    full = Event.objects.get(slug="intimate-salon")
+    assert full.waitlist_enabled and full.is_full()
+
+    assert Post.objects.live().count() == 9
+    assert all(1 <= post.images.count() <= 10 for post in Post.objects.all())
+    assert all(post.publish_errors() == [] for post in Post.objects.all())
+
+    verified = User.objects.get(email="demo.verified@example.org")
+    unverified = User.objects.get(email="demo.unverified@example.org")
+    assert verified.email_verified and not unverified.email_verified
+    assert RSVP.objects.filter(user=verified, event=full).exists()
+
+
+def test_seed_hides_credentials_when_not_debug(capsys, settings):
+    settings.DEBUG = False
+    call_command("seed_demo")
+    out = capsys.readouterr().out
+    assert "demo.verified@example.org" not in out
+    assert "Demo accounts" not in out
