@@ -17,9 +17,11 @@
 #   week-thursday      4:3  education nights (books, a lamp, hands taking notes)
 #   week-weekend       4:3  weekend socials (silk, glassware, low light)
 #   home-closing       21:9 closing call to action (leather texture, brass)
-#   about-hero         16:9 about page (architecture, silhouettes)
-#   visit-hero         16:9 plan your visit (a doorway, an entrance light)
-#   join-hero          16:9 join page (a rose on dark fabric)
+#   about-hero         wide page header, about (architecture, silhouettes)
+#   education-hero     wide page header, education (books, candlelight)
+#   visit-hero         wide page header, plan your visit (a doorway, an entrance light)
+#   contact-hero       wide page header, contact (silk, a handwritten note)
+#   join-hero          wide page header, join (a rose on dark fabric)
 #
 # Examples (remove the leading "# " to use):
 # https://images.unsplash.com/photo-XXXXXXXXXXXX?w=2400 | home-hero | unsplash | Unsplash License | Photographer Name | faces=no | consent=no
