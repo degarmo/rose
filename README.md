@@ -29,7 +29,9 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    docker compose exec api python manage.py seed_demo
    ```
 
-   This prints two demo logins (one verified, one not); passwords change on every run.
+   This prints demo logins (one verified, one not, and a member-feed account); passwords
+   change on every run. The verified account has feed access but has not joined, so you can
+   try the join flow from `/account`.
 
 3. **Create an admin account.**
 
@@ -110,6 +112,13 @@ If ports 5433, 6380, 8000 or 5173 are taken, override them, for example
    npm run lint
    npm run build
    ```
+
+## Member feed
+
+Staff give someone feed access from Admin > Accounts > Profiles ("Grant member feed access").
+They then join from `/account`. Moderators work from Admin > Feed > Feed posts > "Open queue"
+(`/admin/feed/feedpost/moderation/`). Member uploads live in `backend/private_media/` and are
+only ever served through access-checked views; never point a web server at that folder.
 
 ## Adding images
 

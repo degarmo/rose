@@ -23,14 +23,15 @@ token is ever stored in browser storage.
 | `config/celery.py` | Celery app. Reads `CELERY_*` settings; beat schedule lives in settings. |
 | `config/urls.py` | `/robots.txt`, the admin (path from `DJANGO_ADMIN_PATH`) and everything under `/api/`. |
 | `templates/admin/` | Admin additions: Image review, door list, Repeat weekly form, and the index link to Image review. |
-| `apps/core` | Shared helpers with no models: `consent_images.py` (the image + alt + faces + consent pattern), `images.py` (EXIF/GPS stripping, random names), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py`, `views.py`. |
+| `apps/core` | Shared helpers with no models: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface), `watermark.py` (per-viewer tiled watermark), `images.py` (EXIF/GPS stripping, random names), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py`, `views.py`. |
 | `apps/accounts` | `User` (email login, `display_name`, private `legal_name`, `phone`, `email_verified_at`), `Profile`, registration, verification, login lockout, password reset and change, display-name change, account deletion. Email tasks in `tasks.py`. |
 | `apps/pages` | `SiteSettings`, `SocialLink`, `FAQItem`; `seed_demo` command and its generated placeholder art (`demo_media.py`). |
 | `apps/education` | `Opportunity` (uses the consented image pattern). |
 | `apps/contact` | `ContactMessage`, content-free staff notification, `anonymize_messages_from()`. |
 | `apps/events` | `Event`, `RSVP`, `AttendeeExport`; `access.can_rsvp()`, `services.py` (capacity and waitlist under a row lock), `tasks.py` (RSVP emails, reminders, retention purge), `ics.py`, `recurrence.py` (Repeat weekly), admin door list and CSV export. |
 | `apps/journal` | Staff-written public posts: `Post` and `PostImage` (1 to 10 images, consented image pattern), cursor-paginated API. |
-| `apps/feed`, `apps/memberships` | Empty shells for prompts 3 and 4. |
+| `apps/feed` | The opt-in member feed. `access.py` (who may see and post), `visibility.py` (what one member may see), `services.py` (posting, likes, comments, follows, blocks, mutes, reports, moderation, erase, export), `tasks.py` (image processing, erase, export, expiry), `api.py` (404-first base view), `views.py` under `/api/members/`, `account_views.py` under `/api/account/feed/`, admin moderation queue. |
+| `apps/memberships` | Empty shell for prompt 4. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
 
 ### API
@@ -52,6 +53,8 @@ token is ever stored in browser storage.
 | GET | `/api/events/<slug>/calendar.ics[?details=1]` | Discreet by default. |
 | POST | `/api/events/rsvp/cancel/` | Cancel from an emailed, signed link. |
 | GET | `/api/journal/posts/[<slug>/]` | Cursor-paginated, 12 per page. |
+| GET, POST | `/api/account/feed/`, `join/`, `guidelines/`, `step-away/`, `erase/`, `export/`, `export/download/` | Feed controls on /account. 404 unless the person is entitled or has feed history. |
+| any | `/api/members/...` | The feed. Every path and method returns 404 unless `can_view_feed` passes, before CSRF or anything else is checked. See below. |
 
 ### Background work
 
@@ -62,6 +65,66 @@ token is ever stored in browser storage.
 | `events.tasks.send_due_reminders` | Beat, every 15 minutes | 24-hour reminder, once per RSVP. |
 | `events.tasks.purge_expired_rsvps` | Beat, every 6 hours | Deletes RSVPs `RSVP_RETENTION_DAYS` after the event ends and keeps `final_going_count` and `final_checked_in_count`. |
 
+## Member feed
+
+```mermaid
+flowchart TD
+    R[Request to /api/members/...] --> A{can_view_feed?}
+    A -- "no: anonymous, unverified, not entitled,\nopted out, suspended or banned" --> N[404, same as an unknown URL]
+    A -- yes --> C{Unsafe method?}
+    C -- yes --> X{CSRF token valid?}
+    X -- no --> F[403]
+    X -- yes --> V
+    C -- no --> V[View]
+    V --> Q[visibility.py: feed_visible_q, blocks both ways, mutes, post status]
+    Q --> S[Serializer for this viewer: no likers, no follows, no RSVPs, month-only dates after 7 days]
+    V --> M[Media view: re-check access, blocks and status, then watermark for this viewer]
+    M --> P[private_media.deliver: Cache-Control private, no-store]
+
+    E{has_feed_entitlement} --> G[Profile.feed_access_granted by staff]
+    E -.-> H[Prompt 04: paid membership]
+    A --- E
+```
+
+### Data model
+
+```mermaid
+erDiagram
+    User ||--|| Profile : has
+    Profile {
+        bool feed_access_granted
+        bool participates_in_feed
+        image avatar "private, consent fields"
+        string bio
+        bool hide_from_directory
+        bool always_show_sensitive
+        datetime feed_suspended_until
+        datetime feed_banned_at
+        datetime posting_cooldown_until
+    }
+    Guidelines ||--o{ GuidelinesAcceptance : "accepted as"
+    User ||--o{ GuidelinesAcceptance : accepts
+    User ||--o{ FeedPost : writes
+    FeedPost ||--o{ FeedImage : "1 to 10"
+    FeedPost ||--o{ FeedComment : has
+    FeedPost ||--o{ FeedLike : has
+    User ||--o{ Follow : "follows (private)"
+    User ||--o{ Block : blocks
+    User ||--o{ Mute : mutes
+    User ||--o{ Notification : receives
+    User ||--o{ Report : files
+    Report }o--|| FeedPost : "or comment, or profile"
+    ModerationAction }o--|| User : "actor (append-only)"
+    User ||--o{ DataExport : requests
+```
+
+- **Access** (`apps/feed/access.py`): `can_view_feed` = signed in, active, email verified, entitled, not banned or suspended, and opted in. `has_feed_entitlement` is the single place prompt 04 adds paid membership; staff grants stay. `can_post` adds the current guidelines version and no posting cooldown.
+- **Opting out** (`Profile.participates_in_feed=False`) hides every post, comment, like, avatar and bio at once through `feed_visible_q()`; nothing is deleted, and rejoining restores it all. Banned members are hidden the same way.
+- **Leave and erase** (`services.erase_feed_data`, run by `tasks.erase_member_feed`) deletes posts, image files, comments, likes, follows, blocks and mutes they created, notifications and exports. Account deletion calls the same routine.
+- **Images**: the browser renders redactions on a canvas and uploads only the result. The server stores the raw upload in private `incoming/`, a worker strips metadata and re-encodes to WebP with a random name, and the raw file is deleted. Posts show "Processing" to their author until then.
+- **Private media**: no feed file has a URL. `MediaView` and `AvatarMediaView` re-check access, blocks and post status on every request, watermark the image with the viewer's display name and date (`FEED_WATERMARK`), cache that per viewer for 10 minutes on private disk, and answer with `Cache-Control: private, no-store`.
+- **Moderation**: `/admin/feed/feedpost/moderation/` lists open reports grouped by item, pending first posts and the action log. Every action writes an append-only `ModerationAction`.
+
 ## Frontend (`/frontend/src`)
 
 | Path | Purpose |
@@ -71,29 +134,29 @@ token is ever stored in browser storage.
 | `components/ui` | Design-system components. See `docs/design-system.md`. |
 | `components/layout` | Header (with `AccountMenu`), footer, `QuickExit`, `AgeGate`, auth and site settings providers. |
 | `components/content` | `EventCard`, `MonthCalendar`, `RSVPPanel`, `Carousel`, `PostView`, `JournalTile`, opportunity card, FAQ accordion, states. |
-| `pages` | One file per page; `pages/account/` holds login, register, verify, forgot, reset and the account page. |
+| `pages` | One file per page; `pages/account/` holds login, register, verify, forgot, reset, export download and the account page (with `FeedSection`); `pages/members/` holds the feed, post, profile, directory, notifications and join flow. |
+| `components/members` | Members area: quieter `MembersLayout`, `PostCard`, `Composer`, `RedactionEditor`, `SensitiveBlur`, `OverflowMenu`, `ReportDialog`, `ProfileSettings`. Loaded as a separate chunk only when a members route is visited. |
+| `lib/redact.ts`, `lib/membersApi.ts`, `lib/useCursorList.ts` | Canvas redaction pipeline; members API client; cursor pagination with infinite scroll. |
 | `lib/api.ts` | Typed API client; keeps the CSRF token in memory and refreshes it from session responses. |
 | `lib/calendar.ts`, `lib/events.ts`, `lib/format.ts` | Month grid maths, RSVP state labels, Chicago-time formatting, safe `next` paths, URL fragment parsing. |
 | `**/*.test.tsx`, `test/` | Vitest + Testing Library. |
 
 ## How later prompts plug in
 
-**Prompt 3: member social feed.** Add models to `apps/feed` with an `author` foreign key.
-Every queryset a member can see must filter with `feed_visible_q()` from
-`apps.accounts.models`, which is what makes opting out hide everything without deleting it.
-Images use `consented_image(...)` from `apps.core.consent_images`. Routes go under
-`/members/...` and `/api/members/...`, which robots.txt, `X-Robots-Tag` and the SPA already
-treat as private. Author bylines use `PublicUserSerializer`.
+**Prompt 3: member social feed.** Built; see "Member feed" above.
 
-**Prompt 4: paid membership.** Add models to `apps/memberships`. Replace only the members
-branch inside `apps.events.access.can_rsvp` with a real membership check; nothing else in
-the RSVP path needs to change. Replace `pages/JoinPage.tsx`. Store only the payment
-provider's identifiers, never card data.
+**Prompt 4: paid membership.** Add models to `apps/memberships`. Two functions change and
+nothing else: the members branch inside `apps.events.access.can_rsvp`, and the second
+entitlement inside `apps.feed.access.has_feed_entitlement` (staff grants stay). Replace
+`pages/JoinPage.tsx`. Store only the payment provider's identifiers, never card data.
 
 **Prompt 5: hardening and deploy.** Finalise `render.yaml` (domains, plans, the
 `rose-api.onrender.com` rewrite target), configure SMTP through `EMAIL_URL`, set
-`DJANGO_ADMIN_PATH`, move media to private object storage, add retention for contact
-messages and the attendee export log, and review request logging so client IPs are not kept.
+`DJANGO_ADMIN_PATH`, and review request logging so client IPs are not kept. Move private
+media to S3-compatible storage behind `apps.core.private_media` (a new backend whose
+`deliver()` returns short-lived signed URLs for watermarked variants); the API, worker and
+beat must share it, which a Render disk cannot do. Add retention for contact messages, the
+attendee export log and the moderation log.
 
 ## Privacy checklist
 
@@ -129,6 +192,34 @@ Check every change against this list.
       the URL fragment, which browsers never send to the server.
 - [ ] **Minimum data.** No IP or user agent stored with messages; deleting an account
       deletes the profile and RSVPs and strips identity from contact messages.
+
+### Member feed rules
+
+- [ ] **404, never 403.** Every `/api/members/` path and method returns 404 to anyone without
+      feed access, checked before CSRF. `/members/*` pages render the site's 404. Tested
+      across every route for anonymous, unverified, not-entitled, opted-out, suspended,
+      banned and entitled-but-unverified users (`tests/test_feed_access.py`).
+- [ ] **Opt-in only.** Off by default. Joining needs entitlement, verification and accepting
+      the current guidelines after scrolling to the end.
+- [ ] **Opting out hides, never deletes,** and is reversible. Leave and erase deletes
+      permanently, including files, and is shared with account deletion.
+- [ ] **Never shown:** email, legal name, RSVPs, follower or following lists or counts, who
+      liked a post, like counts (except to the author), or exact times older than 7 days.
+- [ ] **Blocks are total and silent,** both ways; existing likes and comments between the two
+      are hidden, not deleted.
+- [ ] **Consent before upload.** Photos need the attestation; the composer's redaction runs on
+      the device and only the rendered result is uploaded.
+- [ ] **Images are private and traceable.** EXIF, GPS and colour profiles stripped, random
+      names, no public URL, every request re-checked, viewer watermark, `no-store`, no
+      download buttons, right-click and drag disabled, no service worker.
+- [ ] **Sensitive posts blur** until the viewer taps View (or opts to always show them).
+- [ ] **Reports**: "posted without consent" and "may involve someone under 18" hide at once;
+      three distinct reporters hide anything. Reporters never learn outcomes.
+- [ ] **Moderation is logged** in an append-only `ModerationAction`; first posts are
+      pre-moderated; posting and commenting are rate limited.
+- [ ] **No email for feed activity.** Notifications are in-app only; likes are grouped and
+      nameless.
+- [ ] **No direct messages.**
 
 ### RSVP privacy rules
 

@@ -224,6 +224,36 @@ One square image at a time. Previous and next buttons, arrow keys when focused, 
 
 `PostView` is the shared layout for the journal modal and the permalink page: the carousel, then author and relative date, the sanitised caption, and an RSVP button (linked event) or the post's CTA. `JournalTile` is a square, Instagram-style grid tile with a Lucide `Layers` icon on multi-image posts. Use them in a `grid-cols-3` grid with tight gaps (`gap-0.5` on phones, up to `gap-2`).
 
+## Members area (`components/members`)
+
+A quieter variant of the site chrome for `/members/*`: a slim header with the wordmark, an Account link and the compact Leave control, then four tabs (Feed, Directory, Notifications with a `Bell` unread badge, Profile). A floating `Plus` button opens the composer; on large screens it sits above the floating Leave control. Content is a single column, `max-w-2xl`.
+
+### PostCard
+
+```tsx
+<PostCard post={post} onChange={(next) => update(post.id, next)} />
+```
+
+Avatar, handle, relative time (or "Mar 2026" for anything older than a week), the image carousel with image protection, the caption with a More toggle after three lines, a like button (optimistic) and a comment link. The overflow menu offers Report, Mute and Block to viewers, and Edit and Delete to the author; Block and Delete confirm first. `onChange(null)` removes the card from its list.
+
+### SensitiveBlur
+
+Wraps sensitive images in a heavy blur with an `EyeOff` icon and a View button. The blurred content is `aria-hidden` until revealed. The API decides whether to blur (`post.blur`), honouring the viewer's "always show sensitive posts" setting.
+
+### Composer and RedactionEditor
+
+A full-screen sheet in four steps: choose photos, cover anything identifying, order and describe, caption and post. The step bar marks the current step with `aria-current="step"`. The footer stays pinned while the middle scrolls. Post stays disabled until the consent attestation is ticked whenever there are photos.
+
+`RedactionEditor` has six tools: Cover (solid fill), Pixelate, Crop, Rotate, Undo and Reset. The user drags on the photo to place rectangles. The preview and the upload come from the same `renderRedacted` pipeline in `lib/redact.ts`, so what members see is exactly what gets uploaded, and the original never leaves the device.
+
+### Toggle, OverflowMenu, ConfirmDialog, ReportDialog
+
+`Toggle` is a labelled switch on a native checkbox. `OverflowMenu` is a small menu that closes on outside click, Escape and selection. `ConfirmDialog` is a two-button Modal for destructive actions. `ReportDialog` offers the six reasons as radios, requires detail for "Something else", and only ever answers "Thanks, our team will review this."
+
+### Image protection
+
+`ImageFrame` and `Carousel` take `protect`, which blocks the context menu, dragging and the iOS long-press callout on member images. It is a deterrent, not a control; the watermark is what traces leaks.
+
 ## Testing
 
 Component tests live next to their components (`*.test.tsx`) and use `renderWithProviders()` from `src/test/render.tsx`, which supplies the router, auth context and toasts. Run them with `npm test`.

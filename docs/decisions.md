@@ -139,3 +139,67 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 97. In `render.yaml`, the API, worker and beat share one generated `DJANGO_SECRET_KEY` through an env group, because the worker signs links that the API verifies.
 98. `redis` is pinned to 6.4.0 because the current kombu requires it.
 99. Compose host ports can be overridden with `DB_PORT`, `CACHE_PORT`, `API_PORT` and `WEB_PORT`, and the API, worker and beat share one image (`rose-backend:dev`), so it is built once.
+
+## Prompt 03
+
+### Access and entitlement
+
+100. Feed access lives in `apps/feed/access.py`. `has_feed_entitlement()` holds the entitlement rule: today only the staff grant (`Profile.feed_access_granted`, with who and when recorded by the admin). **Prompt 04 adds paid membership as a second entitlement inside this one function; the staff-granted path stays permanently** for comped members and volunteers.
+101. **(privacy)** The 404 check runs before CSRF and before anything else, through a session authentication class that defers CSRF until access is confirmed. Without that, a POST from someone without access would get a CSRF 403 and confirm the endpoint exists.
+102. Suspended and banned members get the same 404 as everyone else. A banned member's content is hidden through `feed_visible_q()`. A suspended member's content stays visible.
+103. Join, step away, erase and export live under `/api/account/feed/`, not `/api/members/`, so people who stepped away or were banned can still reach them. Those endpoints are 404 for anyone with no entitlement and no feed history, and `/account` shows no feed section to them.
+104. A posting cooldown comes from a moderator's warning: 24 hours (`FEED_WARNING_COOLDOWN_HOURS`). The member can still read, like and comment.
+105. Rejoining goes through the same three-step flow, including the guidelines.
+
+### Guidelines
+
+106. Version 1 is created by a data migration so every environment starts with it. Published versions are read-only in admin, because they record what people agreed to. Publishing a new version notifies every participant in-app, and they cannot post until they accept it (they can still read).
+107. "Scroll to the end" counts as reaching within 12 px of the bottom of the guidelines box. If the text fits without scrolling, the checkbox is enabled straight away.
+
+### Posts, images and redaction
+
+108. **(privacy)** URLs use random, opaque ids (`public_id`) for posts, images and comments, never database ids, so nothing reveals how many posts exist or their order. Avatars are served by a random key that changes on every upload.
+109. **(privacy)** Member uploads, including avatars, go to private storage (`PRIVATE_MEDIA_ROOT`) through `apps.core.private_media`. That storage refuses to produce any URL, so no template, admin widget or serializer can leak one. The admin never renders private file fields; moderators see previews through a staff-only view.
+110. Feed images use the consent pattern with `alt_required=False` (alt text encouraged, not required, as the brief asks for members). The post's attestation sets `image_consent_confirmed` on every image, and `image_faces_visible` is recorded as true, since the server cannot know.
+111. Raw uploads wait in private `incoming/` until the Celery worker strips and re-encodes them, then the raw file is deleted. A file that fails processing is dropped; a post left with no images and no caption is marked removed. Each image is processed in its own savepoint.
+112. Avatars are small, so they are cleaned in the request rather than queued. An avatar that "shows a face" needs the attestation. The hint that a non-face avatar is normal appears wherever an avatar is chosen.
+113. **(privacy)** Redaction is written with canvas directly, with no library. Order: rotate, crop, then cover or pixelate. Cover is a solid fill in the ink colour; pixelate keeps about 10 blocks across a region's long side. Changing the crop clears earlier cover-ups, because they would no longer line up. Output is JPEG at quality 0.9, capped at 2400 px. Even photos with no edits go through this pipeline, so the original file never leaves the device. The UI says covering is the safest choice.
+114. New members' first 3 posts (`FEED_PREMODERATION_POSTS`) are pending until approved. The count is of posts that were ever published, so a removed post still counts towards the three. The author alone sees "Waiting for review", via an author-only `in_review` flag.
+115. Limits are counted in the database rather than the cache: 10 posts per rolling 24 hours and 60 comments per rolling hour, with HTTP 429 beyond that.
+116. Text-only posts need no attestation. A post must have a caption or a photo. Editing a post that has no photos cannot empty its caption.
+
+### Interactions and notifications
+
+117. Liking your own post is allowed but never notifies you. A like count only ever goes to the post's author, and counts only likes from visible members outside a block with the author.
+118. Comments are plain text with links, 500 characters, rendered through the same sanitiser as captions. The post's author and the commenter can delete a comment; anyone can report one.
+119. Blocking also removes follows in both directions, because a follow is a relationship, not content. Likes and comments between the two people are hidden from everyone, not deleted, and return if the block is lifted. Only the blocker can see and lift their blocks (from their profile settings); the blocked person never learns of the block.
+120. Mute hides someone from your feed tabs only; their profile and posts stay reachable.
+121. Notifications: one grouped row per post for likes with a live, nameless count ("3 people liked your post"); a comment notification names the commenter. Notifications from people who opted out, were banned or are in a block with you are dropped. The list keeps the latest 50, and opening it marks everything read.
+122. **(privacy)** Direct messages are deliberately left out for safety and moderation reasons. Private one-to-one channels are where pressure and harassment hide from moderators, and where images leave the watermarked, reportable feed.
+
+### Directory and profiles
+
+123. The directory returns at most 20 matches for 3 or more typed characters, and lists only members who turned "Hide me" off (default on). Profiles show the month someone joined the feed, never a date. Posts older than 7 days carry only a month; the API never sends their exact time.
+124. A profile hidden by a report disappears for others (404) but stays visible to its owner.
+
+### Reports and moderation
+
+125. One report per person per item; repeats are accepted silently. "Other" needs a short description. Comments and profiles can be auto-hidden too. For a profile, hiding means the profile page, avatar and bio disappear for others while their posts stay.
+126. The moderation queue is a custom admin page with a form per item: approve, remove (a reason is required and goes to the author in-app), dismiss (restores hidden content), warn (24-hour posting pause), suspend for N days, ban, and erase (type the display name to confirm). Moderation actions refresh the target from the database first, because reports may have changed it since it was loaded.
+127. `ModerationAction` is append-only in three places: the model refuses save-after-create and delete, its queryset refuses update and delete, and the admin has no add, change or delete permission. A member's deletion only clears the actor or target link; the labels stay.
+128. Reporters never receive notifications about outcomes. Authors are told about removals, warnings, suspensions and approvals in-app. A ban sends no notification, because the person can no longer see the feed.
+
+### Media and leak deterrence
+
+129. **(privacy)** The watermark is a faint (about 13 percent opacity), diagonal, tiled overlay of the viewer's display name and the date, rendered with Pillow on every image a viewer is served. It deters leaks and identifies the leaker; it does not prevent screenshots. Watermarked variants are cached per viewer, image and day for 10 minutes in a file-based cache on private disk, not in Redis, which also carries the task queue.
+130. Feed images block the context menu, dragging and the iOS long-press callout, and there are no download buttons. This is a deterrent only. There is no service worker.
+131. The members area is a separate lazy-loaded bundle, so public visitors never download its code.
+
+### Erasure and export
+
+132. **(privacy)** Leave and erase hides everything at once (it opts the member out), then the worker deletes posts, image files, comments, likes, follows in both directions, blocks and mutes they created, notifications to and from them, guideline acceptances and exports, and clears the avatar and bio. Reports they filed and moderation records stay. The account itself stays. Confirmation means typing the display name exactly, case included. A neutral "Your request is complete" email follows.
+133. Exports contain `data.json` (profile, posts, comments, likes with post ids) and the stripped images. Only a hash of the token is stored, the worker mints the token (so it never passes through the queue), and the link sits in the URL fragment. The download is single-use (marked used on first claim), expires after 24 hours, and an hourly beat task deletes used and expired files. Only one export can be pending at a time.
+
+### Seed
+
+134. The feed seed runs only with `DEBUG` on. Demo feed accounts get random passwords. Only `demo.member@example.org` has its password printed, so a second account is available for testing. The verified demo account is granted access but not joined, so the join flow can be tried.
