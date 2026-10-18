@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { RouterProvider } from 'react-router'
 import { AgeGate } from './components/layout/AgeGate'
+import { AuthProvider } from './components/layout/AuthProvider'
 import { SiteSettingsProvider } from './components/layout/SiteSettingsProvider'
 import { ToastProvider } from './components/ui'
 import { confirmAge, hasConfirmedAge } from './lib/ageGate'
@@ -34,9 +35,11 @@ export function App() {
 
   return (
     <SiteSettingsProvider>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </AuthProvider>
     </SiteSettingsProvider>
   )
 }

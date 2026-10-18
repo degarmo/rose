@@ -4,3 +4,4 @@ Disallow: /members
 Disallow: /account
 Disallow: /api
 Disallow: /exit
+Disallow: /events/cancel

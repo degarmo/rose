@@ -1,4 +1,4 @@
-import { EyeOff, FileText, Mail, ToggleLeft, Trash2 } from 'lucide-react'
+import { CalendarCheck, EyeOff, FileText, Mail, ToggleLeft, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { PageHero } from '@/components/content/PageHero'
@@ -51,8 +51,16 @@ export function PrivacyPage() {
                 are 18 or older. It expires after {AGE_GATE_HOURS} hours.
               </li>
               <li>
-                <strong>A security cookie:</strong> a random token that stops other websites from sending forms in your
-                name. It contains nothing about you.
+                <strong>If you create an account:</strong> your email address, the display name you choose and your
+                password, which we store only in scrambled form. You can change your display name and password, or
+                delete the account, at any time from your account page.
+              </li>
+              <li>
+                <strong>When you RSVP:</strong> which evening, your party size and any note you leave for our hosts.
+              </li>
+              <li>
+                <strong>Security cookies:</strong> a random token that stops other websites from sending forms in your
+                name, and, while you are signed in, a session cookie. Neither contains anything about you.
               </li>
             </ul>
             <p>
@@ -77,6 +85,21 @@ export function PrivacyPage() {
             </p>
           </Block>
 
+          <Block icon={CalendarCheck} title="Who can see your RSVPs">
+            <p>
+              Nobody but our hosts. Other guests, members and visitors never see who is coming, not even people
+              going to the same evening. Some events show a total number of people attending, never names.
+            </p>
+            <p>
+              Hosts see display names and party sizes on the door list so they can welcome you. Every download of
+              that list is recorded with who downloaded it and when.
+            </p>
+            <p>
+              We delete RSVPs 30 days after each event, keeping only how many people came. Calendar files you
+              download just say &ldquo;Rose - Evening&rdquo; with no address unless you choose to include the details.
+            </p>
+          </Block>
+
           <Block icon={ToggleLeft} title="Social features are opt-in">
             <p>
               Member social features are <strong>off by default</strong>, and your profile starts out private. Nothing
@@ -91,7 +114,9 @@ export function PrivacyPage() {
 
           <Block icon={Trash2} title="Asking us to delete your information">
             <p>
-              You can ask us to delete anything we hold about you, including contact messages, at any time. Send a request
+              You can delete your account yourself from your account page. That removes your profile and every RSVP
+              straight away, and strips your name, email and phone number from any message you sent us. You can also
+              ask us to delete anything else we hold about you, at any time. Send a request
               through the <Link to="/contact" className="text-accent underline underline-offset-4">contact form</Link>
               {email ? (
                 <>
@@ -108,8 +133,8 @@ export function PrivacyPage() {
 
           <Block icon={Mail} title="Email from us">
             <p>
-              Any email we send comes from a plain sender name and uses a neutral subject line, so nothing in your inbox
-              gives away who it is from.
+              Any email we send comes from a plain sender name and uses a neutral subject line such as &ldquo;Your plans
+              for Friday&rdquo;, so nothing in your inbox gives away who it is from or what it is about.
             </p>
           </Block>
         </div>

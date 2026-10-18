@@ -8,6 +8,7 @@ interface ModalProps {
   title: string
   hideTitle?: boolean
   variant?: 'dialog' | 'sheet'
+  size?: 'md' | 'wide'
   children: ReactNode
   footer?: ReactNode
 }
@@ -16,7 +17,16 @@ interface ModalProps {
  * Built on the native <dialog>, which traps focus, restores it on close and
  * closes on Escape without extra code.
  */
-export function Modal({ open, onClose, title, hideTitle = false, variant = 'dialog', children, footer }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  hideTitle = false,
+  variant = 'dialog',
+  size = 'md',
+  children,
+  footer,
+}: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
 
@@ -45,7 +55,10 @@ export function Modal({ open, onClose, title, hideTitle = false, variant = 'dial
           'relative flex flex-col bg-surface',
           variant === 'sheet'
             ? 'h-full w-full px-6 pb-10 pt-6'
-            : 'max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border p-6 sm:p-8',
+            : cn(
+                'max-h-[92dvh] w-full overflow-y-auto rounded-2xl border border-border p-6 sm:p-8',
+                size === 'wide' ? 'max-w-5xl' : 'max-w-lg',
+              ),
         )}
       >
         <div className="flex items-start justify-between gap-6">

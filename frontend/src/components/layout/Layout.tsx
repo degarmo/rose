@@ -22,7 +22,7 @@ export function Layout() {
       </main>
       <Footer />
       {/* Phones get the Leave control in the fixed header instead, clear of page content. */}
-      <div className="hidden lg:block">
+      <div className="hidden xl:block">
         <QuickExit />
       </div>
       <ScrollRestoration />

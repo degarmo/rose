@@ -1,36 +1,68 @@
-import { ArrowRight, BookOpen, GlassWater } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { useNavigate } from 'react-router'
+import { EventCard } from '@/components/content/EventCard'
+import { JournalTile } from '@/components/content/JournalTile'
 import { OpportunityCard } from '@/components/content/OpportunityCard'
 import { Reveal } from '@/components/content/Reveal'
 import { ErrorState, SkeletonCards, EmptyState } from '@/components/content/States'
 import { ValuesStrip } from '@/components/content/ValuesStrip'
 import { useSiteSettings } from '@/components/layout/siteSettingsContext'
-import { ButtonLink, Card, ImageFrame, Section, SectionHeading } from '@/components/ui'
+import { ButtonLink, ImageFrame, Section, SectionHeading } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
 const FEATURED_COUNT = 3
 
-const WEEK = [
-  {
-    day: 'Thursdays',
-    title: 'Education nights',
-    body: 'Classes, workshops and open discussion led by experienced members. Come to learn, ask questions, or simply listen from a comfortable chair.',
-    detail: 'Orientation for newcomers runs most weeks.',
-    image: 'week-thursday.webp',
-    placeholder: 'candle' as const,
-    icon: BookOpen,
-  },
-  {
-    day: 'Fridays and Saturdays',
-    title: 'Weekend socials',
-    body: 'Unhurried evenings for conversation and connection, with volunteer hosts on hand all night and quiet corners whenever you want them.',
-    detail: 'Open to members and their invited guests.',
-    image: 'week-weekend.webp',
-    placeholder: 'silk' as const,
-    icon: GlassWater,
-  },
-]
+const UPCOMING_COUNT = 3
+const JOURNAL_COUNT = 6
+
+function UpcomingEvents() {
+  const state = useAsync(() => api.events(), 'home-events')
+  if (state.status === 'loading') return <SkeletonCards count={UPCOMING_COUNT} />
+  if (state.status === 'error') return <ErrorState title="Events did not load" onRetry={state.retry} />
+  const upcoming = state.data.slice(0, UPCOMING_COUNT)
+  if (upcoming.length === 0) {
+    return <EmptyState title="The calendar is being planned" message="New evenings are added every week." />
+  }
+  return (
+    <ul className="grid gap-5 lg:grid-cols-3">
+      {upcoming.map((event, index) => (
+        <Reveal as="li" key={event.id} delay={index as 0 | 1 | 2}>
+          <EventCard event={event} />
+        </Reveal>
+      ))}
+    </ul>
+  )
+}
+
+function JournalStrip() {
+  const navigate = useNavigate()
+  const state = useAsync(() => api.journal(), 'home-journal')
+  if (state.status === 'loading') {
+    return (
+      <div aria-hidden="true" className="grid grid-cols-3 gap-0.5 sm:gap-1 lg:grid-cols-6">
+        {Array.from({ length: JOURNAL_COUNT }, (_, index) => (
+          <div key={index} className="aspect-square animate-pulse bg-surface" />
+        ))}
+      </div>
+    )
+  }
+  if (state.status === 'error') return <ErrorState title="The journal did not load" onRetry={state.retry} />
+  const posts = state.data.posts.slice(0, JOURNAL_COUNT)
+  if (posts.length === 0) {
+    return <EmptyState title="The first posts are on their way" message="Check back soon." />
+  }
+  return (
+    <ul className="grid grid-cols-3 gap-0.5 sm:gap-1 lg:grid-cols-6">
+      {posts.map((post) => (
+        <li key={post.slug}>
+          <JournalTile post={post} onOpen={(open) => navigate(`/journal/${open.slug}`)} />
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 function FeaturedOpportunities() {
   const state = useAsync(() => api.opportunities(), 'featured')
@@ -125,32 +157,20 @@ export function HomePage() {
       </Section>
 
       <Section tone="surface" aria-labelledby="week">
-        <SectionHeading
-          id="week"
-          eyebrow="A week at the house"
-          title="Learn on Thursdays. Unwind on weekends."
-          lede="Two rhythms, one community. Most people start with an education night, then find their way to the weekends."
-        />
-        <div className="mt-14 grid gap-6 md:grid-cols-2">
-          {WEEK.map((item, index) => {
-            const Icon = item.icon
-            return (
-              <Reveal key={item.title} delay={index as 0 | 1}>
-                <Card className="h-full">
-                  <ImageFrame image={item.image} alt="" ratio="4/3" placeholder={item.placeholder} reveal={false} />
-                  <div className="p-6 sm:p-8">
-                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-highlight">
-                      <Icon aria-hidden="true" className="size-4" />
-                      {item.day}
-                    </p>
-                    <h3 className="mt-4 text-3xl text-fg">{item.title}</h3>
-                    <p className="mt-4 leading-relaxed text-fg-muted">{item.body}</p>
-                    <p className="mt-4 text-sm text-fg-subtle">{item.detail}</p>
-                  </div>
-                </Card>
-              </Reveal>
-            )
-          })}
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <SectionHeading
+            id="week"
+            eyebrow="At the house"
+            title="Learn on Thursdays. Unwind on weekends."
+            lede="Most people start with an education night, then find their way to the weekends."
+          />
+          <ButtonLink to="/events" variant="link">
+            All events
+            <ArrowRight aria-hidden="true" className="size-4" />
+          </ButtonLink>
+        </div>
+        <div className="mt-12">
+          <UpcomingEvents />
         </div>
       </Section>
 
@@ -169,6 +189,19 @@ export function HomePage() {
         </div>
         <div className="mt-12">
           <FeaturedOpportunities />
+        </div>
+      </Section>
+
+      <Section aria-labelledby="journal" spacing="tight">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <SectionHeading id="journal" eyebrow="Journal" title="From the Journal" />
+          <ButtonLink to="/journal" variant="link">
+            See the journal
+            <ArrowRight aria-hidden="true" className="size-4" />
+          </ButtonLink>
+        </div>
+        <div className="mt-10">
+          <JournalStrip />
         </div>
       </Section>
 

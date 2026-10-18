@@ -26,3 +26,79 @@ export function paragraphs(text: string): string[] {
 export function isExternalUrl(url: string): boolean {
   return /^(https?:|mailto:)/i.test(url)
 }
+
+const CHICAGO = 'America/Chicago'
+
+const partsFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  timeZone: CHICAGO,
+})
+
+const keyFormatter = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: CHICAGO,
+})
+
+const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+  timeZone: CHICAGO,
+})
+
+/** Calendar-card pieces in Chicago time: { weekday: 'Thu', month: 'Oct', day: '29' }. */
+export function dateParts(iso: string) {
+  const parts = Object.fromEntries(
+    partsFormatter.formatToParts(new Date(iso)).map((part) => [part.type, part.value]),
+  )
+  return { weekday: parts.weekday ?? '', month: parts.month ?? '', day: parts.day ?? '' }
+}
+
+/** YYYY-MM-DD of the moment in Chicago, for grouping events by day. */
+export function chicagoDateKey(iso: string | Date): string {
+  return keyFormatter.format(typeof iso === 'string' ? new Date(iso) : iso)
+}
+
+export function formatTimeRange(startIso: string, endIso: string): string {
+  return `${timeFormatter.format(new Date(startIso))} to ${timeFormatter.format(new Date(endIso))}`
+}
+
+export function formatLongDate(iso: string): string {
+  return longDateFormatter.format(new Date(iso))
+}
+
+const relativeFormatter = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' })
+
+const RELATIVE_STEPS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+  ['year', 365 * 24 * 3600],
+  ['month', 30 * 24 * 3600],
+  ['week', 7 * 24 * 3600],
+  ['day', 24 * 3600],
+  ['hour', 3600],
+  ['minute', 60],
+]
+
+export function relativeDate(iso: string, now: Date = new Date()): string {
+  const seconds = (new Date(iso).getTime() - now.getTime()) / 1000
+  for (const [unit, size] of RELATIVE_STEPS) {
+    if (Math.abs(seconds) >= size) return relativeFormatter.format(Math.round(seconds / size), unit)
+  }
+  return 'just now'
+}
+
+/** Only same-site paths are allowed as a post-login destination. */
+export function safeNextPath(value: string | null | undefined, fallback = '/account'): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) {
+    return fallback
+  }
+  return value
+}
+
+/** Read `key=value` pairs from the URL fragment, where emailed tokens are kept. */
+export function fragmentParams(hash: string): URLSearchParams {
+  return new URLSearchParams(hash.replace(/^#/, ''))
+}
