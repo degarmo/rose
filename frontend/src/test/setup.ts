@@ -28,3 +28,10 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList
 }
+
+// jsdom has no object URLs; tests only need stable strings.
+if (!URL.createObjectURL) {
+  let counter = 0
+  URL.createObjectURL = () => `blob:test/${++counter}`
+  URL.revokeObjectURL = () => undefined
+}

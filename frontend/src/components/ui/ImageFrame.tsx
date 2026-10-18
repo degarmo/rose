@@ -30,6 +30,14 @@ interface ImageFrameProps {
   reveal?: boolean
   className?: string
   fill?: boolean
+  /** Member images: no right-click save, no drag, no long-press callout. A deterrent only. */
+  protect?: boolean
+}
+
+const PROTECTED_CLASSES = 'select-none [-webkit-touch-callout:none] [-webkit-user-drag:none]'
+
+function blockSave(event: { preventDefault: () => void }) {
+  event.preventDefault()
 }
 
 /**
@@ -48,6 +56,7 @@ export function ImageFrame({
   reveal = true,
   className,
   fill = false,
+  protect = false,
 }: ImageFrameProps) {
   const ref = useReveal<HTMLDivElement>()
   const [failed, setFailed] = useState(false)
@@ -78,7 +87,10 @@ export function ImageFrame({
         decoding="async"
         referrerPolicy="no-referrer"
         onError={() => setFailed(true)}
-        className="absolute inset-0 size-full object-cover"
+        draggable={protect ? false : undefined}
+        onContextMenu={protect ? blockSave : undefined}
+        onDragStart={protect ? blockSave : undefined}
+        className={cn('absolute inset-0 size-full object-cover', protect && PROTECTED_CLASSES)}
       />
     )
   }
@@ -86,6 +98,7 @@ export function ImageFrame({
   return (
     <div
       ref={ref}
+      onContextMenu={protect ? blockSave : undefined}
       className={cn(
         'grain isolate overflow-hidden bg-surface-raised',
         fill ? 'absolute inset-0' : cn('relative', ratios[ratio]),

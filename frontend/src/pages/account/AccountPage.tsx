@@ -8,6 +8,7 @@ import { api, ApiError } from '@/lib/api'
 import { formatEventDate } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { FeedSection } from './FeedSection'
 import { displayNameError, passwordError } from './validation'
 
 function Panel({ title, children, id }: { title: string; children: ReactNode; id: string }) {
@@ -278,6 +279,7 @@ export function AccountPage() {
         <Panel id="rsvps" title="Upcoming plans">
           <UpcomingRSVPs />
         </Panel>
+        <FeedSection />
         <Panel id="profile" title="Profile">
           <DisplayNameForm key={user.display_name} current={user.display_name} />
           <div className="mt-8 border-t border-border pt-6">

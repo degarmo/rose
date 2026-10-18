@@ -100,7 +100,7 @@ function parseErrorBody(body: unknown): { message: string; fieldErrors: FieldErr
   return { message, fieldErrors }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
   try {
     response = await fetch(`${config.apiBaseUrl}${path}`, {
@@ -146,7 +146,7 @@ async function getCsrfToken(): Promise<string> {
   return csrfToken
 }
 
-async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, payload?: unknown): Promise<T> {
+export async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, payload?: unknown): Promise<T> {
   const attempt = async () => {
     const body = await request<T>(path, {
       method,
@@ -168,7 +168,47 @@ async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, payloa
   }
 }
 
-const post = <T,>(path: string, payload: unknown = {}) => send<T>('POST', path, payload)
+export const post = <T,>(path: string, payload: unknown = {}) => send<T>('POST', path, payload)
+
+/** Multipart upload with the CSRF header. The browser sets the boundary. */
+export async function postForm<T>(path: string, form: FormData): Promise<T> {
+  const attempt = async () =>
+    request<T>(path, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': await getCsrfToken() },
+      body: form,
+    })
+  try {
+    return await attempt()
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403 && /CSRF/i.test(error.message)) {
+      csrfToken = null
+      return attempt()
+    }
+    throw error
+  }
+}
+
+/** POST that returns a file, for single-use downloads. */
+export async function postForBlob(path: string, payload: unknown): Promise<Blob> {
+  const response = await fetch(`${config.apiBaseUrl}${path}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    referrerPolicy: 'no-referrer',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': await getCsrfToken() },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    let message = 'This download link has expired or was already used.'
+    try {
+      message = ((await response.json()) as { detail?: string }).detail ?? message
+    } catch {
+      // Not JSON: keep the default message.
+    }
+    throw new ApiError(response.status, message)
+  }
+  return response.blob()
+}
 
 function query(params: Record<string, string | undefined>): string {
   const search = new URLSearchParams()

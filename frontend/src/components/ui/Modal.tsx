@@ -74,7 +74,7 @@ export function Modal({
             <span className="sr-only">Close</span>
           </button>
         </div>
-        <div className="mt-4 flex-1">{children}</div>
+        <div className="mt-4 min-h-0 flex-1">{children}</div>
         {footer && <div className="mt-8 flex flex-wrap justify-end gap-3">{footer}</div>}
       </div>
     </dialog>

@@ -9,10 +9,11 @@ const SWIPE_THRESHOLD = 40
 interface CarouselProps {
   images: RemoteImage[]
   label: string
+  protect?: boolean
 }
 
 /** Swipe on touch, arrow keys when focused, or the buttons. One image at a time. */
-export function Carousel({ images, label }: CarouselProps) {
+export function Carousel({ images, label, protect = false }: CarouselProps) {
   const [index, setIndex] = useState(0)
   const touchStart = useRef<number | null>(null)
   const count = Math.max(images.length, 1)
@@ -66,7 +67,14 @@ export function Carousel({ images, label }: CarouselProps) {
             aria-hidden={i !== index}
             className="w-full shrink-0"
           >
-            <ImageFrame remote={image} alt={image?.alt ?? ''} ratio="1/1" placeholder="velvet" reveal={false} />
+            <ImageFrame
+              remote={image}
+              alt={image?.alt ?? ''}
+              ratio="1/1"
+              placeholder="velvet"
+              reveal={false}
+              protect={protect}
+            />
           </div>
         ))}
       </div>
