@@ -4,11 +4,13 @@
 #   docker compose up              # everything
 #   docker compose up db cache     # only the services, to run the app on your machine
 #
-# Host ports: Postgres 5433 and Redis 6380 (offset to avoid clashing with local
-# installs), API 8000, site 5173.
+# Host ports default to Postgres 5433 and Redis 6380 (offset to avoid clashing
+# with local installs), API 8000 and site 5173. Override them with DB_PORT,
+# CACHE_PORT, API_PORT and WEB_PORT if something else is using them.
 
 x-backend: &backend
   build: ./backend
+  image: rose-backend:dev
   working_dir: /srv/backend
   volumes:
     - ./:/srv
@@ -16,12 +18,12 @@ x-backend: &backend
     DJANGO_SECRET_KEY: local-development-only-not-a-secret
     DJANGO_DEBUG: "true"
     DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
-    DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:5173
+    DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:${WEB_PORT:-5173}
     DATABASE_URL: postgres://rose:rose@db:5432/rose
     CACHE_URL: redis://cache:6379/1
     CELERY_BROKER_URL: redis://cache:6379/0
-    SITE_URL: http://localhost:5173
-    ADMIN_BASE_URL: http://localhost:8000
+    SITE_URL: http://localhost:${WEB_PORT:-5173}
+    ADMIN_BASE_URL: http://localhost:${API_PORT:-8000}
     EMAIL_URL: consolemail://
   depends_on:
     db:
@@ -37,7 +39,7 @@ services:
       POSTGRES_USER: rose
       POSTGRES_PASSWORD: rose
     ports:
-      - "5433:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -49,7 +51,7 @@ services:
   cache:
     image: redis:7-alpine
     ports:
-      - "6380:6379"
+      - "${CACHE_PORT:-6380}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -60,7 +62,7 @@ services:
     <<: *backend
     command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
 
   worker:
     <<: *backend
@@ -80,7 +82,7 @@ services:
       - ./:/srv
       - web-node-modules:/srv/frontend/node_modules
     ports:
-      - "5173:5173"
+      - "${WEB_PORT:-5173}:5173"
     depends_on:
       - api
 

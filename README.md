@@ -43,7 +43,8 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    docker compose exec api python -m pytest
    ```
 
-Ports 8000 and 5173 must be free. Stop any copy of the app you run outside Docker first.
+If ports 5433, 6380, 8000 or 5173 are taken, override them, for example
+`API_PORT=8010 WEB_PORT=5180 docker compose up --build`. `DB_PORT` and `CACHE_PORT` work the same way.
 
 ## Option B: run the app on your machine
 

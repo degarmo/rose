@@ -138,3 +138,4 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 96. Compose runs the whole stack with the repository mounted. `node_modules` lives in a named volume so macOS-built native binaries never reach the Linux container.
 97. In `render.yaml`, the API, worker and beat share one generated `DJANGO_SECRET_KEY` through an env group, because the worker signs links that the API verifies.
 98. `redis` is pinned to 6.4.0 because the current kombu requires it.
+99. Compose host ports can be overridden with `DB_PORT`, `CACHE_PORT`, `API_PORT` and `WEB_PORT`, and the API, worker and beat share one image (`rose-backend:dev`), so it is built once.
