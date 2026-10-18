@@ -97,3 +97,11 @@ def test_ratelimit_key_never_contains_raw_ip():
     key = hashed_ip_key("contact", request)
     assert "198.51.100.7" not in key
     assert len(key) == 64
+
+
+def test_csrf_failure_is_json():
+    from rest_framework.test import APIClient
+
+    response = APIClient(enforce_csrf_checks=True).post("/api/contact/", {}, format="json")
+    assert response.status_code == 403
+    assert response.json()["detail"].startswith("CSRF Failed")

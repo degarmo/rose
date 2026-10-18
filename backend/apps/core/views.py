@@ -22,3 +22,8 @@ def csrf_token(request):
 @require_GET
 def health(request):
     return JsonResponse({"status": "ok"})
+
+
+def csrf_failure(request, reason=""):
+    """JSON instead of Django's HTML page, so the SPA can refresh its token and retry."""
+    return JsonResponse({"detail": f"CSRF Failed: {reason}"}, status=403)
