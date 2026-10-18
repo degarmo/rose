@@ -339,6 +339,7 @@ class Command(BaseCommand):
         post_count = self.seed_journal(events)
         if settings.DEBUG:
             self.seed_member_feed(users["verified"])
+            self.seed_memberships()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -381,6 +382,16 @@ class Command(BaseCommand):
         demo_member.save(update_fields=["password"])
         self.stdout.write("Member feed demo account (DEBUG only):")
         self.stdout.write(f"  {demo_member.email}  {password}  (feed member)")
+
+    def seed_memberships(self):
+        from apps.memberships.demo import seed_memberships
+
+        accounts = seed_memberships()
+        self.stdout.write(
+            "Membership demo accounts (DEBUG only; placeholder tiers, prices and agreement):"
+        )
+        for display_name, (email, password) in accounts.items():
+            self.stdout.write(f"  {email}  {password}  ({display_name})")
 
     def upsert_event(self, slug, **values):
         values.setdefault("is_published", True)

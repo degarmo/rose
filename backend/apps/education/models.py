@@ -39,6 +39,10 @@ class Opportunity(consented_image("hero_image", upload_to="education")):
         help_text="A site path such as /contact or a full https:// address.",
     )
     is_published = models.BooleanField(default=False)
+    members_only = models.BooleanField(
+        default=False,
+        help_text="Title, summary and image stay public; the details and sign-up are for members.",
+    )
     sort_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

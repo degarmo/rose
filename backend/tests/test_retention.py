@@ -57,4 +57,5 @@ def test_beat_schedule_runs_purge_and_reminders(settings):
         "apps.events.tasks.purge_expired_rsvps",
         "apps.events.tasks.send_due_reminders",
         "apps.feed.tasks.purge_expired_exports",
+        "apps.memberships.tasks.run_lifecycle",
     }

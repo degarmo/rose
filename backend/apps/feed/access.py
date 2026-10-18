@@ -1,12 +1,13 @@
 """Who may see and use the member feed. Every feed view and page calls these.
 
-Prompt 04 adds paid membership as a second entitlement inside
-`has_feed_entitlement`; the staff-granted path stays for comped members and
-volunteers. Nothing else changes.
+The entitlement comes from apps.memberships.access.entitlements(): a tier that
+grants feed access, or the staff grant for comped members and volunteers.
 """
 
 from django.http import Http404
 from django.utils import timezone
+
+from apps.memberships.access import FEED, entitlements
 
 GUIDELINES = "guidelines"
 COOLDOWN = "cooldown"
@@ -19,13 +20,9 @@ def _profile(user):
 
 
 def has_feed_entitlement(user):
-    profile = _profile(user)
-    if profile is None:
+    if _profile(user) is None:
         return False
-    if profile.feed_access_granted:
-        return True
-    # Prompt 04: paid membership becomes the second entitlement here.
-    return False
+    return FEED in entitlements(user)
 
 
 def can_join_feed(user, now=None):

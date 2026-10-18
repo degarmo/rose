@@ -11,6 +11,7 @@ from apps.core.api import CsrfProtectedAPIView, too_many_requests
 from apps.core.ratelimit import is_over_limit
 from apps.events.services import release_places_held_by
 from apps.feed.services import erase_feed_data
+from apps.memberships.account import close_for_deleted_account
 
 from . import lockout, tasks
 from .models import User
@@ -216,6 +217,8 @@ class DeleteAccountView(CsrfProtectedAPIView):
             release_places_held_by(user)
             # The same routine as "Leave and erase", so member files are removed too.
             erase_feed_data(user)
+            # Stops online renewals; payment records stay, detached from the person.
+            close_for_deleted_account(user)
             anonymize_messages_from(email)
             # Cascades to the profile and every RSVP.
             user.delete()

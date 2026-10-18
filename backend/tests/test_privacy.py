@@ -82,14 +82,21 @@ def test_no_serializer_reads_private_user_fields(serializer_class):
 
 
 def test_self_only_serializers_are_scoped():
-    """Only AccountSerializer may show private fields, and only via session_payload."""
+    """Self-only serializers are used in one place each, always for request.user."""
     import inspect as _inspect
 
     from apps.accounts import views as account_views
     from apps.accounts.serializers import AccountSerializer
+    from apps.memberships import views as membership_views
+    from apps.memberships.serializers import MyMembershipSerializer
 
     self_only = {cls for cls in project_serializer_classes() if getattr(cls, "self_only", False)}
-    assert self_only == {AccountSerializer}
+    assert self_only == {AccountSerializer, MyMembershipSerializer}
+    membership_source = _inspect.getsource(membership_views)
+    assert len(re.findall(r"\bMyMembershipSerializer\(", membership_source)) == 1
+    assert "MyMembershipSerializer(" in _inspect.getsource(membership_views.membership_payload)
+    payload_calls = re.findall(r"membership_payload\(([^)]*)\)", membership_source)
+    assert payload_calls and set(payload_calls) == {"user", "request.user"}
     call_sites = 0
     for module_info in pkgutil.walk_packages(apps.__path__, prefix="apps."):
         if module_info.name.endswith(".views"):

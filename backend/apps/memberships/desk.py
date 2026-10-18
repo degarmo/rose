@@ -1,0 +1,231 @@
+"""Door desk actions. Every one of them is written to the audit log."""
+
+from django.db import transaction
+from django.utils import timezone
+
+from apps.core.models import AuditLog, audit
+
+from .models import IdCheck, Membership, Payment, has_id_check
+from .providers import registry
+
+
+class DeskError(Exception):
+    pass
+
+
+IN_PERSON_METHODS = (Payment.Method.CASH, Payment.Method.CARD_IN_PERSON)
+
+
+def _log(staff, action, membership, reason=""):
+    who = membership.user.display_name if membership.user else "deleted account"
+    audit(
+        AuditLog.Category.DOOR_DESK,
+        action,
+        staff,
+        f"Membership {membership.reference_code} ({who})",
+        "membership",
+        target_user=membership.user,
+        target_ref=membership.reference_code,
+        reason=reason,
+    )
+
+
+def _lock(membership):
+    return (
+        Membership.objects.select_for_update(of=("self",))
+        .select_related("tier", "user")
+        .get(pk=membership.pk)
+    )
+
+
+def _ensure_id(staff, membership, id_checked):
+    if has_id_check(membership.user):
+        return
+    if not id_checked:
+        raise DeskError("Check a photo ID showing 18+ before the first activation.")
+    IdCheck.objects.create(membership=membership, checked_by=staff, verified_18_plus=True)
+
+
+def _ensure_no_other_open(membership):
+    others = (
+        Membership.objects.non_terminal().filter(user=membership.user).exclude(pk=membership.pk)
+    )
+    if others.exists():
+        raise DeskError("This person already has another open membership.")
+
+
+@transaction.atomic
+def record_payment_and_activate(staff, membership, method, amount_cents, note="", id_checked=False):
+    membership = _lock(membership)
+    if method not in IN_PERSON_METHODS:
+        raise DeskError("Choose cash or card.")
+    if membership.status not in (
+        Membership.Status.PENDING_PAYMENT,
+        Membership.Status.EXPIRED,
+        Membership.Status.CANCELLED,
+    ):
+        raise DeskError("This membership is already running. Use Renew instead.")
+    _ensure_no_other_open(membership)
+    _ensure_id(staff, membership, id_checked)
+    Payment.objects.create(
+        membership=membership,
+        amount_cents=amount_cents,
+        method=method,
+        recorded_by=staff,
+        note=note,
+    )
+    membership.start_new_period()
+    membership.status = Membership.Status.ACTIVE
+    membership.source = Membership.Source.MANUAL
+    membership.paid_awaiting_id_check = False
+    membership.cancel_at_period_end = False
+    membership.save()
+    _log(staff, "activate", membership, note)
+    return membership
+
+
+@transaction.atomic
+def activate_paid_online(staff, membership, id_checked=False):
+    """An online payment arrived before anyone saw an ID. Check it, then start the period."""
+    membership = _lock(membership)
+    if not membership.paid_awaiting_id_check:
+        raise DeskError("Nothing is waiting for an ID check.")
+    _ensure_no_other_open(membership)
+    _ensure_id(staff, membership, id_checked)
+    # An imported membership already has its paid-up period end; keep it.
+    if membership.current_period_end is None or membership.current_period_end <= timezone.now():
+        membership.start_new_period()
+    membership.status = Membership.Status.ACTIVE
+    membership.paid_awaiting_id_check = False
+    membership.save()
+    _log(staff, "activate_after_id_check", membership)
+    return membership
+
+
+@transaction.atomic
+def renew(staff, membership, method, amount_cents, note=""):
+    """Extend from the later of today or the current period end."""
+    membership = _lock(membership)
+    if method not in IN_PERSON_METHODS:
+        raise DeskError("Choose cash or card.")
+    if membership.status not in (
+        Membership.Status.ACTIVE,
+        Membership.Status.GRACE,
+        Membership.Status.EXPIRED,
+    ):
+        raise DeskError("Only an active, grace or expired membership can be renewed here.")
+    if membership.status == Membership.Status.EXPIRED:
+        _ensure_no_other_open(membership)
+    Payment.objects.create(
+        membership=membership,
+        amount_cents=amount_cents,
+        method=method,
+        recorded_by=staff,
+        note=note,
+    )
+    now = timezone.now()
+    start = max(now, membership.current_period_end or now)
+    if (
+        membership.current_period_start is None
+        or membership.current_period_end is None
+        or membership.current_period_end < now
+    ):
+        membership.current_period_start = start
+    membership.current_period_end = membership.tier.period_end_from(start)
+    membership.status = Membership.Status.ACTIVE
+    membership.cancel_at_period_end = False
+    membership.reminded_14_at = membership.reminded_3_at = membership.grace_started_at = None
+    membership.save()
+    _log(staff, "renew", membership, note)
+    return membership
+
+
+@transaction.atomic
+def comp(staff, membership, reason, id_checked=False):
+    if not reason.strip():
+        raise DeskError("Give a reason for the complimentary membership.")
+    membership = _lock(membership)
+    if membership.status in (
+        Membership.Status.ACTIVE,
+        Membership.Status.GRACE,
+        Membership.Status.SUSPENDED,
+    ):
+        raise DeskError("This membership is already running.")
+    _ensure_no_other_open(membership)
+    _ensure_id(staff, membership, id_checked)
+    Payment.objects.create(
+        membership=membership,
+        amount_cents=0,
+        method=Payment.Method.COMP,
+        recorded_by=staff,
+        note=reason,
+    )
+    membership.start_new_period()
+    membership.status = Membership.Status.ACTIVE
+    membership.source = Membership.Source.COMP
+    membership.paid_awaiting_id_check = False
+    membership.save()
+    _log(staff, "comp", membership, reason)
+    return membership
+
+
+@transaction.atomic
+def suspend(staff, membership, reason):
+    if not reason.strip():
+        raise DeskError("Give a reason for suspending.")
+    membership = _lock(membership)
+    if membership.status not in (Membership.Status.ACTIVE, Membership.Status.GRACE):
+        raise DeskError("Only an active membership can be suspended.")
+    membership.status = Membership.Status.SUSPENDED
+    membership.save()
+    _log(staff, "suspend", membership, reason)
+    return membership
+
+
+@transaction.atomic
+def reinstate(staff, membership, reason):
+    if not reason.strip():
+        raise DeskError("Give a reason for reinstating.")
+    membership = _lock(membership)
+    if membership.status != Membership.Status.SUSPENDED:
+        raise DeskError("Only a suspended membership can be reinstated.")
+    # The daily lifecycle moves it on to grace or expired if the period has passed.
+    membership.status = Membership.Status.ACTIVE
+    membership.save()
+    _log(staff, "reinstate", membership, reason)
+    return membership
+
+
+@transaction.atomic
+def refund(staff, payment, amount_cents, note=""):
+    """A refund is a new row; the original payment is never edited."""
+    payment = Payment.objects.select_related("membership").get(pk=payment.pk)
+    if payment.status != Payment.Status.SUCCEEDED or payment.method == Payment.Method.COMP:
+        raise DeskError("Only a successful paid payment can be refunded.")
+    if amount_cents <= 0 or amount_cents > payment.amount_cents - payment.refunded_cents:
+        raise DeskError("That amount is more than what is left to refund.")
+    membership = payment.membership
+    provider_ref = None
+    if payment.method == Payment.Method.ONLINE:
+        provider = registry.get(membership.provider)
+        if provider is None:
+            raise DeskError("The online provider for this payment is not configured.")
+        provider_ref = provider.refund(payment, amount_cents)
+    Payment.objects.create(
+        membership=membership,
+        amount_cents=amount_cents,
+        method=payment.method,
+        status=Payment.Status.REFUNDED,
+        refund_of=payment,
+        recorded_by=staff,
+        note=note or ("Refunded through the provider" if provider_ref else "Refunded in person"),
+    )
+    _log(staff, "refund", membership, f"{amount_cents / 100:.2f} refunded. {note}".strip())
+    return membership
+
+
+def reveal_signature_name(staff, membership):
+    """The typed legal name, shown only on request, and the request is logged."""
+    signature = membership.user.agreement_signatures.first() if membership.user else None
+    _log(staff, "show_signature_name", membership)
+    return signature.typed_name if signature else None

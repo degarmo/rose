@@ -21,6 +21,8 @@ def isolated_settings(settings, tmp_path):
     settings.SITE_IMAGES_DIR = tmp_path / "images"
     # Celery reads CELERY_* from Django settings on every lookup.
     settings.CELERY_TASK_ALWAYS_EAGER = True
+    # Tests run with DEBUG off, where only the in-person provider may exist.
+    settings.PAYMENT_PROVIDERS = ["manual"]
     cache.clear()
     yield
     cache.clear()
@@ -197,3 +199,82 @@ def make_post(image_upload, settings):
         return services.create_post(author, caption, uploads, attested=bool(uploads), **kwargs)
 
     return make
+
+
+@pytest.fixture
+def make_tier():
+    from apps.memberships.models import Tier
+
+    counter = {"n": 0}
+
+    def make(**kwargs):
+        counter["n"] += 1
+        defaults = {
+            "name": f"Tier {counter['n']}",
+            "slug": f"tier-{counter['n']}",
+            "price_cents": 2500,
+            "interval": Tier.Interval.MONTH,
+        }
+        defaults.update(kwargs)
+        return Tier.objects.create(**defaults)
+
+    return make
+
+
+@pytest.fixture
+def agreement():
+    from apps.memberships.models import MembershipAgreement
+
+    return MembershipAgreement.objects.create(
+        title="Membership agreement",
+        body="<p>I agree to the community agreements.</p>",
+        published_at=timezone.now(),
+    )
+
+
+@pytest.fixture
+def make_membership(make_tier, make_user):
+    """A membership in any status. Running statuses get a period and an ID check."""
+    from apps.memberships.models import IdCheck, Membership
+
+    def make(user=None, tier=None, status="active", id_check=None, **kwargs):
+        user = user or make_user()
+        tier = tier or make_tier()
+        membership = Membership(user=user, tier=tier, status=status, **kwargs)
+        if status != "pending_payment" and "current_period_end" not in kwargs:
+            membership.start_new_period(timezone.now() - timedelta(days=5))
+        if status in ("expired", "cancelled"):
+            membership.ended_at = timezone.now()
+        membership.save()
+        if id_check is None:
+            id_check = status != "pending_payment"
+        if id_check:
+            IdCheck.objects.create(membership=membership)
+        return membership
+
+    return make
+
+
+@pytest.fixture
+def sandbox(settings):
+    """Development mode with the sandbox provider enabled."""
+    settings.DEBUG = True
+    settings.PAYMENT_PROVIDERS = ["manual", "sandbox"]
+    return settings
+
+
+@pytest.fixture
+def desk_staff(django_user_model):
+    """Staff with only the door desk permissions, like a volunteer at the door."""
+    from django.contrib.auth.models import Permission
+
+    user = django_user_model.objects.create_user(
+        email="door@example.org", display_name="door_volunteer", password=PASSWORD, is_staff=True
+    )
+    user.user_permissions.set(
+        Permission.objects.filter(
+            content_type__app_label="memberships",
+            codename__in=["view_membership", "change_membership", "view_payment"],
+        )
+    )
+    return user

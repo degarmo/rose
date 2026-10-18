@@ -27,11 +27,15 @@ class AccountSerializer(serializers.ModelSerializer):
 
     self_only = True
     email_verified = serializers.BooleanField(read_only=True)
+    has_membership = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["display_name", "email", "email_verified"]
+        fields = ["display_name", "email", "email_verified", "has_membership"]
         read_only_fields = ["email", "email_verified"]
+
+    def get_has_membership(self, user):
+        return user.memberships.exists()
 
 
 def validate_display_name_available(value, exclude_pk=None):

@@ -1,0 +1,49 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'memberships/door_desk.css' %}">{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Membership summary</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="summary">
+  <div class="summary-grid">
+    <section class="module">
+      <h2>By status</h2>
+      <table><tbody>{% for label, n in status_rows %}<tr><th>{{ label }}</th><td>{{ n }}</td></tr>{% endfor %}</tbody></table>
+    </section>
+    <section class="module">
+      <h2>Active and grace, by tier</h2>
+      <table><tbody>{% for row in tier_rows %}<tr><th>{{ row.tier__name }}</th><td>{{ row.n }}</td></tr>{% empty %}<tr><td>None yet</td></tr>{% endfor %}</tbody></table>
+    </section>
+    <section class="module">
+      <h2>This month</h2>
+      <table><tbody>
+        <tr><th>New</th><td>{{ new_this_month }}</td></tr>
+        <tr><th>Renewed</th><td>{{ renewed_this_month }}</td></tr>
+        <tr><th>Expired</th><td>{{ expired_this_month }}</td></tr>
+      </tbody></table>
+    </section>
+  </div>
+
+  <section class="module">
+    <h2>Revenue, last 12 months (refunds subtracted)</h2>
+    <table class="summary-revenue">
+      <thead><tr><th>Month</th>{% for label in method_labels %}<th>{{ label }}</th>{% endfor %}<th>Total</th></tr></thead>
+      <tbody>{% for row in revenue_rows %}<tr><th>{{ row.month }}</th>{% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}<td><strong>{{ row.total }}</strong></td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+
+  <section class="module summary-export">
+    <h2>Export</h2>
+    <form method="post" action="{% url 'admin:memberships_export' %}">
+      {% csrf_token %}
+      <p>Display name, tier, status, period end and source. Every export is logged.</p>
+      {% if can_include_email %}<label><input type="checkbox" name="include_email"> Include contact email (logged separately)</label>{% endif %}
+      <p><button type="submit" class="button">Download CSV</button></p>
+    </form>
+  </section>
+</div>
+{% endblock %}

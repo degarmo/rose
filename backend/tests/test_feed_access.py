@@ -132,7 +132,7 @@ def test_access_functions(make_user, make_member, settings):
     assert not access.can_post(member)
 
 
-def test_entitlement_is_staff_grant_today(make_user):
+def test_staff_grant_gives_feed_entitlement(make_user):
     user = make_user()
     assert access.has_feed_entitlement(user) is False
     user.profile.feed_access_granted = True

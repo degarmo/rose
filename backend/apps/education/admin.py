@@ -5,9 +5,17 @@ from .models import Opportunity
 
 @admin.register(Opportunity)
 class OpportunityAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "level", "starts_at", "is_published", "sort_order")
+    list_display = (
+        "title",
+        "category",
+        "level",
+        "starts_at",
+        "members_only",
+        "is_published",
+        "sort_order",
+    )
     list_editable = ("is_published", "sort_order")
-    list_filter = ("is_published", "category", "level")
+    list_filter = ("is_published", "members_only", "category", "level")
     search_fields = ("title", "summary", "body")
     prepopulated_fields = {"slug": ("title",)}
     fieldsets = (
@@ -25,5 +33,5 @@ class OpportunityAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Publishing", {"fields": ("is_published", "sort_order")}),
+        ("Publishing", {"fields": ("is_published", "members_only", "sort_order")}),
     )

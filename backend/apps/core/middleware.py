@@ -20,7 +20,9 @@ class PrivacyHeadersMiddleware:
             response["X-Robots-Tag"] = "noindex, nofollow"
         if request.path.startswith("/api/"):
             response["Cache-Control"] = response.get("Cache-Control", "no-store")
-        response["Permissions-Policy"] = (
-            "camera=(), microphone=(), geolocation=(), interest-cohort=()"
-        )
+        if "Permissions-Policy" not in response:
+            # A view that needs a device feature (the door desk camera) sets its own.
+            response["Permissions-Policy"] = (
+                "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+            )
         return response

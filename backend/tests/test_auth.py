@@ -160,6 +160,7 @@ def test_login_success_starts_session(csrf_client, make_user):
         "display_name": user.display_name,
         "email": "login@example.org",
         "email_verified": True,
+        "has_membership": False,
     }
     assert body["csrfToken"]
     assert int(csrf_client.session["_auth_user_id"]) == user.pk

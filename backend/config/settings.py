@@ -8,6 +8,7 @@ whenever DJANGO_DEBUG is false.
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 from csp.constants import NONE, SELF
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,6 +32,9 @@ env = environ.Env(
     FEED_PREMODERATION_POSTS=(int, 3),
     FEED_MAX_POSTS_PER_DAY=(int, 10),
     FEED_MAX_COMMENTS_PER_HOUR=(int, 60),
+    MEMBERSHIP_GRACE_DAYS=(int, 7),
+    MEMBERSHIP_PENDING_EXPIRY_DAYS=(int, 30),
+    MERCHANT_DISPLAY_NAME=(str, "Rose"),
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
     EMAIL_SENDER_NAME=(str, "Rose"),
 )
@@ -213,6 +217,19 @@ FEED_MAX_IMAGES_PER_POST = 10
 FEED_MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FILES = 12
 
+# --- Membership and payments ----------------------------------------------
+# "manual" (pay at the door) is always on. "sandbox" is development only and
+# refuses to start with DEBUG off. A real processor is one more key here.
+PAYMENT_PROVIDERS = env.list(
+    "PAYMENT_PROVIDERS", default=["manual", "sandbox"] if DEBUG else ["manual"]
+)
+MEMBERSHIP_GRACE_DAYS = env("MEMBERSHIP_GRACE_DAYS")
+MEMBERSHIP_PENDING_EXPIRY_DAYS = env("MEMBERSHIP_PENDING_EXPIRY_DAYS")
+MEMBERSHIP_REMINDER_DAYS = (14, 3)
+# Shown on receipts and set as the billing descriptor with any processor. Keep it neutral.
+MERCHANT_DISPLAY_NAME = env("MERCHANT_DISPLAY_NAME")
+PAYMENT_WEBHOOK_RATE_LIMIT = "120/m"
+
 # --- Celery ---------------------------------------------------------------
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6380/0")
 CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER")
@@ -232,6 +249,10 @@ CELERY_BEAT_SCHEDULE = {
     "purge-expired-exports": {
         "task": "apps.feed.tasks.purge_expired_exports",
         "schedule": 60 * 60,
+    },
+    "membership-lifecycle": {
+        "task": "apps.memberships.tasks.run_lifecycle",
+        "schedule": crontab(hour=6, minute=0),
     },
 }
 

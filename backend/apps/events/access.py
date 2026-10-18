@@ -1,6 +1,8 @@
-"""Who may RSVP to what. Prompt 04 changes only the members branch below."""
+"""Who may RSVP to what."""
 
 from django.utils import timezone
+
+from apps.memberships.access import MEMBERS_EVENTS, entitlements
 
 from .models import Event
 
@@ -22,8 +24,7 @@ def can_rsvp(user, event, now=None):
         return False, LOGIN_REQUIRED
     if now >= event.rsvp_deadline:
         return False, CLOSED
-    if event.audience == Event.Audience.MEMBERS:
-        # Prompt 04 replaces this with a real membership check.
+    if event.audience == Event.Audience.MEMBERS and MEMBERS_EVENTS not in entitlements(user):
         return False, MEMBERS_ONLY
     if event.rsvp_opens_at and now < event.rsvp_opens_at:
         return False, NOT_OPEN_YET
