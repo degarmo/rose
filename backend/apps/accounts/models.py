@@ -8,7 +8,16 @@ from django.utils import timezone
 # Fields that identify a real person. They are never serialized to any public
 # or member-facing endpoint; tests/test_privacy.py enforces this.
 PRIVATE_USER_FIELDS = frozenset(
-    {"email", "legal_name", "phone", "password", "last_login", "is_superuser", "is_staff"}
+    {
+        "email",
+        "legal_name",
+        "phone",
+        "password",
+        "last_login",
+        "is_superuser",
+        "is_staff",
+        "email_verified_at",
+    }
 )
 
 display_name_validator = RegexValidator(
@@ -70,6 +79,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
 
     objects = UserManager()
 
@@ -88,6 +98,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_full_name(self):
         return self.display_name
+
+    @property
+    def email_verified(self):
+        return self.email_verified_at is not None
+
+    def mark_email_verified(self):
+        if self.email_verified_at is None:
+            self.email_verified_at = timezone.now()
+            self.save(update_fields=["email_verified_at"])
 
 
 class Profile(models.Model):

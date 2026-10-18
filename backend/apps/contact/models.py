@@ -1,4 +1,7 @@
 from django.db import models
+from django.utils import timezone
+
+ANONYMIZED_NAME = "Deleted account"
 
 
 class ContactMessage(models.Model):
@@ -12,7 +15,7 @@ class ContactMessage(models.Model):
         CONCERN = "concern", "Report a concern"
 
     name = models.CharField(max_length=120)
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
     topic = models.CharField(max_length=20, choices=Topic.choices, default=Topic.GENERAL)
     message = models.TextField()
@@ -20,6 +23,12 @@ class ContactMessage(models.Model):
     handled = models.BooleanField(default=False)
     is_priority = models.BooleanField(
         default=False, editable=False, help_text="Set automatically for reported concerns."
+    )
+    anonymized_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="Set when the sender deleted their account.",
     )
 
     class Meta:
@@ -31,3 +40,10 @@ class ContactMessage(models.Model):
     def save(self, *args, **kwargs):
         self.is_priority = self.topic == self.Topic.CONCERN
         super().save(*args, **kwargs)
+
+
+def anonymize_messages_from(email):
+    """Strip identity from a sender's messages; the text stays for safety records."""
+    return ContactMessage.objects.filter(email__iexact=email).update(
+        name=ANONYMIZED_NAME, email="", phone="", anonymized_at=timezone.now()
+    )

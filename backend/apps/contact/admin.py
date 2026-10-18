@@ -9,7 +9,16 @@ class ContactMessageAdmin(admin.ModelAdmin):
     list_display_links = ("topic", "name")
     list_filter = ("is_priority", "topic", "handled", "created_at")
     search_fields = ("name", "email", "message")
-    readonly_fields = ("name", "email", "phone", "topic", "message", "created_at", "is_priority")
+    readonly_fields = (
+        "name",
+        "email",
+        "phone",
+        "topic",
+        "message",
+        "created_at",
+        "is_priority",
+        "anonymized_at",
+    )
     fields = readonly_fields + ("handled",)
     actions = ["mark_handled", "mark_unhandled"]
     date_hierarchy = "created_at"
