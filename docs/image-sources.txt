@@ -14,16 +14,16 @@
 # Names the site uses today:
 #   home-hero          16:9 hero (roses, candlelight, deep shadow)
 #   home-interior      4:5  who-we-are (architecture, a lounge at night)
-#   week-thursday      4:3  education nights (books, a lamp, hands taking notes)
-#   week-weekend       4:3  weekend socials (silk, glassware, low light)
 #   home-closing       21:9 closing call to action (leather texture, brass)
 #   about-hero         wide page header, about (architecture, silhouettes)
 #   education-hero     wide page header, education (books, candlelight)
+#   events-hero        wide page header, events (a set table, low lamps)
+#   journal-hero       wide page header, journal (silk, a notebook)
 #   visit-hero         wide page header, plan your visit (a doorway, an entrance light)
 #   contact-hero       wide page header, contact (silk, a handwritten note)
 #   join-hero          wide page header, join (a rose on dark fabric)
 #
 # Examples (remove the leading "# " to use):
 # https://images.unsplash.com/photo-XXXXXXXXXXXX?w=2400 | home-hero | unsplash | Unsplash License | Photographer Name | faces=no | consent=no
-# https://images.pexels.com/photos/0000000/pexels-photo-0000000.jpeg | week-weekend | pexels | Pexels License | Photographer Name | faces=no | consent=no
+# https://images.pexels.com/photos/0000000/pexels-photo-0000000.jpeg | home-closing | pexels | Pexels License | Photographer Name | faces=no | consent=no
 # https://www.example.org/path/to/interior.jpg | home-interior | org-site | Owned by the organization | | faces=no | consent=no

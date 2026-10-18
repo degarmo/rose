@@ -1,6 +1,34 @@
-# Local services only. The app itself runs on your machine (see README).
-# Host ports are offset (5433, 6380) so they do not clash with a locally
-# installed Postgres or Redis.
+# Full local stack: Postgres, Redis, the API, a Celery worker, Celery beat and
+# the Vite dev server. The repository is mounted at /srv so code changes reload.
+#
+#   docker compose up              # everything
+#   docker compose up db cache     # only the services, to run the app on your machine
+#
+# Host ports: Postgres 5433 and Redis 6380 (offset to avoid clashing with local
+# installs), API 8000, site 5173.
+
+x-backend: &backend
+  build: ./backend
+  working_dir: /srv/backend
+  volumes:
+    - ./:/srv
+  environment:
+    DJANGO_SECRET_KEY: local-development-only-not-a-secret
+    DJANGO_DEBUG: "true"
+    DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
+    DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:5173
+    DATABASE_URL: postgres://rose:rose@db:5432/rose
+    CACHE_URL: redis://cache:6379/1
+    CELERY_BROKER_URL: redis://cache:6379/0
+    SITE_URL: http://localhost:5173
+    ADMIN_BASE_URL: http://localhost:8000
+    EMAIL_URL: consolemail://
+  depends_on:
+    db:
+      condition: service_healthy
+    cache:
+      condition: service_healthy
+
 services:
   db:
     image: postgres:16-alpine
@@ -22,6 +50,40 @@ services:
     image: redis:7-alpine
     ports:
       - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *backend
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *backend
+    command: celery -A config worker --loglevel=info
+
+  beat:
+    <<: *backend
+    command: celery -A config beat --loglevel=info --schedule /tmp/celerybeat-schedule
+
+  web:
+    image: node:22-alpine
+    working_dir: /srv/frontend
+    command: sh -c "npm ci && npx vite --host 0.0.0.0 --port 5173 --strictPort"
+    environment:
+      VITE_PROXY_TARGET: http://api:8000
+    volumes:
+      - ./:/srv
+      - web-node-modules:/srv/frontend/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
 
 volumes:
   db-data:
+  web-node-modules:

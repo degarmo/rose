@@ -1,6 +1,26 @@
 # Render blueprint stub. Not deployed yet; prompt 5 finalises hosting.
 # The static site proxies /api and /media to the API service, so the browser
 # only ever talks to one origin and cookies stay first-party.
+#
+# The API, worker and beat must share DJANGO_SECRET_KEY: the worker signs the
+# links in emails and the API checks them. The shared env group holds it.
+
+envVarGroups:
+  - name: rose-backend
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.13"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_TRUSTED_PROXY_COUNT
+        value: "1"
+      - key: EMAIL_SENDER_NAME
+        value: Rose
+      - key: RSVP_RETENTION_DAYS
+        value: "30"
+
 services:
   - type: web
     name: rose-api
@@ -12,20 +32,23 @@ services:
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --access-logfile -
     healthCheckPath: /api/health/
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.13"
-      - key: DJANGO_SECRET_KEY
-        generateValue: true
-      - key: DJANGO_DEBUG
-        value: "false"
+      - fromGroup: rose-backend
       - key: DJANGO_ALLOWED_HOSTS
         sync: false
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
         sync: false
       - key: DJANGO_ADMIN_PATH
         sync: false
-      - key: DJANGO_TRUSTED_PROXY_COUNT
-        value: "1"
+      - key: SITE_URL
+        sync: false
+      - key: ADMIN_BASE_URL
+        sync: false
+      - key: EMAIL_URL
+        sync: false
+      - key: EMAIL_SENDER_ADDRESS
+        sync: false
+      - key: CONTACT_NOTIFY_EMAIL
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: rose-db
@@ -35,20 +58,74 @@ services:
           type: keyvalue
           name: rose-cache
           property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: rose-cache
+          property: connectionString
+
+  - type: worker
+    name: rose-worker
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A config worker --loglevel=info --concurrency=2
+    envVars:
+      - fromGroup: rose-backend
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: SITE_URL
+        sync: false
       - key: EMAIL_URL
         sync: false
-      - key: EMAIL_SENDER_NAME
-        value: Rose
       - key: EMAIL_SENDER_ADDRESS
         sync: false
-      - key: CONTACT_NOTIFY_EMAIL
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rose-db
+          property: connectionString
+      - key: CACHE_URL
+        fromService:
+          type: keyvalue
+          name: rose-cache
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: rose-cache
+          property: connectionString
+
+  - type: worker
+    name: rose-beat
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A config beat --loglevel=info --schedule /tmp/celerybeat-schedule
+    envVars:
+      - fromGroup: rose-backend
+      - key: DJANGO_ALLOWED_HOSTS
         sync: false
-      - key: ADMIN_BASE_URL
-        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rose-db
+          property: connectionString
+      - key: CACHE_URL
+        fromService:
+          type: keyvalue
+          name: rose-cache
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: rose-cache
+          property: connectionString
 
   - type: keyvalue
     name: rose-cache
-    plan: free
+    plan: starter
+    maxmemoryPolicy: noeviction
     ipAllowList: []
 
   - type: web
@@ -94,7 +171,13 @@ services:
       - path: /members/*
         name: X-Robots-Tag
         value: noindex, nofollow
+      - path: /account
+        name: X-Robots-Tag
+        value: noindex, nofollow
       - path: /account/*
+        name: X-Robots-Tag
+        value: noindex, nofollow
+      - path: /events/cancel
         name: X-Robots-Tag
         value: noindex, nofollow
       - path: /exit

@@ -167,7 +167,7 @@ Generates the id and wires up the label, hint and error with `aria-describedby`.
 </Modal>
 ```
 
-Built on native `<dialog>`, so focus trapping, focus return and Escape come built in. `variant="sheet"` makes it full screen (the mobile menu uses this). `hideTitle` keeps the title for screen readers only. Clicking the backdrop closes it.
+Built on native `<dialog>`, so focus trapping, focus return and Escape come built in. `variant="sheet"` makes it full screen (the mobile menu uses this). `size="wide"` widens a dialog for media (the journal post modal). `hideTitle` keeps the title for screen readers only. Clicking the backdrop closes it.
 
 ### Toast
 
@@ -182,4 +182,48 @@ toast.show({ tone: 'error', title: 'Your message was not sent', message: 'Please
 
 - **QuickExit**: the Leave control. Variants `floating` (large screens), `compact` (phone header) and `inline` (footer, menu). It must appear on every page.
 - **AgeGate**: renders instead of the app until age is confirmed.
-- **Header / Footer / Layout**: shared chrome. Navigation items live in `navigation.ts`.
+- **Header / Footer / Layout**: shared chrome. Navigation items live in `navigation.ts`. The desktop nav appears from `xl`; below that the menu sheet is used.
+- **AccountMenu**: "Log in" (with a `next` back to the current page), or the display name with a Lucide `User` icon and a small menu (My account, Log out). Closes on outside click, Escape and navigation.
+- **AuthProvider / useAuth**: session state from `/api/account/session/`. `applySession()` takes the session returned by login, logout and account changes. Nothing is stored in browser storage.
+
+## Content components (`components/content`)
+
+### EventCard and DateBlock
+
+```tsx
+<EventCard event={event} headingLevel="h2" />
+```
+
+A card with a brass-edged date block (weekday, day, month in Chicago time), category and RSVP-state badges, time range, location and, only when staff enable it, the "N going" count. The whole card is clickable through the title link. Use `DateBlock` alone wherever a compact date is needed.
+
+### MonthCalendar
+
+```tsx
+<MonthCalendar month={{ year: 2026, month: 10 }} events={events} onMonthChange={setMonth} />
+```
+
+A Sunday-first, six-week grid. On phones each event is a rose dot, and from `sm` it is a truncated title chip. Always pair it with a list of the same events underneath, which is what phone and screen-reader users read. Month maths lives in `lib/calendar.ts`.
+
+### RSVPPanel
+
+```tsx
+<RSVPPanel event={event} onChange={(rsvp) => setRsvp(rsvp)} />
+```
+
+Covers every state: signed out (log in or register, returning to this page), unverified (resend link), open, waitlist, full, closed, opens soon, members only (disabled button), going and waitlisted (update, cancel with confirmation, and "Add to calendar" with an unticked "include details" box). The submit button disables and relabels while saving. Errors go to a toast.
+
+### Carousel
+
+```tsx
+<Carousel images={post.images} label="Post images" />
+```
+
+One square image at a time. Previous and next buttons, arrow keys when focused, and touch swipe (a 40 px threshold). Slides are announced as "Image 2 of 3" through a polite live region. It holds no autoplay and no timers.
+
+### PostView and JournalTile
+
+`PostView` is the shared layout for the journal modal and the permalink page: the carousel, then author and relative date, the sanitised caption, and an RSVP button (linked event) or the post's CTA. `JournalTile` is a square, Instagram-style grid tile with a Lucide `Layers` icon on multi-image posts. Use them in a `grid-cols-3` grid with tight gaps (`gap-0.5` on phones, up to `gap-2`).
+
+## Testing
+
+Component tests live next to their components (`*.test.tsx`) and use `renderWithProviders()` from `src/test/render.tsx`, which supplies the router, auth context and toasts. Run them with `npm test`.
