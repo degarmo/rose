@@ -178,6 +178,7 @@ def test_payload_shape_blur_and_dates(member_client, make_post, make_member):
     assert data["posted"]["recent"] is True and data["posted"]["at"]
     assert data["images"][0]["url"] == f"/api/members/media/{post.images.first().public_id}/"
     assert "state" in data and data["state"] is None
+    assert data["in_review"] is None
 
     old_data = client.get(f"/api/members/posts/{old.public_id}/").json()
     assert old_data["posted"] == {"recent": False, "at": None, "month": old_data["posted"]["month"]}
@@ -194,6 +195,7 @@ def test_author_never_blurred_and_sees_state(member_client, make_post, settings)
     data = client.get(f"/api/members/posts/{post.public_id}/").json()
     assert data["blur"] is False
     assert data["state"] == "pending"
+    assert data["in_review"] is True
     assert data["caption"] == "Hello"
 
 

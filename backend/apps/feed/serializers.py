@@ -71,6 +71,7 @@ class FeedPostSerializer(serializers.Serializer):
     like_count = serializers.SerializerMethodField()
     is_own = serializers.SerializerMethodField()
     state = serializers.SerializerMethodField()
+    in_review = serializers.SerializerMethodField()
 
     def _viewer(self):
         return self.context["viewer"]
@@ -117,6 +118,12 @@ class FeedPostSerializer(serializers.Serializer):
 
     def get_state(self, post):
         return own_state(post) if post.author_id == self._viewer().pk else None
+
+    def get_in_review(self, post):
+        """Only the author learns their post is waiting for a moderator."""
+        if post.author_id != self._viewer().pk:
+            return None
+        return post.status == FeedPost.Status.PENDING
 
 
 class FeedCommentSerializer(serializers.Serializer):
