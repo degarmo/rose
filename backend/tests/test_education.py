@@ -55,10 +55,12 @@ def test_hero_image_displayable_rules(gps_image_path):
     def upload():
         return SimpleUploadedFile("x.jpg", gps_image_path.read_bytes(), content_type="image/jpeg")
 
-    assert make("none").hero_image_is_displayable is False
-    assert make("scenery", hero_image=upload()).hero_image_is_displayable is True
+    assert make("none").image_is_displayable("hero_image") is False
+    assert make("scenery", hero_image=upload()).image_is_displayable("hero_image") is True
     assert (
-        make("faces", hero_image=upload(), hero_image_faces_visible=True).hero_image_is_displayable
+        make("faces", hero_image=upload(), hero_image_faces_visible=True).image_is_displayable(
+            "hero_image"
+        )
         is False
     )
     assert (
@@ -67,7 +69,7 @@ def test_hero_image_displayable_rules(gps_image_path):
             hero_image=upload(),
             hero_image_faces_visible=True,
             hero_image_consent_confirmed=True,
-        ).hero_image_is_displayable
+        ).image_is_displayable("hero_image")
         is True
     )
 

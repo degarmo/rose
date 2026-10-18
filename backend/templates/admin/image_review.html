@@ -1,0 +1,63 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/image_review.css' %}">{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Image review</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="image-review">
+  <p class="intro">
+    Images that may show a person stay hidden until someone confirms there are no faces, or that everyone visible has given consent.
+    {% if hidden_count %}<strong>{{ hidden_count }} image{{ hidden_count|pluralize }} hidden right now.</strong>{% else %}Nothing is hidden right now.{% endif %}
+  </p>
+  <p class="help">
+    To change a site image, ask whoever maintains the site to run <code>python manage.py review_images</code>.
+    To change an uploaded image, open the item it belongs to and update its image boxes.
+  </p>
+
+  <h2>Site images</h2>
+  {% if manifest_rows %}
+  <ul class="review-grid">
+    {% for row in manifest_rows %}
+    <li class="review-card status-{{ row.status }}">
+      {% if row.has_file %}
+      <img src="{% url 'admin:image_review_file' row.entry.filename %}" alt="" loading="lazy">
+      {% else %}
+      <div class="no-file">No file</div>
+      {% endif %}
+      <p class="filename">{{ row.entry.filename }}</p>
+      <p class="status">{{ row.status_label }}</p>
+      <dl>
+        <dt>Faces visible</dt><dd>{{ row.entry.faces_visible|yesno:"Yes,No" }}</dd>
+        <dt>Consent confirmed</dt><dd>{{ row.entry.consent_confirmed|yesno:"Yes,No" }}</dd>
+        {% if row.entry.source %}<dt>Source</dt><dd>{{ row.entry.source }}</dd>{% endif %}
+        {% if row.entry.credit %}<dt>Credit</dt><dd>{{ row.entry.credit }}</dd>{% endif %}
+        {% if row.entry.license %}<dt>License</dt><dd>{{ row.entry.license }}</dd>{% endif %}
+      </dl>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No site images have been added yet.</p>
+  {% endif %}
+
+  <h2>Uploaded images</h2>
+  {% if upload_rows %}
+  <ul class="review-grid">
+    {% for row in upload_rows %}
+    <li class="review-card {% if row.shown %}status-shown{% else %}status-hidden{% endif %}">
+      <img src="{{ row.url }}" alt="" loading="lazy">
+      <p class="filename">{{ row.model|capfirst }}: {{ row.object }}</p>
+      <p class="status">{{ row.reason|capfirst }}</p>
+      {% if row.alt %}<p class="alt">{{ row.alt }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No uploaded images yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

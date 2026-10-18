@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.core.consent_images import consent_image_payload
+
 from .models import Opportunity
 
 
@@ -28,14 +30,7 @@ class OpportunitySerializer(serializers.ModelSerializer):
 
     def get_hero_image(self, obj):
         """Withhold any image showing faces without confirmed consent."""
-        if not obj.hero_image_is_displayable:
-            return None
-        request = self.context.get("request")
-        url = obj.hero_image.url
-        return {
-            "url": request.build_absolute_uri(url) if request else url,
-            "alt": obj.hero_image_alt,
-        }
+        return consent_image_payload(obj, "hero_image", self.context.get("request"))
 
 
 class OpportunityDetailSerializer(OpportunitySerializer):

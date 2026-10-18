@@ -1,12 +1,7 @@
-from django.core.validators import RegexValidator
 from django.db import models
 
-from apps.core.images import RandomizedUploadTo, SanitizedImageField
-
-cta_url_validator = RegexValidator(
-    regex=r"^(/[^/\s][^\s]*|/|https://[^\s]+|mailto:[^\s]+)$",
-    message="Use a site path starting with /, an https:// address, or a mailto: link.",
-)
+from apps.core.consent_images import consented_image
+from apps.core.validators import cta_url_validator
 
 
 class OpportunityQuerySet(models.QuerySet):
@@ -14,7 +9,7 @@ class OpportunityQuerySet(models.QuerySet):
         return self.filter(is_published=True)
 
 
-class Opportunity(models.Model):
+class Opportunity(consented_image("hero_image", upload_to="education")):
     class Category(models.TextChoices):
         CLASS = "class", "Class"
         WORKSHOP = "workshop", "Workshop"
@@ -45,18 +40,6 @@ class Opportunity(models.Model):
     )
     is_published = models.BooleanField(default=False)
     sort_order = models.PositiveIntegerField(default=0)
-    hero_image = SanitizedImageField(
-        upload_to=RandomizedUploadTo("education"),
-        blank=True,
-        help_text="Metadata is stripped and the file renamed on upload.",
-    )
-    hero_image_alt = models.CharField(max_length=200, blank=True)
-    hero_image_faces_visible = models.BooleanField(
-        default=False, help_text="Tick if any identifiable face is visible."
-    )
-    hero_image_consent_confirmed = models.BooleanField(
-        default=False, help_text="Tick only when everyone visible has given written consent."
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -68,9 +51,3 @@ class Opportunity(models.Model):
 
     def __str__(self):
         return self.title
-
-    @property
-    def hero_image_is_displayable(self):
-        if not self.hero_image:
-            return False
-        return not self.hero_image_faces_visible or self.hero_image_consent_confirmed

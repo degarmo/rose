@@ -1,0 +1,9 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+<div class="module review-shortcut">
+  <h2>Images</h2>
+  <p><a href="{% url 'admin:image_review' %}">Image review</a>: see which site images are hidden and why.</p>
+</div>
+{{ block.super }}
+{% endblock %}

@@ -30,3 +30,8 @@ def send_neutral_mail(subject, body, to, reply_to=None):
         headers={"Message-ID": neutral_message_id()},
     )
     return message.send(fail_silently=False)
+
+
+def site_link(path):
+    """Absolute link to a page on the public site."""
+    return f"{settings.SITE_URL}{path}"
