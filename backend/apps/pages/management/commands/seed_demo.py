@@ -1,16 +1,25 @@
 """Load placeholder content so every page has something real to show.
 
-Safe to run repeatedly: rows are matched on slug or question and updated.
+Safe to run repeatedly: rows are matched on slug, question or email and
+updated. Demo account passwords are regenerated on every run and printed
+only when DEBUG is on.
 """
 
+import secrets
 from datetime import datetime, time, timedelta
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.models import User
 from apps.education.models import Opportunity
+from apps.events.models import RSVP, Event
+from apps.journal.models import Post, PostImage
 from apps.pages.models import FAQItem, SiteSettings
+
+from .demo_media import gradient_image
 
 SITE_SETTINGS = {
     "tagline": "A members' house for learning, connection and consent-first community.",
@@ -213,11 +222,90 @@ FAQS = [
 ]
 
 
-def upcoming_thursday_evening(weeks_ahead):
+def upcoming_weekday(weekday, weeks_ahead, at):
+    """The next given weekday (0 = Monday) after today, plus N weeks, at a local time."""
     today = timezone.localdate()
-    days_until = (3 - today.weekday()) % 7 or 7
+    days_until = (weekday - today.weekday()) % 7 or 7
     date = today + timedelta(days=days_until + 7 * weeks_ahead)
-    return timezone.make_aware(datetime.combine(date, time(19, 0)))
+    return timezone.make_aware(datetime.combine(date, at))
+
+
+def upcoming_thursday_evening(weeks_ahead):
+    return upcoming_weekday(3, weeks_ahead, time(19, 0))
+
+
+EDUCATION_NIGHT_TOPICS = [
+    "newcomer-orientation",
+    "consent-and-negotiation-foundations",
+    "communication-and-aftercare",
+    "risk-aware-planning",
+]
+
+SOCIAL_BODY = (
+    "<p>An unhurried evening of conversation and connection. Volunteer hosts are on the "
+    "floor all night, the bar serves soft drinks and mocktails, and the quiet room is "
+    "always open.</p><p>Please bring a valid photo ID. First time? Let the host at the "
+    "door know and they will introduce you around.</p>"
+)
+
+DEMO_USERS = [
+    ("demo.verified@example.org", "demo_verified", True),
+    ("demo.unverified@example.org", "demo_unverified", False),
+]
+
+JOURNAL_POSTS = [
+    (
+        "autumn-season-opens",
+        2,
+        "The autumn season of Thursday education nights begins this "
+        "week. Orientation runs first, every week, for anyone new.",
+        "orientation",
+    ),
+    (
+        "the-parlor-refresh",
+        3,
+        "Our volunteers spent the weekend repainting the parlor. "
+        "Deep red, low lamps, more seating.\n\nThank you to everyone who came with a brush.",
+        None,
+    ),
+    (
+        "mentorship-circle-returns",
+        1,
+        "Mentorship circles are back. Leave a note through the "
+        "contact form and we will make a thoughtful match.",
+        "cta",
+    ),
+    (
+        "friday-social",
+        1,
+        "Fridays are for unhurried conversation. Hosts on the floor all "
+        "night, quiet room always open.",
+        "social",
+    ),
+    (
+        "volunteer-thanks",
+        2,
+        "A thank you to the door team, who welcomed more first-time "
+        "guests this month than ever before.",
+        None,
+    ),
+    (
+        "consent-class-recap",
+        1,
+        "Last week's consent class filled the library. Notes and "
+        "reading suggestions are available at the front desk.",
+        None,
+    ),
+    ("candlelight", 1, "Saturday, after dark.", "saturday"),
+    (
+        "accessibility-update",
+        2,
+        "The main floor, the parlor and one restroom are step-free. "
+        "Tell us what else would help: https://example.org/access",
+        None,
+    ),
+    ("member-night-preview", 1, "Member night is coming. Members, watch your inbox.", "members"),
+]
 
 
 class Command(BaseCommand):
@@ -246,8 +334,151 @@ class Command(BaseCommand):
                 defaults={"answer": answer, "sort_order": index * 10, "is_published": True},
             )
 
+        users = self.seed_users()
+        events = self.seed_events(users)
+        post_count = self.seed_journal(events)
+
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded site settings, {len(OPPORTUNITIES)} opportunities and {len(FAQS)} FAQs."
+                f"Seeded site settings, {len(OPPORTUNITIES)} opportunities, {len(FAQS)} FAQs, "
+                f"{len(events)} events, {post_count} journal posts and "
+                f"{len(users)} demo accounts."
             )
         )
+
+    def seed_users(self):
+        users = {}
+        credentials = []
+        for email, display_name, verified in DEMO_USERS:
+            password = secrets.token_urlsafe(12)
+            user = User.objects.filter(email=email).first()
+            if user is None:
+                user = User.objects.create_user(
+                    email=email, display_name=display_name, password=password
+                )
+            else:
+                user.set_password(password)
+            user.email_verified_at = timezone.now() if verified else None
+            user.save()
+            users["verified" if verified else "unverified"] = user
+            credentials.append((email, password, verified))
+
+        if settings.DEBUG:
+            self.stdout.write("Demo accounts (DEBUG only, passwords change on every run):")
+            for email, password, verified in credentials:
+                label = "verified" if verified else "not verified"
+                self.stdout.write(f"  {email}  {password}  ({label})")
+        return users
+
+    def upsert_event(self, slug, **values):
+        values.setdefault("is_published", True)
+        event, _ = Event.objects.update_or_create(slug=slug, defaults=values)
+        return event
+
+    def seed_events(self, users):
+        events = {}
+        for week, topic_slug in enumerate(EDUCATION_NIGHT_TOPICS):
+            opportunity = Opportunity.objects.get(slug=topic_slug)
+            starts = upcoming_weekday(3, week, time(19, 0))
+            event = self.upsert_event(
+                f"education-night-{timezone.localtime(starts):%Y-%m-%d}",
+                title=f"Education Night: {opportunity.title}",
+                summary=opportunity.summary,
+                body=f"<p>{opportunity.summary}</p><p>Doors open at 6:45 pm. Orientation "
+                "for newcomers starts at 7:00 pm in the parlor.</p>",
+                category=Event.Category.EDUCATION,
+                starts_at=starts,
+                ends_at=starts + timedelta(hours=3),
+                location_label=opportunity.location_label,
+                capacity=40,
+                opportunity=opportunity,
+                show_attendee_count=True,
+            )
+            events.setdefault("education", []).append(event)
+
+        for week in range(4):
+            for weekday, name in ((4, "Friday"), (5, "Saturday")):
+                starts = upcoming_weekday(weekday, week, time(21, 0))
+                event = self.upsert_event(
+                    f"{name.lower()}-social-{timezone.localtime(starts):%Y-%m-%d}",
+                    title=f"{name} Social",
+                    summary="An unhurried evening of conversation, with hosts on the floor.",
+                    body=SOCIAL_BODY,
+                    category=Event.Category.SOCIAL,
+                    starts_at=starts,
+                    ends_at=starts + timedelta(hours=4),
+                    location_label="Main floor",
+                    capacity=80,
+                )
+                events.setdefault(name.lower(), []).append(event)
+
+        member_start = upcoming_weekday(2, 1, time(19, 30))
+        events["members"] = [
+            self.upsert_event(
+                "member-night",
+                title="Member Night",
+                summary="A quieter evening for members: drinks, conversation and house news.",
+                body="<p>Members only. Bring your questions for the board.</p>",
+                category=Event.Category.MEMBER_NIGHT,
+                audience=Event.Audience.MEMBERS,
+                starts_at=member_start,
+                ends_at=member_start + timedelta(hours=3),
+                location_label="The Parlor",
+            )
+        ]
+
+        full_start = upcoming_weekday(6, 0, time(15, 0))
+        full_event = self.upsert_event(
+            "intimate-salon",
+            title="Intimate Salon: Small Group Discussion",
+            summary="A small, seated discussion circle. Space is deliberately limited.",
+            body="<p>A host-led conversation for a handful of people. The waitlist is open "
+            "and places are offered in order.</p>",
+            category=Event.Category.SPECIAL,
+            starts_at=full_start,
+            ends_at=full_start + timedelta(hours=2),
+            location_label="The Library",
+            capacity=2,
+            waitlist_enabled=True,
+            show_attendee_count=True,
+        )
+        RSVP.objects.update_or_create(
+            event=full_event,
+            user=users["verified"],
+            defaults={"status": RSVP.Status.GOING, "party_size": 2, "waitlisted_at": None},
+        )
+        events["full"] = [full_event]
+        return [event for group in events.values() for event in group]
+
+    def seed_journal(self, events):
+        author = User.objects.filter(is_staff=True).order_by("pk").first()
+        by_kind = {
+            "orientation": next(e for e in events if e.category == Event.Category.EDUCATION),
+            "social": next(e for e in events if e.slug.startswith("friday-social")),
+            "saturday": next(e for e in events if e.slug.startswith("saturday-social")),
+            "members": next(e for e in events if e.slug == "member-night"),
+        }
+        now = timezone.now()
+        for index, (slug, image_count, caption, link) in enumerate(JOURNAL_POSTS):
+            post, created = Post.objects.update_or_create(
+                slug=slug,
+                defaults={
+                    "caption": caption,
+                    "published_at": now - timedelta(days=index * 4, hours=index),
+                    "is_published": True,
+                    "author": author,
+                    "event": by_kind.get(link),
+                    "cta_label": "Request a mentor" if link == "cta" else "",
+                    "cta_url": "/contact" if link == "cta" else "",
+                },
+            )
+            if created or not post.images.exists():
+                post.images.all().delete()
+                for order in range(image_count):
+                    PostImage.objects.create(
+                        post=post,
+                        image=gradient_image(index * 3 + order),
+                        image_alt="Abstract candlelight in deep red and brass",
+                        sort_order=order,
+                    )
+        return len(JOURNAL_POSTS)

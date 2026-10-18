@@ -5,16 +5,15 @@ from django.urls import include, path
 
 from apps.core import views as core_views
 
-admin.site.site_header = "Rose administration"
-admin.site.site_title = "Rose"
-admin.site.index_title = "Site content"
-
 api_patterns = [
     path("csrf/", core_views.csrf_token, name="csrf"),
     path("health/", core_views.health, name="health"),
     path("", include("apps.pages.urls")),
     path("education/", include("apps.education.urls")),
     path("contact/", include("apps.contact.urls")),
+    path("account/", include("apps.accounts.urls")),
+    path("events/", include("apps.events.urls")),
+    path("journal/", include("apps.journal.urls")),
 ]
 
 urlpatterns = [

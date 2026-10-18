@@ -20,6 +20,14 @@ env = environ.Env(
     DJANGO_SECURE_SSL_REDIRECT=(bool, True),
     DJANGO_TRUSTED_PROXY_COUNT=(int, 0),
     CONTACT_RATE_LIMIT=(str, "5/h"),
+    LOGIN_RATE_LIMIT_IP=(str, "20/h"),
+    LOGIN_RATE_LIMIT_EMAIL=(str, "10/h"),
+    REGISTER_RATE_LIMIT_IP=(str, "5/h"),
+    REGISTER_RATE_LIMIT_EMAIL=(str, "3/h"),
+    PASSWORD_RESET_RATE_LIMIT_IP=(str, "5/h"),
+    PASSWORD_RESET_RATE_LIMIT_EMAIL=(str, "3/h"),
+    RSVP_RETENTION_DAYS=(int, 30),
+    CELERY_TASK_ALWAYS_EAGER=(bool, False),
     EMAIL_SENDER_NAME=(str, "Rose"),
 )
 environ.Env.read_env(BASE_DIR / ".env")
@@ -30,7 +38,7 @@ ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "apps.core.apps.RoseAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -46,6 +54,7 @@ INSTALLED_APPS = [
     "apps.education",
     "apps.contact",
     "apps.events",
+    "apps.journal",
     "apps.feed",
     "apps.memberships",
 ]
@@ -68,7 +77,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -86,6 +95,7 @@ DATABASES = {"default": env.db("DATABASE_URL")}
 DATABASES["default"]["CONN_MAX_AGE"] = 60
 
 CACHES = {"default": env.cache("CACHE_URL", default="locmemcache://")}
+CACHES["default"]["KEY_PREFIX"] = "cache"
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -95,7 +105,10 @@ PASSWORD_HASHERS = [
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {"user_attributes": ("email", "display_name", "legal_name")},
+    },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {"min_length": 12},
@@ -127,6 +140,14 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Site imagery lives in the repository, outside the backend folder.
+IMAGE_MANIFEST_PATH = env.path(
+    "IMAGE_MANIFEST_PATH", default=BASE_DIR.parent / "docs" / "image-manifest.json"
+)
+SITE_IMAGES_DIR = env.path(
+    "SITE_IMAGES_DIR", default=BASE_DIR.parent / "frontend" / "public" / "images"
+)
+
 ADMIN_PATH = env("DJANGO_ADMIN_PATH")
 
 # --- REST framework -------------------------------------------------------
@@ -153,8 +174,43 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 CONTACT_NOTIFY_EMAIL = env("CONTACT_NOTIFY_EMAIL", default="")
 ADMIN_BASE_URL = env("ADMIN_BASE_URL", default="http://localhost:8000")
 
+# --- Accounts -------------------------------------------------------------
+# Public origin of the site, used to build links in emails.
+SITE_URL = env("SITE_URL", default="http://localhost:5173").rstrip("/")
+EMAIL_VERIFICATION_MAX_AGE = 60 * 60 * 24 * 3
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 2
+LOGIN_LOCKOUT_ATTEMPTS = 5
+LOGIN_LOCKOUT_SECONDS = 15 * 60
+
+# --- Events ---------------------------------------------------------------
+RSVP_RETENTION_DAYS = env("RSVP_RETENTION_DAYS")
+
+# --- Celery ---------------------------------------------------------------
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6380/0")
+CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER")
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_BEAT_SCHEDULE = {
+    "send-event-reminders": {
+        "task": "apps.events.tasks.send_due_reminders",
+        "schedule": 15 * 60,
+    },
+    "purge-old-rsvps": {
+        "task": "apps.events.tasks.purge_expired_rsvps",
+        "schedule": 60 * 60 * 6,
+    },
+}
+
 # --- Rate limiting --------------------------------------------------------
 CONTACT_RATE_LIMIT = env("CONTACT_RATE_LIMIT")
+LOGIN_RATE_LIMIT_IP = env("LOGIN_RATE_LIMIT_IP")
+LOGIN_RATE_LIMIT_EMAIL = env("LOGIN_RATE_LIMIT_EMAIL")
+REGISTER_RATE_LIMIT_IP = env("REGISTER_RATE_LIMIT_IP")
+REGISTER_RATE_LIMIT_EMAIL = env("REGISTER_RATE_LIMIT_EMAIL")
+PASSWORD_RESET_RATE_LIMIT_IP = env("PASSWORD_RESET_RATE_LIMIT_IP")
+PASSWORD_RESET_RATE_LIMIT_EMAIL = env("PASSWORD_RESET_RATE_LIMIT_EMAIL")
 TRUSTED_PROXY_COUNT = env("DJANGO_TRUSTED_PROXY_COUNT")
 RATELIMIT_USE_CACHE = "default"
 
