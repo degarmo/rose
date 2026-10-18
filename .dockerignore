@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+frontend/dist
+backend/staticfiles
+backend/media
+backend/private_media
+backend/.env
+**/.env
+prompts
+e2e/test-results
+e2e/playwright-report

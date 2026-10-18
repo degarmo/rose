@@ -8,26 +8,36 @@ and no feed history.
 from django.conf import settings
 from django.http import FileResponse, Http404
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from apps.core.api import CsrfProtectedAPIView
+from apps.core.api import CsrfProtectedAPIView, check_write_limit
 from apps.core.private_media import private_media, with_private_headers
 
 from . import access, services
+from .api import SessionWithoutCsrf, enforce_csrf
 from .models import DataExport, FeedPost, Guidelines
 from .views import guidelines_payload
 
 
-class FeedAccountBase(CsrfProtectedAPIView):
-    permission_classes = [IsAuthenticated]
+class FeedAccountBase(APIView):
+    """Feed controls on /account. Like the feed itself, anyone without access (signed
+    out included) gets the same 404, decided before CSRF or anything else."""
+
+    authentication_classes = [SessionWithoutCsrf]
+    write_limit = None
 
     def initial(self, request, *args, **kwargs):
-        if not settings.FEED_ENABLED:
+        user = request.user
+        if not (
+            settings.FEED_ENABLED and user.is_authenticated and access.feed_account_visible(user)
+        ):
             raise Http404
+        if request.method not in SAFE_METHODS:
+            enforce_csrf(request._request)
         super().initial(request, *args, **kwargs)
-        if not access.feed_account_visible(request.user):
-            raise Http404
+        check_write_limit(self, request)
 
     def handle_exception(self, exc):
         if isinstance(exc, services.FeedError):

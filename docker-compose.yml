@@ -1,12 +1,14 @@
-# Full local stack: Postgres, Redis, the API, a Celery worker, Celery beat and
-# the Vite dev server. The repository is mounted at /srv so code changes reload.
+# Full local development stack: Postgres, Redis, the API, a Celery worker,
+# Celery beat, the Vite dev server, Mailpit (catches every email) and MinIO
+# (an S3 stand-in for the storage tests). The repository is mounted at /srv so
+# code changes reload. Nothing here is used in staging or production.
 #
-#   docker compose up              # everything
-#   docker compose up db cache     # only the services, to run the app on your machine
+#   docker compose up                    # everything
+#   docker compose up -d db cache minio  # only the services, to run the app on your machine
 #
-# Host ports default to Postgres 5433 and Redis 6380 (offset to avoid clashing
-# with local installs), API 8000 and site 5173. Override them with DB_PORT,
-# CACHE_PORT, API_PORT and WEB_PORT if something else is using them.
+# Host ports default to Postgres 5433, Redis 6380, API 8000, site 5173, Mailpit
+# 8025 and MinIO 9000. Override them with DB_PORT, CACHE_PORT, API_PORT,
+# WEB_PORT, MAIL_PORT and MINIO_PORT if something else is using them.
 
 x-backend: &backend
   build: ./backend
@@ -15,6 +17,7 @@ x-backend: &backend
   volumes:
     - ./:/srv
   environment:
+    DJANGO_ENV: development
     DJANGO_SECRET_KEY: local-development-only-not-a-secret
     DJANGO_DEBUG: "true"
     DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
@@ -24,7 +27,8 @@ x-backend: &backend
     CELERY_BROKER_URL: redis://cache:6379/0
     SITE_URL: http://localhost:${WEB_PORT:-5173}
     ADMIN_BASE_URL: http://localhost:${API_PORT:-8000}
-    EMAIL_URL: consolemail://
+    EMAIL_PROVIDER: smtp
+    EMAIL_URL: smtp://mailpit:1025
   depends_on:
     db:
       condition: service_healthy
@@ -58,6 +62,24 @@ services:
       timeout: 3s
       retries: 10
 
+  mailpit:
+    image: axllent/mailpit:v1.24
+    ports:
+      - "${MAIL_PORT:-8025}:8025"
+
+  minio:
+    # The official MinIO images are no longer published; this archived build is
+    # used only for development and tests (decision 190).
+    image: bitnamilegacy/minio:2025.4.22
+    environment:
+      MINIO_ROOT_USER: minio-local
+      MINIO_ROOT_PASSWORD: minio-local-secret
+      MINIO_DEFAULT_BUCKETS: rose-public:download,rose-private
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+    volumes:
+      - minio-data:/bitnami/minio/data
+
   api:
     <<: *backend
     command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
@@ -89,3 +111,4 @@ services:
 volumes:
   db-data:
   web-node-modules:
+  minio-data:

@@ -1,210 +1,263 @@
-# Render blueprint stub. Not deployed yet; prompt 5 finalises hosting.
-# The static site proxies /api and /media to the API service, so the browser
-# only ever talks to one origin and cookies stay first-party.
+# Render Blueprint: two environments (staging, production) of one project.
 #
-# The API, worker and beat must share DJANGO_SECRET_KEY: the worker signs the
-# links in emails and the API checks them. The shared env group holds it.
+# Each environment runs one Docker image (./Dockerfile) as three services:
+#   web     gunicorn; Django serves the site, the API, the admin and media views
+#   worker  Celery (email, image processing, exports)
+#   beat    Celery beat, exactly one instance (reminders, retention, backups)
+# plus Render Postgres and Render Key Value (Redis).
+#
+# Secrets are declared with `sync: false` and never written here: Render asks
+# for them when the Blueprint is created (docs/ops/deploy.md lists each one).
+# The plans below are paid plans; creating this Blueprint creates billable
+# resources, so it is applied by hand, never by CI.
 
-envVarGroups:
-  - name: rose-backend
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.13"
-      - key: DJANGO_SECRET_KEY
-        generateValue: true
-      - key: DJANGO_DEBUG
-        value: "false"
-      - key: DJANGO_TRUSTED_PROXY_COUNT
-        value: "1"
-      - key: EMAIL_SENDER_NAME
-        value: Rose
-      - key: RSVP_RETENTION_DAYS
-        value: "30"
-      - key: FEED_WATERMARK
-        value: "true"
-      - key: PRIVATE_MEDIA_ROOT
-        value: /var/data/private
-      # In-person payments only until a real processor is added (see docs/payments.md).
-      # The sandbox provider refuses to start here because DJANGO_DEBUG is false.
-      - key: PAYMENT_PROVIDERS
-        value: manual
-      # Shown on receipts; the processor's statement descriptor should match. Keep it neutral.
-      - key: MERCHANT_DISPLAY_NAME
-        value: Rose
-      - key: MEMBERSHIP_GRACE_DAYS
-        value: "7"
-      - key: MEMBERSHIP_PENDING_EXPIRY_DAYS
-        value: "30"
+projects:
+  - name: rose
+    environments:
+      - name: staging
+        envVarGroups:
+          - name: rose-staging-settings
+            envVars:
+              - key: DJANGO_ENV
+                value: staging
+              - key: DJANGO_DEBUG
+                value: "false"
+              - key: DJANGO_TRUSTED_PROXY_COUNT
+                value: "1"
+              - key: STORAGE_BACKEND
+                value: s3
+              - key: S3_REGION
+                value: auto
+              # Staging takes in-person payments only; the sandbox cannot run here.
+              - key: PAYMENT_PROVIDERS
+                value: manual
+              - key: EMAIL_PROVIDER
+                value: postmark
+              - key: EMAIL_SENDER_NAME
+                value: Rose
+              - key: MERCHANT_DISPLAY_NAME
+                value: Rose
+              - key: BACKUP_ENABLED
+                value: "true"
+              - key: FEED_ENABLED
+                value: "true"
+          - name: rose-staging-secrets
+            envVars:
+              - key: DJANGO_SECRET_KEY
+                sync: false
+              - key: DJANGO_ALLOWED_HOSTS
+                sync: false
+              - key: DJANGO_CSRF_TRUSTED_ORIGINS
+                sync: false
+              - key: DJANGO_ADMIN_PATH
+                sync: false
+              - key: SITE_URL
+                sync: false
+              - key: STAGING_BASIC_AUTH_USER
+                sync: false
+              - key: STAGING_BASIC_AUTH_PASSWORD
+                sync: false
+              - key: S3_ENDPOINT_URL
+                sync: false
+              - key: S3_ACCESS_KEY_ID
+                sync: false
+              - key: S3_SECRET_ACCESS_KEY
+                sync: false
+              - key: S3_PUBLIC_BUCKET
+                sync: false
+              - key: S3_PRIVATE_BUCKET
+                sync: false
+              - key: S3_PUBLIC_BASE_URL
+                sync: false
+              - key: POSTMARK_SERVER_TOKEN
+                sync: false
+              - key: EMAIL_SENDER_ADDRESS
+                sync: false
+              - key: CONTACT_NOTIFY_EMAIL
+                sync: false
+              - key: BACKUP_AGE_RECIPIENT
+                sync: false
+        databases:
+          - name: rose-staging-db
+            plan: basic-256mb
+            postgresMajorVersion: "16"
+            ipAllowList: []
+        services:
+          - type: keyvalue
+            name: rose-staging-cache
+            plan: starter
+            maxmemoryPolicy: noeviction
+            ipAllowList: []
+          - type: web
+            name: rose-staging-web
+            runtime: docker
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            plan: starter
+            numInstances: 1
+            healthCheckPath: /healthz
+            preDeployCommand: >-
+              python manage.py check --deploy --database default --fail-level ERROR
+              && python manage.py migrate --noinput
+            envVars: &staging-env
+              - fromGroup: rose-staging-settings
+              - fromGroup: rose-staging-secrets
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: rose-staging-db
+                  property: connectionString
+              - key: CACHE_URL
+                fromService:
+                  type: keyvalue
+                  name: rose-staging-cache
+                  property: connectionString
+              - key: CELERY_BROKER_URL
+                fromService:
+                  type: keyvalue
+                  name: rose-staging-cache
+                  property: connectionString
+          - type: worker
+            name: rose-staging-worker
+            runtime: docker
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            plan: starter
+            numInstances: 1
+            dockerCommand: celery -A config worker --loglevel=info --concurrency=2
+            envVars: *staging-env
+          - type: worker
+            name: rose-staging-beat
+            runtime: docker
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            plan: starter
+            # Exactly one beat, or scheduled jobs (and emails) would run twice.
+            numInstances: 1
+            dockerCommand: celery -A config beat --loglevel=info --schedule /tmp/celerybeat-schedule
+            envVars: *staging-env
 
-services:
-  - type: web
-    name: rose-api
-    runtime: python
-    rootDir: backend
-    plan: starter
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate --noinput
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --access-logfile -
-    healthCheckPath: /api/health/
-    disk:
-      name: rose-private-media
-      mountPath: /var/data
-      sizeGB: 5
-    envVars:
-      - fromGroup: rose-backend
-      - key: DJANGO_ALLOWED_HOSTS
-        sync: false
-      - key: DJANGO_CSRF_TRUSTED_ORIGINS
-        sync: false
-      - key: DJANGO_ADMIN_PATH
-        sync: false
-      - key: SITE_URL
-        sync: false
-      - key: ADMIN_BASE_URL
-        sync: false
-      - key: EMAIL_URL
-        sync: false
-      - key: EMAIL_SENDER_ADDRESS
-        sync: false
-      - key: CONTACT_NOTIFY_EMAIL
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: rose-db
-          property: connectionString
-      - key: CACHE_URL
-        fromService:
-          type: keyvalue
-          name: rose-cache
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: keyvalue
-          name: rose-cache
-          property: connectionString
-
-  - type: worker
-    name: rose-worker
-    runtime: python
-    rootDir: backend
-    plan: starter
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A config worker --loglevel=info --concurrency=2
-    envVars:
-      - fromGroup: rose-backend
-      - key: DJANGO_ALLOWED_HOSTS
-        sync: false
-      - key: SITE_URL
-        sync: false
-      - key: EMAIL_URL
-        sync: false
-      - key: EMAIL_SENDER_ADDRESS
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: rose-db
-          property: connectionString
-      - key: CACHE_URL
-        fromService:
-          type: keyvalue
-          name: rose-cache
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: keyvalue
-          name: rose-cache
-          property: connectionString
-
-  - type: worker
-    name: rose-beat
-    runtime: python
-    rootDir: backend
-    plan: starter
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A config beat --loglevel=info --schedule /tmp/celerybeat-schedule
-    envVars:
-      - fromGroup: rose-backend
-      - key: DJANGO_ALLOWED_HOSTS
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: rose-db
-          property: connectionString
-      - key: CACHE_URL
-        fromService:
-          type: keyvalue
-          name: rose-cache
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: keyvalue
-          name: rose-cache
-          property: connectionString
-
-  - type: keyvalue
-    name: rose-cache
-    plan: starter
-    maxmemoryPolicy: noeviction
-    ipAllowList: []
-
-  - type: web
-    name: rose-web
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_BASE_URL
-        value: /api
-      - key: VITE_QUICK_EXIT_URL
-        value: https://www.weather.gov/
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://rose-api.onrender.com/api/*
-      - type: rewrite
-        source: /media/*
-        destination: https://rose-api.onrender.com/media/*
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-      - path: /*
-        name: Strict-Transport-Security
-        value: max-age=31536000; includeSubDomains; preload
-      - path: /*
-        name: Referrer-Policy
-        value: no-referrer
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: Permissions-Policy
-        value: camera=(), microphone=(), geolocation=(), interest-cohort=()
-      - path: /members/*
-        name: X-Robots-Tag
-        value: noindex, nofollow
-      - path: /account
-        name: X-Robots-Tag
-        value: noindex, nofollow
-      - path: /account/*
-        name: X-Robots-Tag
-        value: noindex, nofollow
-      - path: /events/cancel
-        name: X-Robots-Tag
-        value: noindex, nofollow
-      - path: /exit
-        name: X-Robots-Tag
-        value: noindex, nofollow
-
-databases:
-  - name: rose-db
-    plan: basic-256mb
-    databaseName: rose
-    user: rose
+      - name: production
+        envVarGroups:
+          - name: rose-production-settings
+            envVars:
+              - key: DJANGO_ENV
+                value: production
+              - key: DJANGO_DEBUG
+                value: "false"
+              - key: DJANGO_TRUSTED_PROXY_COUNT
+                value: "1"
+              - key: STORAGE_BACKEND
+                value: s3
+              - key: S3_REGION
+                value: auto
+              # In person only until a real processor is chosen (docs/payments.md).
+              - key: PAYMENT_PROVIDERS
+                value: manual
+              - key: EMAIL_PROVIDER
+                value: postmark
+              - key: EMAIL_SENDER_NAME
+                value: Rose
+              - key: MERCHANT_DISPLAY_NAME
+                value: Rose
+              - key: BACKUP_ENABLED
+                value: "true"
+              - key: FEED_ENABLED
+                value: "true"
+              - key: MEMBERSHIP_GRACE_DAYS
+                value: "7"
+              - key: MEMBERSHIP_PENDING_EXPIRY_DAYS
+                value: "30"
+              - key: RSVP_RETENTION_DAYS
+                value: "30"
+              - key: CONTACT_RETENTION_DAYS
+                value: "365"
+          - name: rose-production-secrets
+            envVars:
+              - key: DJANGO_SECRET_KEY
+                sync: false
+              - key: DJANGO_ALLOWED_HOSTS
+                sync: false
+              - key: DJANGO_CSRF_TRUSTED_ORIGINS
+                sync: false
+              - key: DJANGO_ADMIN_PATH
+                sync: false
+              - key: SITE_URL
+                sync: false
+              - key: S3_ENDPOINT_URL
+                sync: false
+              - key: S3_ACCESS_KEY_ID
+                sync: false
+              - key: S3_SECRET_ACCESS_KEY
+                sync: false
+              - key: S3_PUBLIC_BUCKET
+                sync: false
+              - key: S3_PRIVATE_BUCKET
+                sync: false
+              - key: S3_PUBLIC_BASE_URL
+                sync: false
+              - key: POSTMARK_SERVER_TOKEN
+                sync: false
+              - key: EMAIL_SENDER_ADDRESS
+                sync: false
+              - key: CONTACT_NOTIFY_EMAIL
+                sync: false
+              - key: BACKUP_AGE_RECIPIENT
+                sync: false
+        databases:
+          - name: rose-production-db
+            plan: basic-1gb
+            postgresMajorVersion: "16"
+            ipAllowList: []
+        services:
+          - type: keyvalue
+            name: rose-production-cache
+            plan: starter
+            maxmemoryPolicy: noeviction
+            ipAllowList: []
+          - type: web
+            name: rose-production-web
+            runtime: docker
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            plan: standard
+            numInstances: 1
+            healthCheckPath: /healthz
+            preDeployCommand: >-
+              python manage.py check --deploy --database default --fail-level ERROR
+              && python manage.py migrate --noinput
+            envVars: &production-env
+              - fromGroup: rose-production-settings
+              - fromGroup: rose-production-secrets
+              - key: DATABASE_URL
+                fromDatabase:
+                  name: rose-production-db
+                  property: connectionString
+              - key: CACHE_URL
+                fromService:
+                  type: keyvalue
+                  name: rose-production-cache
+                  property: connectionString
+              - key: CELERY_BROKER_URL
+                fromService:
+                  type: keyvalue
+                  name: rose-production-cache
+                  property: connectionString
+          - type: worker
+            name: rose-production-worker
+            runtime: docker
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            plan: starter
+            numInstances: 1
+            dockerCommand: celery -A config worker --loglevel=info --concurrency=2
+            envVars: *production-env
+          - type: worker
+            name: rose-production-beat
+            runtime: docker
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            plan: starter
+            # Exactly one beat, or scheduled jobs (and emails) would run twice.
+            numInstances: 1
+            dockerCommand: celery -A config beat --loglevel=info --schedule /tmp/celerybeat-schedule
+            envVars: *production-env

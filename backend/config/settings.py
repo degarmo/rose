@@ -310,11 +310,12 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 ADMINS = []
 MANAGERS = []
 CONTACT_NOTIFY_EMAIL = env("CONTACT_NOTIFY_EMAIL", default="")
-ADMIN_BASE_URL = env("ADMIN_BASE_URL", default="http://localhost:8000")
 
 # --- Accounts -------------------------------------------------------------
-# Public origin of the site, used to build links in emails.
+# Public origin of the site, used to build links in emails. The admin shares
+# it (one origin), so staff links in notifications point there too.
 SITE_URL = env("SITE_URL", default="http://localhost:5173").rstrip("/")
+ADMIN_BASE_URL = env("ADMIN_BASE_URL", default=SITE_URL).rstrip("/")
 EMAIL_VERIFICATION_MAX_AGE = 60 * 60 * 24 * 3
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 2
 LOGIN_LOCKOUT_ATTEMPTS = 5

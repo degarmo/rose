@@ -216,3 +216,25 @@ def test_health_reports_failure_without_details(client, monkeypatch):
 def test_health_skips_host_validation(client, settings):
     settings.ALLOWED_HOSTS = ["site.example"]
     assert client.get("/healthz", HTTP_HOST="10.1.2.3:10000").status_code == 200
+
+
+@pytest.mark.parametrize("env", ["development", "staging", "production"])
+def test_e2e_fixtures_only_run_in_e2e(settings, env):
+    settings.DJANGO_ENV = env
+    with pytest.raises(CommandError, match="DJANGO_ENV=e2e"):
+        call_command("e2e_fixtures")
+
+
+def test_e2e_fixtures_build_known_data(settings, capsys):
+    import json
+
+    from django_otp.oath import totp
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    settings.DJANGO_ENV = "e2e"
+    call_command("e2e_fixtures", "--json")
+    data = json.loads(capsys.readouterr().out)
+    assert set(data["viewports"]) == {"phone", "desktop"}
+    device = TOTPDevice.objects.get(user__email=data["staff"]["email"])
+    assert device.verify_token(f"{totp(device.bin_key):06d}")
+    call_command("e2e_fixtures")  # idempotent

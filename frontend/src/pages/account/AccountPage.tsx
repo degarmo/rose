@@ -288,6 +288,7 @@ export function AccountPage() {
   useDocumentMeta({ title: 'My account', noindex: true })
   const auth = useAuth()
   const navigate = useNavigate()
+  const [leaving, setLeaving] = useState(false)
 
   if (auth.status === 'loading') {
     return (
@@ -296,7 +297,8 @@ export function AccountPage() {
       </Section>
     )
   }
-  if (!auth.user) return <Navigate to="/account/login?next=%2Faccount" replace />
+  // After "Log out" the page goes home, not to the login form.
+  if (!auth.user) return <Navigate to={leaving ? '/' : '/account/login?next=%2Faccount'} replace />
   const user = auth.user
 
   return (
@@ -309,6 +311,7 @@ export function AccountPage() {
         <Button
           variant="ghost"
           onClick={async () => {
+            setLeaving(true)
             await auth.logout()
             navigate('/', { replace: true })
           }}

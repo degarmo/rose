@@ -1,6 +1,7 @@
 import { ArrowLeft, BookOpen, CalendarDays, Clock, MapPin } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import { DetailItem } from '@/components/content/DetailItem'
 import { RICH_TEXT } from '@/components/content/richText'
 import { RSVPPanel } from '@/components/content/RSVPPanel'
 import { ErrorState, LoadingState } from '@/components/content/States'
@@ -58,30 +59,16 @@ export function EventPage() {
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
             <div>
               <dl className="grid gap-5 border-y border-border py-6 sm:grid-cols-3">
-                <div className="flex gap-3">
-                  <CalendarDays aria-hidden="true" className="mt-0.5 size-5 text-highlight" />
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">Date</dt>
-                    <dd className="mt-1 text-fg">
-                      <time dateTime={event.starts_at}>{formatLongDate(event.starts_at)}</time>
-                    </dd>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Clock aria-hidden="true" className="mt-0.5 size-5 text-highlight" />
-                  <div>
-                    <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">Time</dt>
-                    <dd className="mt-1 text-fg">{formatTimeRange(event.starts_at, event.ends_at)}</dd>
-                  </div>
-                </div>
+                <DetailItem icon={CalendarDays} label="Date">
+                  <time dateTime={event.starts_at}>{formatLongDate(event.starts_at)}</time>
+                </DetailItem>
+                <DetailItem icon={Clock} label="Time">
+                  {formatTimeRange(event.starts_at, event.ends_at)}
+                </DetailItem>
                 {event.location_label && (
-                  <div className="flex gap-3">
-                    <MapPin aria-hidden="true" className="mt-0.5 size-5 text-highlight" />
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">Where</dt>
-                      <dd className="mt-1 text-fg">{event.location_label}</dd>
-                    </div>
-                  </div>
+                  <DetailItem icon={MapPin} label="Where">
+                    {event.location_label}
+                  </DetailItem>
                 )}
               </dl>
               <div

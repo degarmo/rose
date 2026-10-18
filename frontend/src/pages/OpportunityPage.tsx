@@ -1,5 +1,6 @@
 import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react'
 import { useParams } from 'react-router'
+import { DetailItem } from '@/components/content/DetailItem'
 import { ErrorState, LoadingState } from '@/components/content/States'
 import { PaywallPanel } from '@/components/membership/PaywallPanel'
 import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
@@ -59,24 +60,14 @@ export function OpportunityPage() {
             {(opportunity.starts_at || opportunity.location_label) && (
               <dl className="grid gap-4 border-y border-border py-6 sm:grid-cols-2">
                 {opportunity.starts_at && (
-                  <div className="flex gap-3">
-                    <CalendarDays aria-hidden="true" className="mt-0.5 size-5 text-highlight" />
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">When</dt>
-                      <dd className="mt-1 text-fg">
-                        <time dateTime={opportunity.starts_at}>{formatEventDate(opportunity.starts_at)}</time>
-                      </dd>
-                    </div>
-                  </div>
+                  <DetailItem icon={CalendarDays} label="When">
+                    <time dateTime={opportunity.starts_at}>{formatEventDate(opportunity.starts_at)}</time>
+                  </DetailItem>
                 )}
                 {opportunity.location_label && (
-                  <div className="flex gap-3">
-                    <MapPin aria-hidden="true" className="mt-0.5 size-5 text-highlight" />
-                    <div>
-                      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">Where</dt>
-                      <dd className="mt-1 text-fg">{opportunity.location_label}</dd>
-                    </div>
-                  </div>
+                  <DetailItem icon={MapPin} label="Where">
+                    {opportunity.location_label}
+                  </DetailItem>
                 )}
               </dl>
             )}

@@ -1,0 +1,20 @@
+{
+  "name": "rose-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
+    "@playwright/test": "1.56.1",
+    "@types/node": "^24.13.3",
+    "playwright-core": "1.56.1",
+    "typescript": "~6.0.2"
+  },
+  "overrides": {
+    "playwright-core": "1.56.1"
+  }
+}

@@ -139,10 +139,14 @@ def age_key(settings):
 
 
 def pg_dump_available():
+    """CI sets REQUIRE_PG_DUMP=1 so a missing pg_dump fails instead of skipping."""
     try:
-        return subprocess.run(["pg_dump", "--version"], capture_output=True).returncode == 0
+        found = subprocess.run(["pg_dump", "--version"], capture_output=True).returncode == 0
     except FileNotFoundError:
-        return False
+        found = False
+    if not found and os.environ.get("REQUIRE_PG_DUMP"):
+        pytest.fail("pg_dump is required here")
+    return found
 
 
 @pytest.mark.django_db(transaction=True)

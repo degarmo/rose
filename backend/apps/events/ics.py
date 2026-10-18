@@ -18,7 +18,7 @@ def default_title():
 def _escape(value):
     return (
         value.replace("\\", "\\\\")
-        .replace(";", "\;")
+        .replace(";", "\\;")
         .replace(",", "\\,")
         .replace("\r\n", "\\n")
         .replace("\n", "\\n")

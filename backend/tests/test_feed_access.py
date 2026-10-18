@@ -168,3 +168,13 @@ def test_admin_records_who_granted_access(admin_client, admin_user, make_user):
     )
     profile.refresh_from_db()
     assert not profile.feed_access_granted and profile.feed_access_granted_by is None
+
+
+@pytest.mark.parametrize("method", ["get", "post"])
+@pytest.mark.parametrize(
+    "path", ["/api/account/feed/", "/api/account/feed/join/", "/api/account/feed/erase/"]
+)
+def test_account_feed_endpoints_are_404_when_signed_out(client, path, method):
+    """Not 403: a signed-out visitor learns nothing about which endpoints exist."""
+    response = getattr(client, method)(path)
+    assert response.status_code == 404

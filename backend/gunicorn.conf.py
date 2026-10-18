@@ -28,6 +28,7 @@ logconfig_dict = {
             "stream": "ext://sys.stdout",
         }
     },
+    "root": {"handlers": ["stdout"], "level": "INFO"},
     "loggers": {
         "gunicorn.error": {"handlers": ["stdout"], "level": "INFO", "propagate": False},
         "gunicorn.access": {"handlers": ["stdout"], "level": "INFO", "propagate": False},
