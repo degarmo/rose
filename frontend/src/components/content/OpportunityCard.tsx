@@ -28,6 +28,7 @@ export function OpportunityCard({ opportunity, headingLevel = 'h3' }: { opportun
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="brass">{opportunity.level_label}</Badge>
           <Badge>{opportunity.category_label}</Badge>
+          {opportunity.members_only && <Badge tone="rose">Members</Badge>}
         </div>
         <Heading className="mt-5 text-2xl leading-snug text-fg">
           <Link to={detailPath} className="hover:text-accent">

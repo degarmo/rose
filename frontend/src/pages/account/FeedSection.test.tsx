@@ -68,10 +68,12 @@ describe('FeedSection', () => {
     expect(screen.queryByRole('button', { name: 'Leave and erase' })).not.toBeInTheDocument()
   })
 
-  it('renders nothing without feed access', async () => {
+  it('explains that the community comes with membership when there is no access', async () => {
     api.get.mockRejectedValue(new ApiError(404, 'Not found.'))
-    const { container } = renderWithProviders(<FeedSection />, { user: verifiedUser })
-    await waitFor(() => expect(api.get).toHaveBeenCalled())
-    expect(container.textContent).not.toContain('Member feed')
+    renderWithProviders(<FeedSection />, { user: verifiedUser })
+    expect(await screen.findByRole('heading', { name: 'Member community' })).toBeInTheDocument()
+    expect(screen.getByText(/comes with membership/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Become a member' })).toHaveAttribute('href', '/join')
+    expect(screen.queryByRole('button', { name: 'Export my data' })).not.toBeInTheDocument()
   })
 })

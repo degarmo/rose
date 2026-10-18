@@ -9,6 +9,7 @@ import { formatEventDate } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { FeedSection } from './FeedSection'
+import { MembershipCard } from './MembershipCard'
 import { displayNameError, passwordError } from './validation'
 
 function Panel({ title, children, id }: { title: string; children: ReactNode; id: string }) {
@@ -276,6 +277,7 @@ export function AccountPage() {
 
       <div className="mt-10 flex flex-col gap-6">
         {!user.email_verified && <VerifyBanner />}
+        <MembershipCard />
         <Panel id="rsvps" title="Upcoming plans">
           <UpcomingRSVPs />
         </Panel>

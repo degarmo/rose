@@ -138,9 +138,18 @@ describe('RSVPPanel', () => {
     expect(screen.queryByRole('form', { name: 'RSVP' })).not.toBeInTheDocument()
   })
 
-  it('shows a disabled Members only button', () => {
-    renderPanel(makeEvent({ state: 'members_only', can_rsvp: false, reason: 'members_only' }))
-    expect(screen.getByRole('button', { name: 'Members only' })).toBeDisabled()
+  it('offers membership to signed-in non-members on a members-only evening', () => {
+    renderPanel(makeEvent({ state: 'members_only', can_rsvp: false, reason: 'members_only' }, { audience: 'members' }))
+    expect(screen.getByRole('heading', { name: 'For members' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Become a member' })).toHaveAttribute('href', '/join')
+    expect(screen.queryByRole('form', { name: 'RSVP' })).not.toBeInTheDocument()
+  })
+
+  it('asks anonymous visitors to log in or register on a members-only evening', () => {
+    renderPanel(makeEvent({ state: 'members_only', can_rsvp: false, reason: 'members_only' }, { audience: 'members' }), null)
+    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/account/login?next=%2F')
+    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute('href', '/account/register?next=%2Fjoin')
+    expect(screen.queryByRole('link', { name: 'Become a member' })).not.toBeInTheDocument()
   })
 
   it('shows going with calendar download that defaults to discreet', async () => {

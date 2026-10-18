@@ -1,6 +1,7 @@
-import { CalendarPlus, CircleCheck, Clock, Lock, MailCheck, UserPlus } from 'lucide-react'
+import { CalendarPlus, CircleCheck, Clock, MailCheck, UserPlus } from 'lucide-react'
 import { useId, useState, type FormEvent } from 'react'
 import { useAuth } from '@/components/layout/authContext'
+import { PaywallPanel } from '@/components/membership/PaywallPanel'
 import { Button, ButtonLink, Card, FormField, Modal, Select, Textarea, useToast } from '@/components/ui'
 import { api, ApiError, type EventDetail, type RSVPState } from '@/lib/api'
 import { formatEventDate } from '@/lib/format'
@@ -209,18 +210,7 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
       </>
     )
   } else if (rsvp.state === 'members_only') {
-    body = (
-      <>
-        <p className="flex items-center gap-3 font-display text-2xl text-fg">
-          <Lock aria-hidden="true" className="size-5 text-highlight" />
-          For members
-        </p>
-        <p className="mt-2 text-sm text-fg-muted">This evening is open to members of the house.</p>
-        <Button size="lg" className="mt-6 w-full" disabled aria-disabled="true">
-          Members only
-        </Button>
-      </>
-    )
+    body = <PaywallPanel variant="inline" title="For members" benefit="This evening is open to members of the house. Members-only evenings come with membership." />
   } else if (rsvp.state === 'closed' || rsvp.state === 'unavailable') {
     body = (
       <>

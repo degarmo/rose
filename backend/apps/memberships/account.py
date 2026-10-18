@@ -8,7 +8,7 @@ from .providers.base import ProviderError
 
 
 class AccountError(Exception):
-    pass
+    """A member's own action was refused; the message is shown to them."""
 
 
 def _provider_for(membership):

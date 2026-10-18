@@ -1,11 +1,13 @@
 import { ArrowLeft, BookOpen, CalendarDays, Clock, MapPin } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
+import { RICH_TEXT } from '@/components/content/richText'
 import { RSVPPanel } from '@/components/content/RSVPPanel'
 import { ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
 import { api, ApiError, type EventDetail, type RSVPState } from '@/lib/api'
+import { cn } from '@/lib/cn'
 import { formatLongDate, formatTimeRange } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -83,7 +85,7 @@ export function EventPage() {
                 )}
               </dl>
               <div
-                className="mt-10 space-y-5 text-lg leading-relaxed text-fg-muted [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-4 [&_h3]:text-2xl [&_h3]:text-fg [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-fg [&_ul]:list-disc"
+                className={cn('mt-10 text-lg', RICH_TEXT)}
                 // Sanitised on the server with a small allow-list of tags.
                 dangerouslySetInnerHTML={{ __html: event.body }}
               />

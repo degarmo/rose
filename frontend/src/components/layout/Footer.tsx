@@ -10,7 +10,7 @@ export function Footer() {
   const data = settings.status === 'success' ? settings.data : null
 
   return (
-    <footer className="border-t border-border bg-surface-sunken pb-28 pt-16 sm:pb-16">
+    <footer className="border-t border-border bg-surface-sunken pb-28 pt-16 sm:pb-16 print:hidden">
       <div className="mx-auto grid max-w-7xl gap-12 px-5 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <Wordmark />

@@ -1,6 +1,7 @@
 import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react'
 import { useParams } from 'react-router'
 import { ErrorState, LoadingState } from '@/components/content/States'
+import { PaywallPanel } from '@/components/membership/PaywallPanel'
 import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
 import { formatEventDate, paragraphs } from '@/lib/format'
@@ -42,6 +43,7 @@ export function OpportunityPage() {
               <div className="mt-6 flex flex-wrap gap-2">
                 <Badge tone="brass">{opportunity.level_label}</Badge>
                 <Badge>{opportunity.category_label}</Badge>
+                {opportunity.members_only && <Badge tone="rose">Members</Badge>}
               </div>
               <h1 className="mt-6 text-5xl leading-[1.05] text-fg sm:text-6xl">{opportunity.title}</h1>
               <p className="mt-6 text-lg leading-relaxed text-fg-muted sm:text-xl">{opportunity.summary}</p>
@@ -78,11 +80,20 @@ export function OpportunityPage() {
                 )}
               </dl>
             )}
-            <div className="mt-10 space-y-6 text-lg leading-relaxed text-fg-muted">
-              {paragraphs(opportunity.body).map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
-              ))}
-            </div>
+            {opportunity.locked || opportunity.body === null ? (
+              <PaywallPanel
+                className="mt-10"
+                title="For members"
+                benefit={opportunity.paywall?.benefit ?? 'Members-only classes come with membership.'}
+                tiers={opportunity.paywall?.tiers}
+              />
+            ) : (
+              <div className="mt-10 space-y-6 text-lg leading-relaxed text-fg-muted">
+                {paragraphs(opportunity.body).map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
+                ))}
+              </div>
+            )}
             <div className="mt-12 flex flex-col gap-3 sm:flex-row">
               {opportunity.cta_label && opportunity.cta_url && (
                 <ButtonLink to={opportunity.cta_url} size="lg">

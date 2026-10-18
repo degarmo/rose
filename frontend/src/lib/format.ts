@@ -102,3 +102,24 @@ export function safeNextPath(value: string | null | undefined, fallback = '/acco
 export function fragmentParams(hash: string): URLSearchParams {
   return new URLSearchParams(hash.replace(/^#/, ''))
 }
+
+const dayFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: CHICAGO,
+})
+
+/** "October 18, 2026" in Chicago time. */
+export function formatDay(iso: string): string {
+  return dayFormatter.format(new Date(iso))
+}
+
+/** "$25" for whole amounts, "$25.50" otherwise. */
+export function formatMoney(cents: number, currency = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+  }).format(cents / 100)
+}

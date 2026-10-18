@@ -1,6 +1,8 @@
 """Membership payloads. Never included: typed signature names, emails, provider
 customer references or anything about an ID beyond whether a check exists."""
 
+from datetime import timedelta
+
 from django.conf import settings
 from rest_framework import serializers
 
@@ -25,6 +27,7 @@ class TierSerializer(serializers.ModelSerializer):
             "grants_feed_access",
             "grants_members_events",
             "grants_members_education",
+            "is_placeholder",
         ]
 
 
@@ -60,6 +63,7 @@ class MyMembershipSerializer(serializers.ModelSerializer):
     online = serializers.SerializerMethodField()
     id_checked = serializers.SerializerMethodField()
     last_payment_failed = serializers.SerializerMethodField()
+    code_expires_at = serializers.SerializerMethodField()
     payments = serializers.SerializerMethodField()
 
     class Meta:
@@ -78,6 +82,7 @@ class MyMembershipSerializer(serializers.ModelSerializer):
             "online",
             "id_checked",
             "last_payment_failed",
+            "code_expires_at",
             "payments",
             "created_at",
         ]
@@ -91,6 +96,12 @@ class MyMembershipSerializer(serializers.ModelSerializer):
     def get_last_payment_failed(self, obj):
         latest = obj.payments.exclude(status=Payment.Status.REFUNDED).first()
         return latest is not None and latest.status == Payment.Status.FAILED
+
+    def get_code_expires_at(self, obj):
+        """When an unpaid reference code lapses (the daily lifecycle expires it)."""
+        if obj.status != Membership.Status.PENDING_PAYMENT or obj.paid_awaiting_id_check:
+            return None
+        return obj.created_at + timedelta(days=settings.MEMBERSHIP_PENDING_EXPIRY_DAYS)
 
     def get_payments(self, obj):
         return PaymentSummarySerializer(obj.payments.all(), many=True).data

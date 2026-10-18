@@ -10,7 +10,7 @@ from .providers import registry
 
 
 class DeskError(Exception):
-    pass
+    """A door desk action was refused; the message is shown to staff."""
 
 
 IN_PERSON_METHODS = (Payment.Method.CASH, Payment.Method.CARD_IN_PERSON)

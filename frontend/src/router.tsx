@@ -14,7 +14,8 @@ import { EducationPage } from './pages/EducationPage'
 import { EventPage } from './pages/EventPage'
 import { EventsPage } from './pages/EventsPage'
 import { HomePage } from './pages/HomePage'
-import { JoinPage } from './pages/JoinPage'
+import { ConfirmingPage } from './pages/join/ConfirmingPage'
+import { JoinPage } from './pages/join/JoinPage'
 import { JournalPage } from './pages/JournalPage'
 import { JournalPostPage } from './pages/JournalPostPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -56,6 +57,9 @@ export const router = createBrowserRouter([
       { path: 'visit', element: <VisitPage /> },
       { path: 'contact', element: <ContactPage /> },
       { path: 'join', element: <JoinPage /> },
+      { path: 'join/confirming', element: <ConfirmingPage /> },
+      // Development only: the API behind it answers 404 unless DEBUG and the sandbox are on.
+      { path: 'dev/checkout/:token', lazy: membersPage(() => import('./pages/join/SandboxCheckoutPage')) },
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'account', element: <AccountPage /> },
       { path: 'account/login', element: <LoginPage /> },
@@ -63,6 +67,7 @@ export const router = createBrowserRouter([
       { path: 'account/verify', element: <VerifyEmailPage /> },
       { path: 'account/forgot', element: <ForgotPasswordPage /> },
       { path: 'account/reset', element: <ResetPasswordPage /> },
+      { path: 'account/receipts/:id', lazy: membersPage(() => import('./pages/account/ReceiptPage')) },
       { path: 'account/export', lazy: membersPage(() => import('./pages/members/lazy').then((m) => ({ default: m.ExportDownloadPage }))) },
       { path: 'members/join-feed', lazy: membersPage(() => import('./pages/members/lazy').then((m) => ({ default: m.JoinFeedPage }))) },
       { path: '*', element: <NotFoundPage /> },

@@ -33,8 +33,16 @@ function MobileAccountLinks({ onNavigate }: { onNavigate: () => void }) {
   )
 }
 
+/** "Join" reads "Membership" for anyone who has, or has had, a membership. */
+function useNavItems() {
+  const auth = useAuth()
+  const member = Boolean(auth.user?.has_membership)
+  return NAV_ITEMS.map((item) => (item.to === '/join' && member ? { ...item, label: 'Membership' } : item))
+}
+
 export function Header() {
   const { pathname } = useLocation()
+  const navItems = useNavItems()
   // The menu belongs to the page it was opened on, so any navigation closes it.
   const [menuPath, setMenuPath] = useState<string | null>(null)
   const menuOpen = menuPath === pathname
@@ -50,7 +58,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-30 transition-colors duration-500 ease-velvet',
+        'fixed inset-x-0 top-0 z-30 transition-colors duration-500 ease-velvet print:hidden',
         scrolled ? 'border-b border-border/60 bg-canvas/90 backdrop-blur-md' : 'bg-gradient-to-b from-canvas/80 to-transparent',
       )}
     >
@@ -64,7 +72,7 @@ export function Header() {
         <Wordmark />
         <nav aria-label="Main" className="hidden xl:flex xl:items-center">
           <ul className="flex items-center gap-0.5">
-            {NAV_ITEMS.filter((item) => item.to !== '/').map((item) => (
+            {navItems.filter((item) => item.to !== '/').map((item) => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
@@ -108,7 +116,7 @@ export function Header() {
       <Modal open={menuOpen} onClose={() => setMenuPath(null)} title="Menu" hideTitle variant="sheet">
         <nav aria-label="Main" className="flex h-full flex-col">
           <ul className="mt-6 flex flex-col">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <li key={item.to} className="border-b border-border/60">
                 <NavLink
                   to={item.to}

@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/components/layout/authContext'
 import { ConfirmDialog } from '@/components/members/ConfirmDialog'
+import { PaywallPanel } from '@/components/membership/PaywallPanel'
 import { Button, ButtonLink, Card, FormField, Input, useToast } from '@/components/ui'
 import { ApiError } from '@/lib/api'
 import { formatEventDate } from '@/lib/format'
@@ -10,7 +11,7 @@ import { useAsync } from '@/lib/useAsync'
 
 type Dialog = 'step-away' | 'erase' | null
 
-/** Feed controls. Renders nothing for accounts with no feed access or history. */
+/** Feed controls, or an explanation that the feed comes with membership. */
 export function FeedSection() {
   const auth = useAuth()
   const toast = useToast()
@@ -21,7 +22,14 @@ export function FeedSection() {
   const [busy, setBusy] = useState(false)
   const [erasing, setErasing] = useState(false)
 
-  if (state.status === 'error' && state.error instanceof ApiError && state.error.isNotFound) return null
+  if (state.status === 'error' && state.error instanceof ApiError && state.error.isNotFound) {
+    return (
+      <PaywallPanel
+        title="Member community"
+        benefit="The member feed, a private space to share with other members, comes with membership. It stays off until you turn it on."
+      />
+    )
+  }
   if (state.status !== 'success') return null
   const account = override ?? state.data
   const handle = auth.user?.display_name ?? ''

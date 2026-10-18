@@ -109,6 +109,7 @@ def test_my_membership_payload_is_minimal(paying_member, signed_in):
         "online",
         "id_checked",
         "last_payment_failed",
+        "code_expires_at",
         "payments",
         "created_at",
     }

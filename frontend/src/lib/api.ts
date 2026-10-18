@@ -43,10 +43,15 @@ export interface Opportunity {
   cta_label: string
   cta_url: string
   hero_image: RemoteImage | null
+  members_only: boolean
+  /** True when the class is members-only and this visitor is not entitled. */
+  locked: boolean
+  paywall: { tiers: string[]; benefit: string } | null
 }
 
 export interface OpportunityDetail extends Opportunity {
-  body: string
+  /** Withheld by the server when the class is locked. */
+  body: string | null
 }
 
 export interface OpportunityFilters {
@@ -223,6 +228,8 @@ export interface Account {
   display_name: string
   email: string
   email_verified: boolean
+  /** Any membership, current or past. Only ever the signed-in person's own. */
+  has_membership: boolean
 }
 
 export interface Session {

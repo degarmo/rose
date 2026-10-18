@@ -18,7 +18,7 @@ export function QuickExit({ variant = 'floating', className }: QuickExitProps) {
       rel="noreferrer"
       title="Leave this site now. Shortcut: press Esc twice."
       className={cn(
-        'group inline-flex min-h-11 items-center gap-2 rounded-full border text-sm font-semibold tracking-wide transition-colors duration-300',
+        'group inline-flex min-h-11 items-center gap-2 rounded-full border text-sm font-semibold tracking-wide transition-colors duration-300 print:hidden',
         variant === 'floating' &&
           'fixed bottom-6 right-6 z-40 border-highlight/60 bg-ink-950/90 px-4 text-fg shadow-lg shadow-black/40 backdrop-blur hover:bg-primary',
         variant === 'inline' && 'border-border-strong px-4 text-fg hover:border-highlight hover:bg-primary',
