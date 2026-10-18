@@ -24,8 +24,8 @@ def random_filename(extension="webp"):
     return f"{uuid.uuid4().hex}.{extension}"
 
 
-def sanitize_image(source, max_dimension=MAX_DIMENSION):
-    """Return a metadata-free WebP ContentFile with a random name."""
+def open_clean(source):
+    """Decode an image and return an oriented, metadata-free pixel copy."""
     try:
         source.seek(0)
         with Image.open(source) as original:
@@ -33,7 +33,7 @@ def sanitize_image(source, max_dimension=MAX_DIMENSION):
                 raise ValidationError("Image is too large.")
             original.load()
             oriented = ImageOps.exif_transpose(original)
-    except (UnidentifiedImageError, OSError) as exc:
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
         raise ValidationError("Upload a valid image file.") from exc
 
     has_alpha = oriented.mode in ("RGBA", "LA") or (
@@ -41,14 +41,24 @@ def sanitize_image(source, max_dimension=MAX_DIMENSION):
     )
     mode = "RGBA" if has_alpha else "RGB"
     converted = oriented.convert(mode)
-    converted.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
-
     clean = Image.new(mode, converted.size)
     clean.paste(converted)
+    return clean
 
+
+def encode_webp(image, max_dimension=MAX_DIMENSION):
+    """Resize (never upscale) and encode as WebP with no metadata attached."""
+    resized = image.copy()
+    resized.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
     buffer = BytesIO()
-    clean.save(buffer, format="WEBP", quality=WEBP_QUALITY, method=6, exif=b"", xmp=b"")
-    return ContentFile(buffer.getvalue(), name=random_filename())
+    resized.save(buffer, format="WEBP", quality=WEBP_QUALITY, method=6, exif=b"", xmp=b"")
+    return buffer.getvalue(), resized.size
+
+
+def sanitize_image(source, max_dimension=MAX_DIMENSION):
+    """Return a metadata-free WebP ContentFile with a random name."""
+    data, _ = encode_webp(open_clean(source), max_dimension=max_dimension)
+    return ContentFile(data, name=random_filename())
 
 
 @deconstructible
