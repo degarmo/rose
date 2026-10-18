@@ -39,6 +39,7 @@ def test_site_settings_endpoint(api_client):
     site.tagline = "Welcome"
     site.hours_text = "Thursdays"
     site.address_text = "Chicago"
+    site.directions_text = "Near the train"
     site.contact_email = "hello@example.org"
     site.quick_exit_url = "https://weather.example"
     site.save()
@@ -50,6 +51,7 @@ def test_site_settings_endpoint(api_client):
         "tagline": "Welcome",
         "hours_text": "Thursdays",
         "address_text": "Chicago",
+        "directions_text": "Near the train",
         "contact_email": "hello@example.org",
         "quick_exit_url": "https://weather.example",
         "social_links": [{"label": "Newsletter", "url": "https://news.example"}],

@@ -22,6 +22,11 @@ SITE_SETTINGS = {
     "address_text": (
         "West Loop, Chicago, Illinois\nThe street address is shared with confirmed visitors."
     ),
+    "directions_text": (
+        "A short walk from the nearest L station, with street parking that is usually easy "
+        "after 7 pm. The entrance is discreet and unmarked; your host will share exact "
+        "directions with your confirmation."
+    ),
     "contact_email": "hello@example.org",
     "quick_exit_url": "",
 }

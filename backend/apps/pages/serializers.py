@@ -18,6 +18,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "tagline",
             "hours_text",
             "address_text",
+            "directions_text",
             "contact_email",
             "quick_exit_url",
             "social_links",

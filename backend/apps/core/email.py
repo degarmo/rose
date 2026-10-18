@@ -7,10 +7,17 @@ builds the From header from EMAIL_SENDER_NAME and prefixes nothing else.
 
 from django.conf import settings
 from django.core.mail import EmailMessage
+from django.core.mail.message import make_msgid
 
 
 def neutral_sender():
     return f"{settings.EMAIL_SENDER_NAME} <{settings.EMAIL_SENDER_ADDRESS}>"
+
+
+def neutral_message_id():
+    """Message-ID on the sender's domain, so the server hostname never appears."""
+    domain = settings.EMAIL_SENDER_ADDRESS.rpartition("@")[2] or "localhost"
+    return make_msgid(domain=domain)
 
 
 def send_neutral_mail(subject, body, to, reply_to=None):
@@ -20,5 +27,6 @@ def send_neutral_mail(subject, body, to, reply_to=None):
         from_email=neutral_sender(),
         to=list(to),
         reply_to=list(reply_to) if reply_to else None,
+        headers={"Message-ID": neutral_message_id()},
     )
     return message.send(fail_silently=False)

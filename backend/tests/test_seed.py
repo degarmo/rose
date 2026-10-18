@@ -16,6 +16,7 @@ def test_seed_demo_loads_content_and_is_idempotent():
     site = SiteSettings.load()
     assert site.tagline
     assert site.hours_text
+    assert site.directions_text
     assert site.contact_email
     categories = set(Opportunity.objects.values_list("category", flat=True))
     levels = set(Opportunity.objects.values_list("level", flat=True))

@@ -74,6 +74,8 @@ def test_neutral_mail_uses_configured_sender(settings):
     send_neutral_mail("Hello", "Body", to=["x@example.org"], reply_to=["r@example.org"])
     assert mail.outbox[0].from_email == "Notices <notices@example.org>"
     assert mail.outbox[0].reply_to == ["r@example.org"]
+    message_id = mail.outbox[0].message()["Message-ID"]
+    assert message_id.endswith("@example.org>")
 
 
 def test_client_ip_without_proxy_uses_remote_addr(settings):

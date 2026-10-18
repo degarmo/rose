@@ -8,6 +8,9 @@ class SiteSettings(models.Model):
     tagline = models.CharField(max_length=200)
     hours_text = models.TextField(help_text="Shown on Plan Your Visit. Line breaks are kept.")
     address_text = models.TextField(help_text="Shown in the footer and on Contact.")
+    directions_text = models.TextField(
+        blank=True, help_text="Shown on Plan Your Visit. Transit, parking and entrance notes."
+    )
     contact_email = models.EmailField(help_text="Public address shown on the site.")
     quick_exit_url = models.URLField(
         blank=True,
@@ -37,6 +40,7 @@ class SiteSettings(models.Model):
                 "tagline": "",
                 "hours_text": "",
                 "address_text": "",
+                "directions_text": "",
                 "contact_email": "",
             },
         )
