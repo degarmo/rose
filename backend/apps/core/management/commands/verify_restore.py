@@ -18,7 +18,7 @@ import json
 from django.apps import apps
 from django.contrib.auth.models import AnonymousUser
 from django.core.management.base import BaseCommand, CommandError
-from django.db import DEFAULT_DB_ALIAS, connection
+from django.db import DEFAULT_DB_ALIAS, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import RequestFactory
 from django.urls import resolve
@@ -78,7 +78,11 @@ class Command(BaseCommand):
             self.stdout.write(f"  {sum(counts.values())} rows in {len(counts)} tables")
 
         problems += self.integrity()
-        problems += self.application()
+        # Some views create a missing singleton (site settings) when read; roll
+        # back whatever the checks touch, so the command never writes.
+        with transaction.atomic():
+            problems += self.application()
+            transaction.set_rollback(True)
 
         if problems:
             for problem in problems:
