@@ -304,6 +304,8 @@ export interface Account {
   staff: StaffSession | null
   /** Calendar files name the event and place (off: the generic "Rose - Evening"). */
   calendar_details: boolean
+  /** Decisions about the account, or updates to them, not yet seen in Settings > Notices. */
+  unread_notices: number
   appearance: Appearance
 }
 
@@ -449,6 +451,32 @@ function cursorFrom(url: string | null): string | null {
 
 let siteSettingsPromise: Promise<SiteSettings> | null = null
 
+let sessionAt = 0
+let sessionAhead: Promise<Session> | null = null
+
+/** The session was just read (or answered by login, logout or a change): it is current. */
+export function noteSession() {
+  sessionAt = Date.now()
+}
+
+/** How long ago the session was last read, in milliseconds. */
+export function sessionAge() {
+  return Date.now() - sessionAt
+}
+
+/** The first session check, started as the app boots so others can wait on it too. */
+export function bootSession(): Promise<Session> {
+  sessionAhead ??= api.session()
+  return sessionAhead
+}
+
+/** The session for the app's first render: the boot check if one started (used once), otherwise a fresh one. */
+export function firstSession(): Promise<Session> {
+  const ahead = sessionAhead
+  sessionAhead = null
+  return ahead ?? api.session()
+}
+
 export const api = {
   siteSettings(): Promise<SiteSettings> {
     siteSettingsPromise ??= request<SiteSettings>('/site-settings/').catch((error: unknown) => {
@@ -479,6 +507,7 @@ export const api = {
   session: async () => {
     const body = await request<Session>('/account/session/')
     rememberCsrf(body)
+    noteSession()
     return body
   },
   register: (payload: { email: string; display_name: string; password: string }) =>

@@ -133,7 +133,7 @@ def _tell_reporter_reviewed(report, contact_email):
     if report.reporter_id:
         notify(
             report.reporter,
-            Notification.Kind.MODERATION,
+            Notification.Kind.NOTICE,
             "A report you sent has been reviewed. Thank you for telling us.",
         )
     elif contact_email:
@@ -287,8 +287,9 @@ def take_action(actor, member, data):
 
 
 def _tell_member(member, message):
-    """An in-app notice, and a discreet email pointing to Settings."""
-    notify(member, Notification.Kind.MODERATION, f"{message} See your account for details.")
+    """An in-app notice that opens Settings > Notices, and a discreet email pointing there."""
+    details = "The details are in Settings, under Notices."
+    notify(member, Notification.Kind.NOTICE, f"{message} {details}")
     address = member.email
     _on_commit(lambda: emails.account_update(address))
 
@@ -448,3 +449,23 @@ def change_role(actor, user, role):
         target_user=user,
         reason=roles.LABELS.get(role, "No role"),
     )
+
+
+# The member's own Notices
+
+
+def unread_notices(member):
+    """Decisions about this member, or updates to them (an appeal decided, a reversal),
+    since they last opened Settings > Notices."""
+    actions = MemberAction.objects.filter(member=member)
+    seen = member.profile.notices_seen_at
+    if seen is not None:
+        actions = actions.filter(
+            Q(created_at__gt=seen) | Q(reversed_at__gt=seen) | Q(appeal__decided_at__gt=seen)
+        )
+    return actions.distinct().count()
+
+
+def mark_notices_seen(member):
+    member.profile.notices_seen_at = timezone.now()
+    member.profile.save(update_fields=["notices_seen_at", "updated_at"])

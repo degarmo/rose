@@ -167,6 +167,7 @@ def test_login_success_starts_session(csrf_client, make_user):
         "member_app": None,
         "staff": None,
         "calendar_details": False,
+        "unread_notices": 0,
         "appearance": "light",
     }
     assert body["csrfToken"]

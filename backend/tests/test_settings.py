@@ -51,7 +51,7 @@ def code_for(device, offset=0):
     [
         ("/account", "/members/settings"),
         ("/account/", "/members/settings"),
-        ("/account/notices", "/members/settings/guidelines"),
+        ("/account/notices", "/members/settings/notices"),
         ("/account/export", "/members/settings/privacy/export"),
         ("/account/receipts/41", "/members/settings/membership/receipts/41"),
     ],

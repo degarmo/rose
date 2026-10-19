@@ -35,6 +35,7 @@ const membership = vi.hoisted(() => ({
 }))
 const safety = vi.hoisted(() => ({
   notices: vi.fn(),
+  markNoticesSeen: vi.fn(),
   myReports: vi.fn(),
   appeal: vi.fn(),
 }))
@@ -160,12 +161,12 @@ function Where() {
   return <p data-testid="where">{location.pathname + location.hash}</p>
 }
 
-function renderSettings(path: string, { user = verifiedUser as Account, inFeed = false } = {}) {
+function renderSettings(path: string, { user = verifiedUser as Account, inFeed = false, refresh = async () => undefined } = {}) {
   const auth: AuthState = {
     status: 'ready',
     user,
     applySession: vi.fn(),
-    refresh: async () => undefined,
+    refresh,
     logout: vi.fn(async () => undefined),
   }
   const routes = (
@@ -220,7 +221,7 @@ describe('Settings layout', () => {
   it('lists every section, Report a concern and Log out', async () => {
     renderSettings('/members/settings')
     const nav = screen.getByRole('navigation', { name: 'Settings' })
-    for (const label of ['Membership', 'Profile', 'Privacy', 'Notifications', 'Security', 'Community guidelines', 'Leave the community']) {
+    for (const label of ['Membership', 'Profile', 'Privacy', 'Notifications', 'Security', 'Notices', 'Community guidelines', 'Leave the community']) {
       expect(within(nav).getByRole('link', { name: new RegExp(`^${label}`) })).toBeInTheDocument()
     }
     expect(within(nav).getByRole('link', { name: 'Report a concern' })).toHaveAttribute('href', '/members/report')
@@ -235,7 +236,7 @@ describe('Settings layout', () => {
     ['#membership', '/members/settings/membership'],
     ['#rsvps', '/members/settings/membership'],
     ['#appearance', '/members/settings/profile'],
-    ['#safety', '/members/settings/guidelines'],
+    ['#safety', '/members/settings/notices'],
     ['#delete', '/members/settings/leave'],
   ])('sends the old anchor %s to its section', async (hash, to) => {
     renderSettings(`/members/settings${hash}`)
@@ -515,7 +516,7 @@ describe('Settings · Security', () => {
   })
 })
 
-describe('Settings · Community guidelines', () => {
+describe('Settings · Notices', () => {
   it('shows a decision with its rule and reason, takes one appeal, and the reports sent', async () => {
     safety.notices.mockResolvedValue([suspension])
     safety.myReports.mockResolvedValue([
@@ -536,7 +537,7 @@ describe('Settings · Community guidelines', () => {
         decided_at: null,
       },
     })
-    renderSettings('/members/settings/guidelines')
+    renderSettings('/members/settings/notices')
     expect(await screen.findByText('Feed suspension')).toBeInTheDocument()
     expect(screen.getByText(/Consent first/)).toBeInTheDocument()
     expect(await screen.findByText('Reviewed')).toBeInTheDocument()
@@ -545,6 +546,36 @@ describe('Settings · Community guidelines', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Send appeal' }))
     await waitFor(() => expect(safety.appeal).toHaveBeenCalledWith(3, 'I had asked them first.'))
     expect(await screen.findByText(/waiting for review/)).toBeInTheDocument()
+  })
+
+  it('badges the row with the unseen count and marks them seen when opened', async () => {
+    safety.notices.mockResolvedValue([suspension])
+    safety.markNoticesSeen.mockResolvedValue({ unread_notices: 0 })
+    const refresh = vi.fn(async () => undefined)
+    renderSettings('/members/settings/notices', { user: { ...verifiedUser, unread_notices: 2 }, refresh })
+    const row = within(screen.getByRole('navigation', { name: 'Settings' })).getByRole('link', { name: /^Notices/ })
+    expect(row).toHaveTextContent('2 unread')
+    await waitFor(() => expect(safety.markNoticesSeen).toHaveBeenCalledOnce())
+    await waitFor(() => expect(refresh).toHaveBeenCalled())
+  })
+
+  it('has no badge and marks nothing when all is seen, and says so when empty', async () => {
+    renderSettings('/members/settings/notices')
+    expect(await screen.findByText('No notices')).toBeInTheDocument()
+    expect(screen.getByText('You’re all good.')).toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Settings' })).getByRole('link', { name: /^Notices/ })).not.toHaveTextContent('unread')
+    expect(safety.markNoticesSeen).not.toHaveBeenCalled()
+  })
+})
+
+describe('Settings · Community guidelines', () => {
+  it('keeps only the guidelines and Report a concern', async () => {
+    renderSettings('/members/settings/guidelines')
+    const section = screen.getByRole('region', { name: 'Community guidelines' })
+    expect(within(section).getByRole('link', { name: /Report a concern/ })).toHaveAttribute('href', '/members/report')
+    expect(screen.queryByText('Notices about your account')).not.toBeInTheDocument()
+    expect(screen.queryByText('Reports you sent')).not.toBeInTheDocument()
+    expect(safety.notices).not.toHaveBeenCalled()
   })
 
   it('shows the version and the date a feed member accepted it', async () => {

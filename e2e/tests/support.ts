@@ -17,7 +17,8 @@ export interface Fixtures {
   viewports: Record<
     string,
     {
-      feed: { poster: string; friend: string }
+      /** `joiner` may join the feed but has not yet. */
+      feed: { poster: string; friend: string; joiner: string }
       events: Record<string, string>
       /** A member with a post to report, and a member with a membership to ban. */
       moderation: { reporter: string; author: string; author_handle: string; post: string; banned_handle: string; banned_code: string }

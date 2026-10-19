@@ -264,6 +264,7 @@ class Notification(models.Model):
         LIKE = "like", "Likes on your post"
         COMMENT = "comment", "Comment on your post"
         MODERATION = "moderation", "Moderation outcome"
+        NOTICE = "notice", "Notice about your account"
         GUIDELINES = "guidelines", "Guidelines updated"
 
     recipient = models.ForeignKey(

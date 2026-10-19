@@ -35,6 +35,7 @@ class AccountSerializer(serializers.ModelSerializer):
     member_app = serializers.SerializerMethodField()
     staff = serializers.SerializerMethodField()
     calendar_details = serializers.BooleanField(source="profile.calendar_details", read_only=True)
+    unread_notices = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -49,9 +50,16 @@ class AccountSerializer(serializers.ModelSerializer):
             "member_app",
             "staff",
             "calendar_details",
+            "unread_notices",
             "appearance",
         ]
         read_only_fields = ["email", "email_verified", "appearance"]
+
+    def get_unread_notices(self, user):
+        """New decisions about this account, or updates to them, not yet seen in Settings."""
+        from apps.safety.services import unread_notices
+
+        return unread_notices(user)
 
     def get_has_membership(self, user):
         return user.memberships.exists()

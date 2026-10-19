@@ -111,10 +111,8 @@ function FeedPrivacy() {
         onClose={() => setStepAway(false)}
         onConfirm={() =>
           void feed.act(feedAccount.stepAway, 'You have stepped away').then((ok) => {
-            if (!ok) return
-            setStepAway(false)
-            // The app closes for them now; Settings stays open in its account-only shell.
-            void members.refreshMe()
+            // The refreshed session closes the feed; Settings stays open without it.
+            if (ok) setStepAway(false)
           })
         }
       >

@@ -102,6 +102,7 @@ export function JoinFeedPage() {
       setBusy(true)
       try {
         await feedAccount.acceptGuidelines(account.guidelines.version)
+        await auth.refresh()
         toast.show({ tone: 'success', title: 'Thank you. You can post again.' })
         navigate('/members/feed', { replace: true })
       } catch (error) {
@@ -121,6 +122,8 @@ export function JoinFeedPage() {
     setBusy(true)
     try {
       await feedAccount.join(account.guidelines.version, bio, hidden)
+      // The session now says the feed is open, so the app opens it without a reload.
+      await auth.refresh()
       setStep('avatar')
     } catch (error) {
       toast.show({ tone: 'error', title: 'You were not added to the feed', message: error instanceof Error ? error.message : undefined })

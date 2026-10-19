@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { render } from '@testing-library/react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext, type AuthState } from '@/components/layout/authContext'
@@ -28,7 +29,14 @@ const auth: AuthState = {
 
 const settings = { status: 'loading', retry: () => undefined } as SiteSettingsState
 
-function renderApp(entry: string | { pathname: string; search?: string; state?: unknown }, user: AuthState['user'] = auth.user) {
+/** The session as the app holds it; `refresh` reads `next` (what the server says now). */
+function Session({ user, next, children }: { user: AuthState['user']; next: AuthState['user']; children: ReactNode }) {
+  const [current, setCurrent] = useState(user)
+  const value = useMemo(() => ({ ...auth, user: current, refresh: async () => setCurrent(next) }), [current, next])
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+function renderApp(entry: string | { pathname: string; search?: string; state?: unknown }, user: AuthState['user'] = auth.user, next: AuthState['user'] = user) {
   const router = createMemoryRouter(
     [
       {
@@ -46,11 +54,11 @@ function renderApp(entry: string | { pathname: string; search?: string; state?: 
   )
   render(
     <SiteSettingsContext.Provider value={settings}>
-      <AuthContext.Provider value={{ ...auth, user }}>
+      <Session user={user} next={next}>
         <ToastProvider>
           <RouterProvider router={router} />
         </ToastProvider>
-      </AuthContext.Provider>
+      </Session>
     </SiteSettingsContext.Provider>,
   )
   return router
@@ -111,6 +119,8 @@ describe('AppShell', () => {
       const nav = screen.getAllByRole('navigation', { name: 'Members', hidden: true })[0]
       expect(within(nav).getByRole('link', { name: /Settings/, hidden: true })).toHaveAttribute('href', '/members/settings')
       expect(within(nav).queryByRole('link', { name: /Explore|Search|Notifications/, hidden: true })).not.toBeInTheDocument()
+      // No feed request at all for an account the session says has no feed.
+      expect(api.me).not.toHaveBeenCalled()
     })
 
     it('still answers feed pages with the website 404', async () => {
@@ -118,6 +128,14 @@ describe('AppShell', () => {
       expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(/not on the map/i)
       expect(screen.queryByText('Feed content')).not.toBeInTheDocument()
       expect(document.querySelector('.member-app')).toBeNull()
+      expect(api.me).not.toHaveBeenCalled()
+    })
+
+    it('reads an old session again on the way in, and opens the feed it now allows', async () => {
+      api.me.mockResolvedValue(me)
+      renderApp('/members/feed', { ...verifiedUser, feed_access: false }, { ...verifiedUser, feed_access: true, member_app: 'open' })
+      expect(await screen.findByText('Feed content')).toBeInTheDocument()
+      expect(api.me).toHaveBeenCalledOnce()
     })
 
     it('asks someone signed out to log in, then come back', async () => {

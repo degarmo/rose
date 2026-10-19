@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("notices/", views.NoticeListView.as_view(), name="account-notices"),
+    path("notices/seen/", views.NoticesSeenView.as_view(), name="account-notices-seen"),
     path(
         "notices/<int:pk>/appeal/", views.NoticeAppealView.as_view(), name="account-notice-appeal"
     ),

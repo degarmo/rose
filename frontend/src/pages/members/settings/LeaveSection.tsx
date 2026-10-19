@@ -95,7 +95,7 @@ function LeaveAndErase() {
               if (!ok) return
               setOpen(false)
               setConfirmName('')
-              // The app closes on the next page; this one keeps the status in view.
+              // The refreshed session closes the feed; this screen stays, with the status in view.
               setErasing(true)
             })
         }

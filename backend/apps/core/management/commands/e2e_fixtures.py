@@ -156,6 +156,11 @@ class Command(BaseCommand):
                 user.profile.save()
                 feed_services.join_feed(user, guidelines.version)
                 people[role] = user.email
+            # May join the feed (a staff grant) but has not: the app opens only after joining.
+            joiner = reset_user(f"e2e.{viewport}.joiner@example.org", f"e2e_{viewport}_joiner")
+            joiner.profile.feed_access_granted = True
+            joiner.profile.save()
+            people["joiner"] = joiner.email
             events = {}
             starts = now + timedelta(days=5)
             members = {"audience": Event.Audience.MEMBERS, "capacity": 40}

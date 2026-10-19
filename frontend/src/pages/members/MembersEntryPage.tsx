@@ -21,7 +21,7 @@ function Explanation({ paused }: { paused: boolean }) {
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-3">
           {paused ? (
-            <ButtonLink to="/members/settings/guidelines">See my notices</ButtonLink>
+            <ButtonLink to="/members/settings/notices">See my notices</ButtonLink>
           ) : (
             <ButtonLink to="/membership">See membership plans</ButtonLink>
           )}

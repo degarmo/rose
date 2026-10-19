@@ -223,7 +223,7 @@ for the session; a new team member sets one up the first time they open it.
   suspension (no RSVPs, and the door desk shows it) or a ban (ends their membership, closes
   the app, the door desk shows **Do not admit**, and you can stop the email registering
   again). Every action needs the rule it relates to and a reason; the member reads both in
-  Settings, under Community guidelines. Emails only say "An update about your account".
+  Settings, under Notices. Emails only say "An update about your account".
 - **Reversing.** Any action can be reversed with a reason, from the member's page or the
   report. The log keeps both.
 - **Appeals.** A member can appeal each action once. Appeals go to someone other than the

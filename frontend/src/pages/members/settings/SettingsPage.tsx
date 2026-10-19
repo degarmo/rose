@@ -1,4 +1,4 @@
-import { Bell, Flag, IdCard, KeyRound, Lock, LogOut, ScrollText, ShieldCheck, Trash2, User, type LucideIcon } from 'lucide-react'
+import { Bell, Flag, IdCard, Inbox, KeyRound, Lock, LogOut, ScrollText, ShieldCheck, Trash2, User, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
@@ -11,6 +11,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { GuidelinesSection } from './GuidelinesSection'
 import { LeaveSection } from './LeaveSection'
 import { MembershipSection } from './MembershipSection'
+import { NoticesSection } from './NoticesSection'
 import { NotificationsSection } from './NotificationsSection'
 import { PrivacySection } from './PrivacySection'
 import { ProfileSection } from './ProfileSection'
@@ -62,9 +63,16 @@ const SECTIONS: SettingsSection[] = [
     Component: SecuritySection,
   },
   {
+    key: 'notices',
+    label: 'Notices',
+    sub: 'Decisions about your account, appeals, reports you sent',
+    icon: Inbox,
+    Component: NoticesSection,
+  },
+  {
     key: 'guidelines',
     label: 'Community guidelines',
-    sub: 'The rules, notices and appeals',
+    sub: 'The rules, and when you accepted them',
     icon: ScrollText,
     Component: GuidelinesSection,
   },
@@ -86,13 +94,25 @@ const OLD_ANCHORS: Record<string, string> = {
   appearance: 'profile',
   password: 'security',
   sessions: 'security',
-  safety: 'guidelines',
+  safety: 'notices',
   delete: 'leave',
+}
+
+/** The count of unseen notices on the Notices row (as the app's other unread badges). */
+function UnreadCount({ count }: { count: number }) {
+  if (!count) return null
+  return (
+    <span className="min-w-5 shrink-0 rounded-full bg-primary px-1.5 text-center text-xs font-semibold leading-5 text-on-primary">
+      <span aria-hidden="true">{count > 9 ? '9+' : count}</span>
+      <span className="sr-only">{count === 1 ? '1 unread' : `${count} unread`}</span>
+    </span>
+  )
 }
 
 function SectionList({ active, current }: { active: string; current: string | null }) {
   const auth = useAuth()
   const navigate = useNavigate()
+  const unread = auth.user?.unread_notices ?? 0
   return (
     <>
       <ul>
@@ -105,6 +125,7 @@ function SectionList({ active, current }: { active: string; current: string | nu
             >
               <RowIcon icon={section.icon} danger={section.danger} />
               <RowText label={section.label} sub={section.sub} danger={section.danger} />
+              {section.key === 'notices' && <UnreadCount count={unread} />}
               <span className="md:hidden">{CHEVRON}</span>
             </Link>
           </li>

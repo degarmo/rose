@@ -4,7 +4,7 @@ import { Navigate, Outlet, ScrollRestoration, useLocation, useNavigate, useSearc
 import { LoadingState } from '@/components/content/States'
 import { SiteFrame } from '@/components/layout/Layout'
 import { QuickExit } from '@/components/layout/QuickExit'
-import { ApiError } from '@/lib/api'
+import { ApiError, sessionAge } from '@/lib/api'
 import { firstMe, members, type FeedPost, type Me } from '@/lib/membersApi'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { useAuth } from '@/components/layout/authContext'
@@ -141,51 +141,46 @@ function PostModal({ id, ids, onClose, onStep }: { id: string; ids: string[]; on
   )
 }
 
-/**
- * The shell for the account screens when there is no feed access (Home, Settings, Report a
- * concern, Staff): the same sidebar, tab bar and Leave control, without any feed.
- */
-function AccountShell() {
-  return (
-    <div className="member-app min-h-dvh pb-[calc(50px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[72px] wide:pl-[245px] print:p-0">
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"
-      >
-        Skip to content
-      </a>
-      <Sidebar me={null} panel={null} onPanel={() => undefined} onCreate={() => undefined} />
-      <main id="main" className="min-w-0">
-        <Outlet />
-      </main>
-      <TabBar me={null} onCreate={() => undefined} />
-      <ScrollRestoration />
-    </div>
-  )
-}
+/** A session older than this is checked again on the way into the app without the feed. */
+const SESSION_FRESH_MS = 30_000
 
 /**
- * The member app: its own shell, never the website's header or footer. Only people who
- * pass can_view_feed get the feed; for everyone else its pages render the website's
- * ordinary 404, so nothing hints that the feed exists. The account screens (Home, Settings,
- * Report a concern, Staff) open for anyone signed in, and ask everyone else to log in.
+ * The member app: its own shell, never the website's header or footer. The feed opens only
+ * for people the session says it is open to (`feed_access`); nobody else sends a feed
+ * request, and its pages render the website's ordinary 404, so nothing hints that the feed
+ * exists. The account screens (Home, Settings, Report a concern, Staff) open for anyone
+ * signed in, in the same shell without the feed, and ask everyone else to log in.
  */
 export function AppShell() {
   const auth = useAuth()
+  const { status: authStatus, user, refresh } = auth
   const location = useLocation()
   const { pathname } = location
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const tablet = useMediaQuery(MEDIA.tablet)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
+  // Read once on the way in: was the session already loaded, and how long ago.
+  const [staleOnEntry] = useState(() => authStatus === 'ready' && sessionAge() > SESSION_FRESH_MS)
+  const [rechecked, setRechecked] = useState(false)
   const [composerOpen, setComposerOpen] = useState(false)
   const [postsVersion, setPostsVersion] = useState(0)
   const [panelOn, setPanelOn] = useState<{ panel: Panel; path: string }>({ panel: null, path: pathname })
   const [postUpdates, setPostUpdates] = useState<ReadonlyMap<string, FeedPost | null>>(new Map())
+  const feedOpen = Boolean(user?.feed_access)
 
   // A panel belongs to the page it was opened on.
   const panel = panelOn.path === pathname && tablet ? panelOn.panel : null
   const setPanel = useCallback((next: Panel) => setPanelOn({ panel: next, path: pathname }), [pathname])
+
+  // Coming in without the feed: the session may predate a change that opened it (joining,
+  // a membership, an appeal, a decision by staff), so it is read again once if not fresh.
+  const recheck = staleOnEntry && Boolean(user) && !feedOpen && !rechecked
+  const entryChecked = !recheck
+  useEffect(() => {
+    if (!recheck) return
+    void refresh().finally(() => setRechecked(true))
+  }, [recheck, refresh])
 
   const load = useCallback(async () => {
     try {
@@ -196,6 +191,7 @@ export function AppShell() {
   }, [])
 
   useEffect(() => {
+    if (!entryChecked || !feedOpen) return
     let active = true
     firstMe().then(
       (me) => active && setState({ status: 'ready', me }),
@@ -204,7 +200,7 @@ export function AppShell() {
     return () => {
       active = false
     }
-  }, [pathname])
+  }, [pathname, entryChecked, feedOpen])
 
   useEffect(() => {
     document.head.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, nofollow')
@@ -223,7 +219,7 @@ export function AppShell() {
     [tablet, navigate, params, pathname],
   )
 
-  const me = state.status === 'ready' ? state.me : null
+  const me = feedOpen && state.status === 'ready' ? state.me : null
   const value = useMemo(
     () =>
       me && {
@@ -244,31 +240,12 @@ export function AppShell() {
     [me, load, postsVersion, openPost, postUpdates],
   )
 
-  if (state.status === 'denied') {
-    // Signed in without feed access: the account screens still open in the app's shell.
-    if (auth.status === 'loading') {
-      return (
-        <div className="flex min-h-dvh items-center justify-center">
-          <LoadingState label="Loading" />
-          <QuickExit variant="floating" />
-        </div>
-      )
-    }
-    if (isAccountPath(pathname)) {
-      if (auth.user) return <AccountShell />
-      return <Navigate to={`/account/login?next=${encodeURIComponent(pathname + location.search + location.hash)}`} replace />
-    }
-    // The website's ordinary 404, header, footer and Leave included.
-    return (
-      <SiteFrame>
-        <NotFoundPage />
-      </SiteFrame>
-    )
-  }
-  if (!value) {
+  const checking = authStatus === 'loading' || !entryChecked || (feedOpen && state.status === 'loading')
+  const denied = !checking && !value && (!feedOpen || state.status === 'denied')
+  if (checking || (feedOpen && state.status === 'error')) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        {state.status === 'error' ? (
+        {state.status === 'error' && feedOpen ? (
           <p className="text-fg-muted">
             Something went wrong.{' '}
             <button type="button" onClick={() => void load()} className="underline">
@@ -282,8 +259,19 @@ export function AppShell() {
       </div>
     )
   }
+  if (denied && !isAccountPath(pathname)) {
+    // The website's ordinary 404, header, footer and Leave included.
+    return (
+      <SiteFrame>
+        <NotFoundPage />
+      </SiteFrame>
+    )
+  }
+  if (denied && !user) {
+    return <Navigate to={`/account/login?next=${encodeURIComponent(pathname + location.search + location.hash)}`} replace />
+  }
 
-  const modalPost = tablet ? params.get('post') : null
+  const modalPost = value && tablet ? params.get('post') : null
   const postState = (location.state ?? {}) as PostState
   const closePost = () => {
     if (postState.fromApp) {
@@ -295,6 +283,7 @@ export function AppShell() {
     setParams(next, { replace: true })
   }
 
+  // One tree for both: losing or gaining the feed swaps the navigation, never the open screen.
   return (
     <MembersContext.Provider value={value}>
       <div className="member-app min-h-dvh pb-[calc(50px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[72px] wide:pl-[245px] print:p-0">
@@ -304,26 +293,28 @@ export function AppShell() {
         >
           Skip to content
         </a>
-        <Sidebar me={value.me} panel={panel} onPanel={setPanel} onCreate={() => setComposerOpen(true)} />
-        {panel && (
+        <Sidebar me={value?.me ?? null} panel={value ? panel : null} onPanel={setPanel} onCreate={() => setComposerOpen(true)} />
+        {value && panel ? (
           <>
             {/* The page behind an open Search or Notifications panel fades, as the design draws it. */}
             <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-20 hidden bg-canvas/50 md:block" />
             <SidePanel panel={panel} onClose={() => setPanel(null)} />
           </>
-        )}
+        ) : null}
         <main id="main" className="min-w-0">
           <Outlet />
         </main>
-        <TabBar me={value.me} onCreate={() => setComposerOpen(true)} />
-        <CreatePost
-          open={composerOpen}
-          fullScreen={!tablet}
-          author={value.me}
-          onClose={() => setComposerOpen(false)}
-          onPosted={() => setPostsVersion((n) => n + 1)}
-        />
-        {modalPost && (
+        <TabBar me={value?.me ?? null} onCreate={() => setComposerOpen(true)} />
+        {value ? (
+          <CreatePost
+            open={composerOpen}
+            fullScreen={!tablet}
+            author={value.me}
+            onClose={() => setComposerOpen(false)}
+            onPosted={() => setPostsVersion((n) => n + 1)}
+          />
+        ) : null}
+        {modalPost ? (
           <PostModal
             id={modalPost}
             ids={postState.postIds ?? [modalPost]}
@@ -334,7 +325,7 @@ export function AppShell() {
               navigate({ pathname, search: `?${next}` }, { replace: true, state: postState })
             }}
           />
-        )}
+        ) : null}
         <ScrollRestoration />
       </div>
     </MembersContext.Provider>

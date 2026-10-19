@@ -1,4 +1,4 @@
-import { postForm, post, request, send, type Page } from './api'
+import { bootSession, postForm, post, request, send, type Page } from './api'
 
 export interface MemberCard {
   handle: string
@@ -108,7 +108,7 @@ export interface FeedAccount {
 
 export interface FeedNotification {
   id: number
-  kind: 'like' | 'comment' | 'moderation' | 'guidelines'
+  kind: 'like' | 'comment' | 'moderation' | 'notice' | 'guidelines'
   text: string
   post_id: string | null
   /** The recipient's own post's first picture. */
@@ -302,28 +302,32 @@ export function postedLabel(posted: Posted, relative: (iso: string) => string): 
 
 type HomePage = Awaited<ReturnType<typeof members.home>>
 type Tab = 'everyone' | 'following'
-let meAhead: Promise<Me> | null = null
+let meAhead: Promise<Me | null> | null = null
 const homeAhead = new Map<Tab, Promise<HomePage | null>>()
 
 /**
- * Opening /members/feed directly: start the access check and the first page of the feed
- * together, as soon as the app runs, rather than one after the other once the member
- * app's code has loaded. Called only after the age gate. Someone without access gets
- * the same 404 as for any member path.
+ * Opening /members/feed directly: as soon as the app runs, check the session, then (only
+ * for someone the feed is open to) start the access check and the first page of the feed
+ * together, rather than one after the other once the member app's code has loaded. Called
+ * only after the age gate. Nobody without feed access sends a feed request.
  */
 export function prefetchMemberApp(pathname: string, search: string) {
   if (pathname !== '/members/feed') return
-  meAhead = members.me()
+  const open = bootSession().then(
+    (session) => Boolean(session.user?.feed_access),
+    () => false,
+  )
+  meAhead = open.then((yes) => (yes ? members.me() : null))
   meAhead.catch(() => undefined)
   const tab: Tab = new URLSearchParams(search).get('tab') === 'following' ? 'following' : 'everyone'
-  homeAhead.set(tab, members.home(tab).catch(() => null))
+  homeAhead.set(tab, open.then((yes) => (yes ? members.home(tab).catch(() => null) : null)))
 }
 
 /** The access check: the prefetched one if there is one (used once), otherwise a fresh request. */
 export function firstMe(): Promise<Me> {
   const ahead = meAhead
   meAhead = null
-  return ahead ?? members.me()
+  return ahead ? ahead.then((me) => me ?? members.me()) : members.me()
 }
 
 /** The feed's first page: the prefetched one if there is one (used once), otherwise a fresh request. */

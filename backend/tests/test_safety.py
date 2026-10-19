@@ -15,7 +15,7 @@ from apps.core.models import AuditLog
 from apps.events.access import RESTRICTED, can_rsvp
 from apps.feed import services as feed_services
 from apps.feed.access import can_view_feed
-from apps.feed.models import FeedComment, FeedPost, Guidelines, Report
+from apps.feed.models import FeedComment, FeedPost, Guidelines, Notification, Report
 from apps.memberships import desk
 from apps.memberships.models import Membership
 from apps.safety import metrics, roles, services
@@ -413,7 +413,7 @@ def test_warning_notifies_discreetly_and_reverses(team, joined_member):
     assert mail.outbox[-1].subject == "An update about your account"
     assert (
         "Because" not in mail.outbox[-1].body
-        and "/members/settings/guidelines" in mail.outbox[-1].body
+        and "/members/settings/notices" in mail.outbox[-1].body
     )
     services.reverse_action(moderator, warning, "Mistake")
     warning.refresh_from_db()
@@ -568,6 +568,43 @@ def test_actions_through_the_api(team, joined_member, post_by):
 
 
 # Appeals
+
+
+def test_notices_count_as_unread_until_seen_and_open_from_the_notification(team, joined_member):
+    _, acting = team(roles.MODERATOR, display_name="acting_mod")
+    _, other = team(roles.MODERATOR, display_name="other_mod")
+    member = joined_member()
+    client = csrf_client_for(_logged_in(member))
+
+    def unread():
+        return client.get("/api/account/session/").json()["user"]["unread_notices"]
+
+    assert unread() == 0
+    taken = action(acting, member, kind="feed_suspension", days=7)
+    note = Notification.objects.filter(recipient=member).latest("created_at")
+    assert note.kind == Notification.Kind.NOTICE and "Settings, under Notices" in note.message
+    assert unread() == 1
+    client = csrf_client_for(client)
+    assert client.post("/api/account/notices/seen/").json() == {"unread_notices": 0}
+    assert unread() == 0
+
+    # An appeal decided later is an update to the same notice.
+    client.post(f"/api/account/notices/{taken.pk}/appeal/", {"text": "Please"}, format="json")
+    Profile = type(member.profile)
+    Profile.objects.filter(user=member).update(
+        notices_seen_at=timezone.now() - timedelta(minutes=1)
+    )
+    services.decide_appeal(other, Appeal.objects.get(), "uphold", "It stands")
+    assert unread() == 1
+    assert services.unread_notices(member) == 1
+
+
+def test_a_reviewed_report_notifies_the_reporter_as_a_notice(team, joined_member, post_by):
+    _, moderator = team(roles.MODERATOR)
+    reporter, author = joined_member(), joined_member()
+    report = report_post(reporter, post_by(author))
+    services.set_status(moderator, report, Report.Status.DISMISSED)
+    assert Notification.objects.filter(recipient=reporter, kind=Notification.Kind.NOTICE).exists()
 
 
 def test_appeals_go_to_someone_else_and_one_per_action(team, joined_member):

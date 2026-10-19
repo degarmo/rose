@@ -16,7 +16,7 @@ def account_update(address):
     body = (
         "Hello,\n\n"
         "There is an update about your account. You can read it in your settings:\n"
-        f"{site_link('/members/settings/guidelines')}\n"
+        f"{site_link('/members/settings/notices')}\n"
     )
     send_neutral_mail(ACCOUNT_SUBJECT, body, to=[address])
 

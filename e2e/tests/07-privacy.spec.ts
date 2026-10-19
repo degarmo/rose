@@ -31,6 +31,7 @@ const MEMBER_ROUTES = [
   '/members/settings/privacy',
   '/members/settings/notifications',
   '/members/settings/security',
+  '/members/settings/notices',
   '/members/settings/guidelines',
   '/members/settings/leave',
   '/members/feed',

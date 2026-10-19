@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api, type Account, type Session } from '@/lib/api'
+import { api, firstSession, noteSession, type Account, type Session } from '@/lib/api'
 import { adoptAccountAppearance } from '@/lib/appearance'
 import { AuthContext, type AuthState } from './authContext'
 
@@ -9,6 +9,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Account | null>(null)
 
   const applySession = useCallback((session: Session) => {
+    noteSession()
     setUser(session.user)
     setStatus('ready')
     adoptAccountAppearance(session.user)
@@ -29,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true
-    api.session().then(
+    firstSession().then(
       (session) => active && applySession(session),
       () => {
         if (!active) return

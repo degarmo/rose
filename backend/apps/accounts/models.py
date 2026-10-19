@@ -192,6 +192,8 @@ class Profile(
     email_membership_reminders = models.BooleanField(default=True)
     notify_likes = models.BooleanField(default=True)
     notify_comments = models.BooleanField(default=True)
+    # When the person last opened Settings > Notices; anything newer counts as unread.
+    notices_seen_at = models.DateTimeField(null=True, blank=True)
     hidden_by_report = models.BooleanField(
         default=False, help_text="Avatar, bio and profile page hidden pending review."
     )

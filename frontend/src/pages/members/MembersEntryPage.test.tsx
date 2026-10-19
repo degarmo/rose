@@ -51,7 +51,7 @@ describe('/members', () => {
 
   it('points a paused member to their account', () => {
     renderEntry({ ...verifiedUser, member_app: 'paused' })
-    expect(screen.getByRole('link', { name: 'See my notices' })).toHaveAttribute('href', '/members/settings/guidelines')
+    expect(screen.getByRole('link', { name: 'See my notices' })).toHaveAttribute('href', '/members/settings/notices')
   })
 
   it('is the ordinary 404 when signed out', () => {

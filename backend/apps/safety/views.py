@@ -517,6 +517,16 @@ class NoticeListView(APIView):
         return Response([action_payload(a, for_member=True) for a in actions])
 
 
+class NoticesSeenView(CsrfProtectedAPIView):
+    """Opening Settings > Notices marks everything there as seen."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        services.mark_notices_seen(request.user)
+        return Response({"unread_notices": 0})
+
+
 class NoticeAppealView(CsrfProtectedAPIView):
     permission_classes = [IsAuthenticated]
     write_limit = "ACCOUNT_WRITE_RATE_LIMIT"

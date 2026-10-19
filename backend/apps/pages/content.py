@@ -48,7 +48,7 @@ def redirect_map():
 # (login, register, verify, forgot, reset) stay under /account.
 ACCOUNT_MOVES = {
     "/account": "/members/settings",
-    "/account/notices": "/members/settings/guidelines",
+    "/account/notices": "/members/settings/notices",
     "/account/export": "/members/settings/privacy/export",
 }
 RECEIPT_PATH = re.compile(r"^/account/receipts/(\d+)/?$")

@@ -219,6 +219,7 @@ export interface ConcernPayload {
 
 export const safetyApi = {
   notices: () => request<MemberActionData[]>('/account/notices/'),
+  markNoticesSeen: () => post<{ unread_notices: 0 }>('/account/notices/seen/'),
   appeal: (id: number, text: string) => post<MemberActionData>(`/account/notices/${id}/appeal/`, { text }),
   myReports: () => request<MyReport[]>('/account/reports/'),
   concern: (payload: ConcernPayload) => post<{ ok: true }>('/concerns/', payload),

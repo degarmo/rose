@@ -16,6 +16,7 @@ export const verifiedUser: Account = {
   member_app: null,
   staff: null,
   calendar_details: false,
+  unread_notices: 0,
   appearance: 'light',
 }
 export const unverifiedUser: Account = { ...verifiedUser, email_verified: false }

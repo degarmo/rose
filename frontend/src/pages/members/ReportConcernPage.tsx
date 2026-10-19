@@ -18,7 +18,7 @@ export function ReportConcernPage() {
         </p>
         {sent ? (
           <p role="status" className="rounded-app bg-surface p-4 text-fg">
-            Thank you. Our team has it. You can see when it has been reviewed in Settings, under Community guidelines.
+            Thank you. Our team has it. You can see when it has been reviewed in Settings, under Notices.
           </p>
         ) : (
           <ConcernForm onSent={() => setSent(true)} submitClass="self-start" />

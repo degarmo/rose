@@ -88,7 +88,7 @@ export const router = createBrowserRouter([
       { path: 'privacy', lazy: page(() => import('./pages/PrivacyPage').then((m) => m.PrivacyPage)) },
       // The old account page moved into the member app's Settings.
       { path: 'account', element: <AccountMoved to="settings" /> },
-      { path: 'account/notices', element: <AccountMoved to="guidelines" /> },
+      { path: 'account/notices', element: <AccountMoved to="notices" /> },
       { path: 'account/export', element: <AccountMoved to="export" /> },
       { path: 'account/receipts/:id', element: <AccountMoved to="receipt" /> },
       { path: 'account/login', lazy: page(() => import('./pages/account/LoginPage').then((m) => m.LoginPage)) },

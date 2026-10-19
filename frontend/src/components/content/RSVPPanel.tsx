@@ -288,7 +288,7 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
     body = (
       <>
         <Note>RSVPs are paused on your account. Your notices in Settings explain why.</Note>
-        <ButtonLink to="/members/settings/guidelines" size="lg" variant="outline" className="w-full">
+        <ButtonLink to="/members/settings/notices" size="lg" variant="outline" className="w-full">
           See my notices
         </ButtonLink>
       </>

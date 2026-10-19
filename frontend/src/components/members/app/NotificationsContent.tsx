@@ -9,7 +9,14 @@ import { useAsync } from '@/lib/useAsync'
 import { Avatar } from '../Avatar'
 import { useMembers } from '../membersContext'
 
-const ICONS = { like: Heart, comment: MessageCircle, moderation: ShieldAlert, guidelines: ScrollText }
+const ICONS = { like: Heart, comment: MessageCircle, moderation: ShieldAlert, notice: ShieldAlert, guidelines: ScrollText }
+
+/** Where a notification opens: its post, or Settings > Notices for decisions about the account. */
+function targetOf(note: FeedNotification) {
+  if (note.post_id) return `/members/p/${note.post_id}`
+  if (note.kind === 'notice') return '/members/settings/notices'
+  return null
+}
 
 function Row({ note, onNavigate }: { note: FeedNotification; onNavigate?: () => void }) {
   const Icon = ICONS[note.kind]
@@ -35,8 +42,9 @@ function Row({ note, onNavigate }: { note: FeedNotification; onNavigate?: () => 
       )}
     </>
   )
-  return note.post_id ? (
-    <Link to={`/members/p/${note.post_id}`} onClick={onNavigate} className="flex items-center gap-3 px-4 py-2 hover:bg-surface md:px-6">
+  const target = targetOf(note)
+  return target ? (
+    <Link to={target} onClick={onNavigate} className="flex items-center gap-3 px-4 py-2 hover:bg-surface md:px-6">
       {content}
     </Link>
   ) : (
