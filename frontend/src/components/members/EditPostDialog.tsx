@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { members, type FeedPost } from '@/lib/membersApi'
 import { Button, FormField, Modal, Textarea, useToast } from '../ui'
-import { Toggle } from './Toggle'
+import { Toggle } from '@/components/ui/Toggle'
 
 const CAPTION_LIMIT = 2200
 
@@ -32,7 +32,7 @@ export function EditPostDialog({ open, post, onClose, onSaved }: { open: boolean
       title="Edit post"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={save} disabled={busy} aria-busy={busy}>
@@ -45,9 +45,9 @@ export function EditPostDialog({ open, post, onClose, onSaved }: { open: boolean
         <FormField label="Caption" optionalLabel="">
           {(field) => <Textarea {...field} rows={5} maxLength={CAPTION_LIMIT} value={caption} onChange={(e) => setCaption(e.target.value)} />}
         </FormField>
-        <Toggle label="Mark as sensitive" hint="Images stay blurred until someone taps View." checked={sensitive} onChange={setSensitive} />
-        <Toggle label="Allow comments" checked={comments} onChange={setComments} />
-        <p className="text-sm text-fg-subtle">Photos cannot be changed after posting. Delete the post and share it again instead.</p>
+        <Toggle label="Sensitive" hint="Blurred until a member taps View" checked={sensitive} onChange={setSensitive} />
+        <Toggle label="Comments on" checked={comments} onChange={setComments} />
+        <p className="text-sm text-fg-muted">Photos cannot be changed after posting. Delete the post and share it again instead.</p>
       </div>
     </Modal>
   )

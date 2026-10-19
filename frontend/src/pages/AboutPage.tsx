@@ -1,13 +1,12 @@
-import { ArrowRight, HeartHandshake, Landmark } from 'lucide-react'
+import { Link } from 'react-router'
 import { Copy, CopyHeading } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
-import { Reveal } from '@/components/content/Reveal'
 import { StaffCard } from '@/components/content/StaffCard'
 import { ErrorState, SkeletonCards } from '@/components/content/States'
-import { ButtonLink, Card, Section } from '@/components/ui'
-import { valueIcon } from '@/content/values'
+import { ValuesStrip } from '@/components/content/ValuesStrip'
+import { Section } from '@/components/ui'
 import { api } from '@/lib/api'
-import { usePageContent } from '@/lib/pageContent'
+import { usePageContent, type PageCopy } from '@/lib/pageContent'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
@@ -19,90 +18,70 @@ function StaffStrip() {
   if (state.status === 'error') return <ErrorState title="Our staff did not load" onRetry={state.retry} />
   if (state.data.length === 0) return null
   return (
-    <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3">
-      {state.data.slice(0, STRIP_COUNT).map((person, index) => (
-        <Reveal as="li" key={person.slug} delay={(index % 3) as 0 | 1 | 2}>
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 lg:gap-6">
+      {state.data.slice(0, STRIP_COUNT).map((person) => (
+        <li key={person.slug}>
           <StaffCard person={person} compact />
-        </Reveal>
+        </li>
       ))}
     </ul>
   )
 }
 
-function Values() {
-  const copy = usePageContent('values')
-  const items = copy.status === 'loading' ? [1, 2, 3, 4] : copy.items('values')
+// How the club is run: editable words (nonprofit.*, volunteer.*), interface links.
+const RUN = [
+  { prefix: 'nonprofit', to: '/get-involved/donate', action: 'Ways to give' },
+  { prefix: 'volunteer', to: '/get-involved/volunteer', action: 'Volunteer with us' },
+]
+
+function HowWeAreRun({ copy }: { copy: PageCopy }) {
   return (
-    <ul className="mt-14 grid gap-x-12 gap-y-14 md:grid-cols-2">
-      {items.map((n, index) => {
-        const Icon = valueIcon(n)
-        return (
-          <Reveal as="li" key={n} delay={(index % 2) as 0 | 1} className="border-t border-border pt-8">
-            <Icon aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-            <Copy copy={copy} k={`values.${n}.title`} as="h3" className="mt-5 text-3xl text-fg" />
-            <Copy copy={copy} k={`values.${n}.long`} lines={3} className="mt-4 leading-relaxed text-fg-muted" />
-          </Reveal>
-        )
-      })}
+    <ul className="grid gap-3 sm:grid-cols-2 lg:gap-6">
+      {RUN.map((item) => (
+        <li key={item.prefix} className="flex flex-col gap-1.5 rounded-card bg-surface p-6 lg:gap-3 lg:p-8">
+          <Copy copy={copy} k={`${item.prefix}.title`} as="h2" className="text-[1.375rem] leading-[1.2] text-fg lg:text-[1.625rem]" />
+          <Copy copy={copy} k={`${item.prefix}.body`} lines={3} className="flex-1 text-sm text-fg-muted lg:text-body" />
+          <Link to={item.to} className="self-start text-sm font-semibold text-link hover:text-primary-hover">
+            {item.action} <span aria-hidden="true">→</span>
+          </Link>
+        </li>
+      ))}
     </ul>
   )
 }
 
+/** About (no design of its own: laid out like Home's "Who we are" and values band). */
 export function AboutPage() {
   useDocumentMeta({
     title: 'About',
-    description: 'Our mission, our values and the volunteers who keep the house running.',
+    description: 'Our mission, our values and the volunteers who keep the club running.',
   })
   const copy = usePageContent('about')
 
   return (
     <>
-      <PageHero copy={copy} image="about-hero.webp" placeholder="architecture" />
+      <PageHero copy={copy} image="about-hero.webp" ratio="5/4" placeholder="warm" />
 
-      <Section width="narrow" aria-labelledby="mission">
-        <Reveal>
-          <CopyHeading copy={copy} prefix="mission" id="mission" />
-        </Reveal>
-      </Section>
-
-      <Section tone="surface" spacing="tight" aria-label="How we are run">
-        <div className="grid gap-6 md:grid-cols-2">
-          <Reveal>
-            <Card className="h-full p-8">
-              <Landmark aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-              <Copy copy={copy} k="nonprofit.title" as="h2" className="mt-6 text-3xl text-fg" />
-              <Copy copy={copy} k="nonprofit.body" lines={3} className="mt-4 leading-relaxed text-fg-muted" />
-              <ButtonLink to="/get-involved/donate" variant="link" className="mt-4">
-                Ways to give
-              </ButtonLink>
-            </Card>
-          </Reveal>
-          <Reveal delay={1}>
-            <Card className="h-full p-8">
-              <HeartHandshake aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-              <Copy copy={copy} k="volunteer.title" as="h2" className="mt-6 text-3xl text-fg" />
-              <Copy copy={copy} k="volunteer.body" lines={3} className="mt-4 leading-relaxed text-fg-muted" />
-              <ButtonLink to="/get-involved/volunteer" variant="link" className="mt-4">
-                Volunteer with us
-              </ButtonLink>
-            </Card>
-          </Reveal>
+      <Section rule aria-labelledby="mission">
+        <div className="grid gap-3 lg:grid-cols-[1fr_2fr] lg:gap-16">
+          <Copy copy={copy} k="mission.title" as="h2" id="mission" className="text-[1.75rem] font-light leading-[1.2] text-fg lg:text-h2" />
+          <Copy
+            copy={copy}
+            k="mission.lede"
+            lines={4}
+            className="max-w-[680px] lg:text-lead [&>p:first-child]:text-fg"
+          />
         </div>
       </Section>
 
-      <Section aria-labelledby="values">
-        <CopyHeading copy={copy} prefix="values" id="values" />
-        <Values />
+      <Section spacing="none" aria-label="How we are run" className="pb-10 lg:pb-16">
+        <HowWeAreRun copy={copy} />
       </Section>
 
-      <Section tone="sunken" aria-labelledby="people">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <CopyHeading copy={copy} prefix="people" id="people" />
-          <ButtonLink to="/about/staff" variant="link">
-            Meet our staff
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </ButtonLink>
-        </div>
+      <ValuesStrip text="long" heading={<Copy copy={copy} k="values.title" as="span" />} />
+
+      <Section aria-labelledby="people">
+        <CopyHeading copy={copy} prefix="people" id="people" action={{ to: '/about/staff', label: 'Meet our staff' }} />
         <StaffStrip />
       </Section>
     </>

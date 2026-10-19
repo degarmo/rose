@@ -3,7 +3,7 @@ import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { cn } from '@/lib/cn'
 import { isExternalUrl, relativeDate } from '@/lib/format'
-import { members, postedLabel, type ClubPost, type FeedComment, type FeedPost, type Posted } from '@/lib/membersApi'
+import { members, postedLabel, postedShort, type ClubPost, type FeedComment, type FeedPost, type Posted } from '@/lib/membersApi'
 import { useToast } from '../../ui'
 import { Avatar } from '../Avatar'
 import { SensitiveBlur } from '../SensitiveBlur'
@@ -11,7 +11,7 @@ import { useMembers } from '../membersContext'
 import { MediaCarousel } from './MediaCarousel'
 import { isClub, profilePath } from './postUtils'
 import { RoseMark } from './primitives'
-import { ICON, igButtonClasses } from './ui'
+import { ICON } from './ui'
 import { useLatestPost, usePostActions } from './usePost'
 
 const COMMENT_LIMIT = 500
@@ -23,8 +23,8 @@ const STATE_LABELS: Record<string, string> = {
   removed: 'Removed',
 }
 
-function When({ posted, className }: { posted: Posted; className?: string }) {
-  const label = postedLabel(posted, relativeDate)
+function When({ posted, short = false, className }: { posted: Posted; short?: boolean; className?: string }) {
+  const label = short ? postedShort(posted) : postedLabel(posted, relativeDate)
   return posted.at ? (
     <time dateTime={posted.at} className={className}>
       {label}
@@ -52,35 +52,33 @@ export function SiteLink({ to, className, children }: { to: string; className?: 
 
 // 1. Header
 
-export function PostHeader({ post, onMore }: { post: FeedPost | ClubPost; onMore?: () => void }) {
+/** Design: 56px tall, 16px side padding, 12px gap; a 32px avatar, the handle (600) and "• 2h". */
+export function PostHeader({ post, onMore, className }: { post: FeedPost | ClubPost; onMore?: () => void; className?: string }) {
   const club = isClub(post)
+  const name = (
+    <span className="flex min-w-0 items-center gap-1">
+      <span className={cn('truncate font-semibold text-fg', club && 'font-serif text-[0.9375rem] font-medium')}>{post.author.handle}</span>
+      <span className="shrink-0 text-fg-muted">
+        <span aria-hidden="true">• </span>
+        <When posted={post.posted} short />
+      </span>
+    </span>
+  )
   return (
-    <header className="flex h-[54px] items-center gap-3 px-1">
+    <header className={cn('flex h-14 items-center gap-3 px-4', className)}>
       {club ? (
         <span className="flex min-w-0 flex-1 items-center gap-3">
           <RoseMark className="size-8 text-sm" />
-          <span className="flex min-w-0 items-baseline gap-1">
-            <span className="truncate font-semibold text-fg">{post.author.handle}</span>
-            <span aria-hidden="true" className="text-fg-muted">
-              •
-            </span>
-            <When posted={post.posted} className="shrink-0 text-fg-muted" />
-          </span>
+          {name}
         </span>
       ) : (
         <Link to={profilePath(post.author.handle)} className="flex min-w-0 flex-1 items-center gap-3">
           <Avatar member={post.author} size="sm" />
-          <span className="flex min-w-0 items-baseline gap-1">
-            <span className="truncate font-semibold text-fg">{post.author.handle}</span>
-            <span aria-hidden="true" className="text-fg-muted">
-              •
-            </span>
-            <When posted={post.posted} className="shrink-0 text-fg-muted" />
-          </span>
+          {name}
         </Link>
       )}
       {onMore && (
-        <button type="button" onClick={onMore} className="-mr-2 inline-flex size-10 items-center justify-center rounded-full text-fg hover:text-fg-muted">
+        <button type="button" onClick={onMore} className="-mr-2 inline-flex size-10 items-center justify-center text-fg hover:text-fg-muted">
           <Ellipsis aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} />
           <span className="sr-only">Post options</span>
         </button>
@@ -104,12 +102,12 @@ export function ActionRow({
   onComment?: () => void
 }) {
   return (
-    <div className="-mx-2 flex h-[46px] items-center">
+    <div className="-mx-2 flex h-11 items-center">
       <button
         type="button"
         onClick={onLike}
         aria-pressed={post.liked_by_me}
-        className="inline-flex size-10 items-center justify-center rounded-full text-fg hover:text-fg-muted"
+        className="inline-flex size-10 items-center justify-center text-fg hover:text-fg-muted"
       >
         <Heart
           key={String(post.liked_by_me)}
@@ -121,7 +119,7 @@ export function ActionRow({
         <span className="sr-only">{post.liked_by_me ? 'Liked' : 'Like'}</span>
       </button>
       {post.comments_enabled && onComment && (
-        <button type="button" onClick={onComment} className="inline-flex size-10 items-center justify-center rounded-full text-fg hover:text-fg-muted">
+        <button type="button" onClick={onComment} className="inline-flex size-10 items-center justify-center text-fg hover:text-fg-muted">
           <MessageCircle aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} className="-scale-x-100" />
           <span className="sr-only">Comment</span>
         </button>
@@ -130,7 +128,7 @@ export function ActionRow({
         type="button"
         onClick={onSave}
         aria-pressed={post.saved_by_me}
-        className="ml-auto inline-flex size-10 items-center justify-center rounded-full text-fg hover:text-fg-muted"
+        className="ml-auto inline-flex size-10 items-center justify-center text-fg hover:text-fg-muted"
       >
         <Bookmark aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} className={cn(post.saved_by_me && 'fill-fg')} />
         <span className="sr-only">{post.saved_by_me ? 'Saved' : 'Save'}</span>
@@ -158,7 +156,7 @@ export function Caption({ post, clamp = true }: { post: FeedPost | ClubPost; cla
   const long = post.caption_html.length > 125 || (post.caption_html.match(/<br>/g)?.length ?? 0) > 1
   const cut = clamp && long && !expanded
   return (
-    <div className="pt-1">
+    <div>
       <p className={cn('break-words text-fg', cut && 'line-clamp-2')}>
         {isClub(post) ? (
           <span className="font-semibold">{post.author.handle}</span>
@@ -168,7 +166,7 @@ export function Caption({ post, clamp = true }: { post: FeedPost | ClubPost; cla
           </Link>
         )}{' '}
         <span
-          className="[&_a]:text-accent [&_a]:underline"
+          className="[&_a]:text-link [&_a]:underline"
           // Sanitised on the server: only <br> and https links survive.
           dangerouslySetInnerHTML={{ __html: post.caption_html }}
         />
@@ -189,7 +187,7 @@ function CommentLine({ comment }: { comment: FeedComment }) {
         {comment.author.handle}
       </Link>{' '}
       <span
-        className="[&_a]:text-accent [&_a]:underline"
+        className="[&_a]:text-link [&_a]:underline"
         // Sanitised on the server.
         dangerouslySetInnerHTML={{ __html: comment.body_html }}
       />
@@ -243,12 +241,12 @@ export function CommentForm({
         onChange={(event) => setBody(event.target.value)}
         placeholder="Add a comment…"
         autoComplete="off"
-        className="min-w-0 flex-1 bg-transparent py-2 text-sm text-fg placeholder:text-fg-muted focus:outline-none"
+        className="min-w-0 flex-1 bg-transparent py-1 text-sm text-fg placeholder:text-fg-muted focus:outline-none"
       />
       <button
         type="submit"
         disabled={!text || busy}
-        className={cn('text-sm font-semibold transition-colors duration-150', text ? 'text-accent hover:text-fg' : 'cursor-default text-fg-muted')}
+        className={cn('text-sm font-semibold transition-colors duration-150', text ? 'text-link hover:text-primary-hover' : 'cursor-default text-link/50')}
       >
         Post
       </button>
@@ -265,11 +263,16 @@ function StateNote({ post }: { post: FeedPost }) {
       : null
   if (!label) return null
   return (
-    <p className="mb-3 flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-fg">
-      <Hourglass aria-hidden="true" className="size-4" />
+    <p className="mx-4 mb-3 flex items-center gap-2 rounded-app bg-surface px-3 py-2 text-fg">
+      <Hourglass aria-hidden="true" strokeWidth={ICON.stroke} className="size-4" />
       {label}
     </p>
   )
+}
+
+/** The timestamp under a post (design: 10px caps with .2px tracking). */
+function Stamp({ posted }: { posted: Posted }) {
+  return <When posted={posted} className="block pt-0.5 text-[0.625rem] uppercase leading-[18px] tracking-[0.2px] text-fg-muted" />
 }
 
 function MemberPostCard({ post, onOpen, priority }: { post: FeedPost; onOpen: () => void; priority: boolean }) {
@@ -278,65 +281,64 @@ function MemberPostCard({ post, onOpen, priority }: { post: FeedPost; onOpen: ()
   const canComment = post.comments_enabled && (post.state === null || post.state === 'published')
 
   return (
-    <article className="border-b border-border pb-4" aria-label={`Post by ${post.author.handle}`}>
+    <article className="border-b border-border pb-3" aria-label={`Post by ${post.author.handle}`}>
       <PostHeader post={post} onMore={openSheet} />
       <StateNote post={post} />
       {post.images.length > 0 && (
-        <div className="overflow-hidden rounded-[4px] border border-border">
-          <SensitiveBlur blurred={post.blur}>
-            <MediaCarousel images={post.images} label={`Images in ${post.author.handle}'s post`} protect onDoubleTap={likeOnce} priority={priority} />
-          </SensitiveBlur>
-        </div>
+        <SensitiveBlur blurred={post.blur}>
+          <MediaCarousel images={post.images} label={`Images in ${post.author.handle}'s post`} protect onDoubleTap={likeOnce} priority={priority} dotsBelow />
+        </SensitiveBlur>
       )}
-      {post.images.length === 0 && post.state === 'processing' && <div className="aspect-square animate-pulse rounded-[4px] bg-surface" />}
+      {post.images.length === 0 && post.state === 'processing' && <div className="wash-rose aspect-square animate-pulse" />}
 
-      <ActionRow post={post} onLike={() => void toggleLike()} onSave={() => void toggleSave()} onComment={onOpen} />
-      <LikesLine post={post} />
-      <Caption post={post} />
-      {post.comment_count > 0 && (
-        <button type="button" onClick={onOpen} className="mt-0.5 flex min-h-6 items-center text-fg-muted hover:text-fg">
-          {post.comment_count === 1 ? 'View 1 comment' : `View all ${post.comment_count} comments`}
-        </button>
-      )}
-      {post.recent_comments.length > 0 && (
-        <div className="mt-1 flex flex-col gap-0.5">
-          {post.recent_comments.map((comment) => (
-            <CommentLine key={comment.id} comment={comment} />
-          ))}
-        </div>
-      )}
-      <When posted={post.posted} className="mt-1 block text-xs text-fg-muted" />
-      {canComment && (
-        <CommentForm
-          post={post}
-          className="mt-1"
-          onCommented={(comment) =>
-            patchPost(post, (current) => ({ ...current, comment_count: current.comment_count + 1, recent_comments: [...current.recent_comments, comment].slice(-2) }))
-          }
-        />
-      )}
+      <div className="px-4 pt-1.5">
+        <ActionRow post={post} onLike={() => void toggleLike()} onSave={() => void toggleSave()} onComment={onOpen} />
+      </div>
+      <div className="flex flex-col gap-1 px-4">
+        <LikesLine post={post} />
+        <Caption post={post} />
+        {post.comment_count > 0 && (
+          <button type="button" onClick={onOpen} className="flex min-h-6 items-center self-start text-fg-muted hover:text-fg">
+            {post.comment_count === 1 ? 'View 1 comment' : `View all ${post.comment_count} comments`}
+          </button>
+        )}
+        {post.recent_comments.map((comment) => (
+          <CommentLine key={comment.id} comment={comment} />
+        ))}
+        <Stamp posted={post.posted} />
+        {canComment && (
+          <CommentForm
+            post={post}
+            className="pt-1.5"
+            onCommented={(comment) =>
+              patchPost(post, (current) => ({ ...current, comment_count: current.comment_count + 1, recent_comments: [...current.recent_comments, comment].slice(-2) }))
+            }
+          />
+        )}
+      </div>
       {dialogs}
     </article>
   )
 }
 
+/**
+ * A journal post from the club, shown as "Rose". It lives on the website, so there are no
+ * likes, comments or saves: its action row is the way there.
+ */
 function ClubPostCard({ post, priority }: { post: ClubPost; priority: boolean }) {
   return (
-    <article className="border-b border-border pb-4" aria-label={`Post by ${post.author.handle}`}>
+    <article className="border-b border-border pb-3" aria-label={`Post by ${post.author.handle}`}>
       <PostHeader post={post} />
-      {post.images.length > 0 && (
-        <div className="overflow-hidden rounded-[4px] border border-border">
-          <MediaCarousel images={post.images} label={`Images in ${post.author.handle}'s post`} protect={false} priority={priority} />
-        </div>
-      )}
-      {/* Club posts live on the website: no likes, comments or saves, just the way there. */}
-      <div className="flex h-[46px] items-center">
-        <SiteLink to={post.link.url} className={igButtonClasses('primary')}>
-          {post.link.label}
+      {post.images.length > 0 && <MediaCarousel images={post.images} label={`Images in ${post.author.handle}'s post`} protect={false} priority={priority} dotsBelow />}
+      <div className="flex h-11 items-center px-4 pt-1.5">
+        <SiteLink to={post.link.url} className="font-semibold text-link hover:text-primary-hover">
+          {post.link.label} <span aria-hidden="true">→</span>
         </SiteLink>
       </div>
-      <Caption post={post} />
-      <When posted={post.posted} className="mt-1 block text-xs text-fg-muted" />
+      <div className="flex flex-col gap-1 px-4">
+        <Caption post={post} />
+        <Stamp posted={post.posted} />
+      </div>
     </article>
   )
 }

@@ -36,12 +36,12 @@ test.describe('Guests', () => {
     // Straight to the agreement, then the in-person method only.
     const agreement = guest.getByRole('region', { name: 'Agreement text' })
     await agreement.evaluate((element) => element.scrollTo(0, element.scrollHeight))
-    await guest.getByLabel('I have read and agree').check()
-    await guest.getByLabel(/Your full name/).fill('Casey Guestperson')
-    await guest.getByRole('button', { name: 'Sign and continue' }).click()
+    await guest.getByLabel('I have read the agreement and I agree to it.').check()
+    await guest.getByLabel(/Type your full name to sign/).fill('Casey Guestperson')
+    await guest.getByRole('button', { name: 'Agree and continue' }).click()
     await expect(guest.getByRole('radio')).toHaveCount(1)
     await guest.getByRole('button', { name: 'Get my reference code' }).click()
-    await expect(guest.getByRole('heading', { name: 'Your guest pass is ready' })).toBeVisible()
+    await expect(guest.getByText('Your guest pass is ready')).toBeVisible()
     const code = (await guest.getByAltText(/QR code for/).getAttribute('alt'))!.replace('QR code for ', '')
 
     const desk = await personPage(browser, baseURL!)
@@ -111,7 +111,7 @@ test.describe('Email list', () => {
     await page.goto('/')
     const signup = page.getByRole('form', { name: 'Stay in touch' })
     await signup.getByRole('textbox').fill(email)
-    await signup.getByRole('button', { name: 'Subscribe' }).click()
+    await signup.getByRole('button', { name: 'Sign up' }).click()
     await expect(signup.getByText('Check your inbox for a link to confirm.')).toBeVisible()
 
     const confirm = new URL(await mailLink(email, '/subscribe/confirm#token='))

@@ -6,7 +6,7 @@ import { feedAccount } from '@/lib/membersApi'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { AccountShell } from './AccountShell'
 
-/** The emailed link lands here; the single-use token stays in the URL fragment. */
+/** The emailed export link lands here (website account style); the single-use token stays in the URL fragment. */
 export function ExportDownloadPage() {
   useDocumentMeta({ title: 'Your data', noindex: true })
   const [token] = useState(() => fragmentParams(window.location.hash).get('token') ?? '')
@@ -33,12 +33,20 @@ export function ExportDownloadPage() {
 
   return (
     <AccountShell title="Your data" lede="A zip with your profile, posts, comments, likes and photos.">
-      {status === 'done' && <p role="status" className="text-fg-muted">Your download has started. The link has now been used up.</p>}
-      {status === 'error' && <p role="alert" className="text-fg-muted">{message}</p>}
+      {status === 'done' && (
+        <p role="status" className="rounded-card bg-blush p-4 text-fg-muted-tint">
+          Your download has started. The link has now been used up.
+        </p>
+      )}
+      {status === 'error' && (
+        <p role="alert" className="rounded-card bg-blush p-4 text-fg-muted-tint">
+          {message}
+        </p>
+      )}
       {(status === 'idle' || status === 'working') && (
         <div>
-          <p className="text-sm text-fg-muted">This link works once. Download on a device you trust.</p>
-          <Button className="mt-6" onClick={() => void download()} disabled={status === 'working'} aria-busy={status === 'working'}>
+          <p className="text-[0.8125rem] text-fg-muted">This link works once. Download on a device you trust.</p>
+          <Button size="lg" className="mt-6 w-full" onClick={() => void download()} disabled={status === 'working'} aria-busy={status === 'working'}>
             <Download aria-hidden="true" className="size-4" />
             {status === 'working' ? 'Preparing' : 'Download my data'}
           </Button>

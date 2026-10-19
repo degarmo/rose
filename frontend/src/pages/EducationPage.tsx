@@ -1,17 +1,16 @@
-import { X } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { OpportunityCard } from '@/components/content/OpportunityCard'
 import { PageHero } from '@/components/content/PageHero'
-import { Reveal } from '@/components/content/Reveal'
 import { EmptyState, ErrorState, SkeletonCards } from '@/components/content/States'
-import { Button, FormField, Section, Select, type SelectOption } from '@/components/ui'
+import { FilterChips, GUTTER, type SegmentOption } from '@/components/ui'
 import { api, type OpportunityCategory, type OpportunityLevel } from '@/lib/api'
+import { cn } from '@/lib/cn'
 import { useAsync } from '@/lib/useAsync'
 import { usePageContent } from '@/lib/pageContent'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
-const CATEGORY_OPTIONS: SelectOption[] = [
-  { value: '', label: 'All categories' },
+const CATEGORY_OPTIONS: SegmentOption<OpportunityCategory | ''>[] = [
+  { value: '', label: 'All' },
   { value: 'class', label: 'Classes' },
   { value: 'workshop', label: 'Workshops' },
   { value: 'mentorship', label: 'Mentorship' },
@@ -19,7 +18,7 @@ const CATEGORY_OPTIONS: SelectOption[] = [
   { value: 'other', label: 'Other' },
 ]
 
-const LEVEL_OPTIONS: SelectOption[] = [
+const LEVEL_OPTIONS: SegmentOption<OpportunityLevel | ''>[] = [
   { value: '', label: 'Any level' },
   { value: 'beginner', label: 'Beginner' },
   { value: 'intermediate', label: 'Intermediate' },
@@ -27,10 +26,14 @@ const LEVEL_OPTIONS: SelectOption[] = [
   { value: 'all', label: 'All levels' },
 ]
 
-function pick<T extends string>(value: string | null, options: SelectOption[]): T | '' {
-  return options.some((option) => option.value === value) ? (value as T) : ''
+function pick<T extends string>(value: string | null, options: SegmentOption<T | ''>[]): T | '' {
+  return options.find((option) => option.value === value)?.value ?? ''
 }
 
+// Chip rows scroll sideways to the screen edge on phones.
+const CHIP_ROW = '-mx-5 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0'
+
+/** Education (design: "Education"): two rows of filter chips over a grid of class cards. */
 export function EducationPage() {
   useDocumentMeta({
     title: 'Education',
@@ -53,65 +56,43 @@ export function EducationPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="education-hero.webp" placeholder="candle" />
-
-      <Section spacing="tight" aria-label="Opportunities">
-        <div
-          role="search"
-          aria-label="Filter opportunities"
-          className="grid gap-4 rounded-2xl border border-border bg-surface p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-        >
-          <FormField label="Category" optionalLabel="">
-            {(field) => (
-              <Select
-                {...field}
-                options={CATEGORY_OPTIONS}
-                value={category}
-                onChange={(event) => update('category', event.target.value)}
-              />
-            )}
-          </FormField>
-          <FormField label="Level" optionalLabel="">
-            {(field) => (
-              <Select
-                {...field}
-                options={LEVEL_OPTIONS}
-                value={level}
-                onChange={(event) => update('level', event.target.value)}
-              />
-            )}
-          </FormField>
-          <Button variant="ghost" disabled={!filtered} onClick={() => setParams({}, { replace: true, preventScrollReset: true })}>
-            <X aria-hidden="true" className="size-4" />
-            Clear
-          </Button>
+      <PageHero copy={copy} phoneLede={false}>
+        <div role="search" aria-label="Filter opportunities" className="mt-4 flex flex-col gap-2 lg:mt-6 lg:flex-row lg:gap-6">
+          <FilterChips label="Category" options={CATEGORY_OPTIONS} value={category} onChange={(value) => update('category', value)} className={CHIP_ROW} />
+          <span aria-hidden="true" className="hidden w-px shrink-0 bg-border lg:block" />
+          <FilterChips label="Level" options={LEVEL_OPTIONS} value={level} onChange={(value) => update('level', value)} className={CHIP_ROW} />
         </div>
+      </PageHero>
 
-        <div className="mt-12" aria-live="polite" aria-busy={state.status === 'loading'}>
-          {state.status === 'loading' && <SkeletonCards count={6} />}
-          {state.status === 'error' && <ErrorState title="Opportunities did not load" onRetry={state.retry} />}
-          {state.status === 'success' && state.data.length === 0 && (
-            <EmptyState
-              title="Nothing matches yet"
-              message={filtered ? 'Try a different category or level.' : 'New opportunities are announced each season.'}
-            />
-          )}
-          {state.status === 'success' && state.data.length > 0 && (
-            <>
-              <p className="sr-only">
-                {state.data.length} {state.data.length === 1 ? 'opportunity' : 'opportunities'} shown
-              </p>
-              <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {state.data.map((opportunity, index) => (
-                  <Reveal as="li" key={opportunity.id} delay={(index % 3) as 0 | 1 | 2}>
-                    <OpportunityCard opportunity={opportunity} headingLevel="h2" />
-                  </Reveal>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      </Section>
+      <section
+        aria-label="Opportunities"
+        aria-live="polite"
+        aria-busy={state.status === 'loading'}
+        className={cn('mx-auto max-w-[1440px] pb-12 pt-2 lg:pb-20', GUTTER)}
+      >
+        {state.status === 'loading' && <SkeletonCards count={6} />}
+        {state.status === 'error' && <ErrorState title="Opportunities did not load" onRetry={state.retry} />}
+        {state.status === 'success' && state.data.length === 0 && (
+          <EmptyState
+            title="Nothing matches yet"
+            message={filtered ? 'Try a different category or level.' : 'New opportunities are announced each season.'}
+          />
+        )}
+        {state.status === 'success' && state.data.length > 0 && (
+          <>
+            <p className="sr-only">
+              {state.data.length} {state.data.length === 1 ? 'opportunity' : 'opportunities'} shown
+            </p>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+              {state.data.map((opportunity) => (
+                <li key={opportunity.id}>
+                  <OpportunityCard opportunity={opportunity} headingLevel="h2" />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
     </>
   )
 }

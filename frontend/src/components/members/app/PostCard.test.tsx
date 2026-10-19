@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   unsave: vi.fn(),
   report: vi.fn(),
   relate: vi.fn(),
+  hide: vi.fn(),
   deletePost: vi.fn(),
   editPost: vi.fn(),
   addComment: vi.fn(),
@@ -65,9 +66,10 @@ describe('PostCard', () => {
   it('blurs sensitive images until the viewer chooses to look', async () => {
     renderCard(makePost({ is_sensitive: true, blur: true }))
     const carousel = screen.getByRole('region', { name: /Images in velvet_hour/, hidden: true })
-    expect(carousel.closest('[aria-hidden="true"]')).not.toBeNull()
+    // Inert while blurred: nothing inside can be focused or read out.
+    expect(carousel.closest('[inert]')).not.toBeNull()
     await userEvent.click(screen.getByRole('button', { name: 'View' }))
-    expect(screen.getByRole('region', { name: /Images in velvet_hour/ }).closest('[aria-hidden="true"]')).toBeNull()
+    expect(screen.getByRole('region', { name: /Images in velvet_hour/ }).closest('[inert]')).toBeNull()
   })
 
   it('protects images from save and drag', () => {
@@ -138,7 +140,7 @@ describe('PostCard', () => {
     api.report.mockResolvedValue({ detail: 'Thanks, our team will review this.' })
     renderCard(makePost())
     const sheet = await openSheet()
-    await userEvent.click(within(sheet).getByRole('button', { name: 'Report', hidden: true }))
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Report to hosts', hidden: true }))
     const dialog = screen.getByRole('dialog', { name: 'Report this post', hidden: true })
     await userEvent.click(within(dialog).getByLabelText('Posted without consent'))
     await userEvent.click(within(dialog).getByRole('button', { name: 'Send report' }))
@@ -152,6 +154,20 @@ describe('PostCard', () => {
     const sheet = await openSheet()
     await userEvent.click(within(sheet).getByRole('button', { name: 'Mute velvet_hour', hidden: true }))
     expect(api.relate).toHaveBeenCalledWith('velvet_hour', 'mute')
+    await waitFor(() => expect(screen.queryByRole('article')).not.toBeInTheDocument())
+  })
+
+  it('hides a post from your own feed and drops it', async () => {
+    api.hide.mockResolvedValue({ ok: true })
+    renderCard(makePost())
+    const sheet = await openSheet()
+    // Report comes first, and there is no Share, Send or Copy link.
+    const labels = within(sheet)
+      .getAllByRole('button', { hidden: true })
+      .map((button) => button.textContent)
+    expect(labels).toEqual(['Report to hosts', 'Hide this post', 'Mute velvet_hour', 'Block velvet_hour', 'Save', 'Go to post', 'Cancel'])
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Hide this post', hidden: true }))
+    expect(api.hide).toHaveBeenCalledWith('p1')
     await waitFor(() => expect(screen.queryByRole('article')).not.toBeInTheDocument())
   })
 
@@ -170,7 +186,7 @@ describe('PostCard', () => {
     api.deletePost.mockResolvedValue(null)
     renderCard(makePost({ is_own: true, like_count: 0, state: 'published' }))
     const sheet = await openSheet()
-    expect(within(sheet).queryByRole('button', { name: 'Report', hidden: true })).not.toBeInTheDocument()
+    expect(within(sheet).queryByRole('button', { name: 'Report to hosts', hidden: true })).not.toBeInTheDocument()
     await userEvent.click(within(sheet).getByRole('button', { name: 'Delete', hidden: true }))
     expect(api.deletePost).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: 'Delete for good', hidden: true }))
@@ -185,7 +201,7 @@ describe('PostCard', () => {
     expect(post).toBeDisabled()
     await userEvent.type(screen.getByRole('textbox', { name: 'Add a comment' }), 'Same here')
     expect(post).toBeEnabled()
-    expect(post.className).toContain('text-accent')
+    expect(post.className).toContain('text-link')
     await userEvent.click(post)
     expect(api.addComment).toHaveBeenCalledWith('p1', 'Same here')
     expect(await screen.findByText('Same here')).toBeInTheDocument()

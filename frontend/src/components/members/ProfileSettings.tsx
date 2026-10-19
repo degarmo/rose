@@ -6,8 +6,10 @@ import { exportRedacted, loadSource, NO_EDITS, type Edits, type Source } from '@
 import { useAsync } from '@/lib/useAsync'
 import { Button, FormField, Input, Modal, Textarea, useToast } from '../ui'
 import { RedactionEditor } from './RedactionEditor'
-import { Toggle } from './Toggle'
+import { Toggle } from '@/components/ui/Toggle'
+import { AppButton } from './app/primitives'
 import { useMembers } from './membersContext'
+import { cn } from '@/lib/cn'
 
 export const BIO_LIMIT = 160
 
@@ -56,13 +58,13 @@ export function AvatarPicker({ onSaved }: { onSaved: (me: Me) => void }) {
       </p>
       <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="sr-only" onChange={(e) => void choose(e.target.files)} />
       {!source ? (
-        <label htmlFor={inputId} className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-border-strong px-4 text-sm text-fg hover:border-highlight">
+        <label htmlFor={inputId} className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-border px-4 text-sm text-fg hover:border-primary">
           <ImagePlus aria-hidden="true" className="size-4" />
           Choose a picture
         </label>
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          <RedactionEditor source={source} edits={edits} onChange={setEdits} />
+          <RedactionEditor source={source} edits={edits} onChange={setEdits} stageClassName="aspect-square max-h-[50dvh] w-full rounded-app" />
           <FormField label="Describe it" optionalLabel="Encouraged">
             {(field) => <Input {...field} maxLength={200} value={alt} onChange={(e) => setAlt(e.target.value)} />}
           </FormField>
@@ -77,7 +79,7 @@ export function AvatarPicker({ onSaved }: { onSaved: (me: Me) => void }) {
             <Button onClick={() => void save()} disabled={busy || (showsFace && !attested)} aria-busy={busy}>
               {busy ? 'Saving' : 'Use this picture'}
             </Button>
-            <Button variant="ghost" onClick={() => setSource(null)}>
+            <Button variant="secondary" onClick={() => setSource(null)}>
               Cancel
             </Button>
           </div>
@@ -87,21 +89,22 @@ export function AvatarPicker({ onSaved }: { onSaved: (me: Me) => void }) {
   )
 }
 
-/** People you blocked, with Unblock. Never shows who blocked you. */
+/** People you blocked, one settings row each with Unblock. Never shows who blocked you. */
 export function BlockedList() {
   const toast = useToast()
   const [version, setVersion] = useState(0)
   const state = useAsync(() => members.myBlocks(), `blocks|${version}`)
-  if (state.status === 'loading') return <LoadingState label="Loading" className="py-2" />
-  if (state.status === 'error') return <ErrorState title="Could not load your blocks" onRetry={state.retry} />
-  if (state.data.blocked.length === 0) return <p className="text-sm text-fg-subtle">You have not blocked anyone.</p>
+  const row = 'flex min-h-14 items-center gap-4 border-b border-border py-2 pl-10'
+  if (state.status === 'loading') return <LoadingState label="Loading" className="py-4 pl-10" />
+  if (state.status === 'error') return <ErrorState title="Could not load your blocks" onRetry={state.retry} className="my-2" />
+  if (state.data.blocked.length === 0) return <p className={cn(row, 'text-fg-muted')}>You have not blocked anyone.</p>
   return (
-    <ul className="flex flex-col gap-2">
+    <ul>
       {state.data.blocked.map((handle) => (
-        <li key={handle} className="flex items-center justify-between gap-3 text-sm text-fg">
-          {handle}
-          <Button
-            variant="ghost"
+        <li key={handle} className={row}>
+          <span className="min-w-0 flex-1 truncate font-semibold text-fg">{handle}</span>
+          <AppButton
+            variant="secondary"
             onClick={async () => {
               try {
                 await members.unrelate(handle, 'block')
@@ -112,8 +115,8 @@ export function BlockedList() {
               }
             }}
           >
-            Unblock
-          </Button>
+            Unblock<span className="sr-only"> {handle}</span>
+          </AppButton>
         </li>
       ))}
     </ul>
@@ -158,7 +161,7 @@ export function EditProfileDialog({ open, onClose }: { open: boolean; onClose: (
             {(field) => <Textarea {...field} rows={3} maxLength={BIO_LIMIT} value={bio} onChange={(e) => setBio(e.target.value)} />}
           </FormField>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-fg-subtle">{bio.length} / {BIO_LIMIT}</span>
+            <span className="text-xs text-fg-muted">{bio.length} / {BIO_LIMIT}</span>
             <Button disabled={busy || bio === me.bio} onClick={() => void saveBio()}>
               Save bio
             </Button>

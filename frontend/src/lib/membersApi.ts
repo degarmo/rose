@@ -107,6 +107,10 @@ export interface FeedNotification {
   kind: 'like' | 'comment' | 'moderation' | 'guidelines'
   text: string
   post_id: string | null
+  /** The recipient's own post's first picture. */
+  thumbnail: string | null
+  /** Comments only; likes stay nameless. */
+  actor: MemberCard | null
   read: boolean
   posted: Posted
 }
@@ -194,6 +198,8 @@ export const members = {
   saved: (cursor: string | null = null) => page('/members/saved/', cursor),
   save: (id: string) => post<FeedPost>(`/members/posts/${enc(id)}/save/`),
   unsave: (id: string) => send<FeedPost>('DELETE', `/members/posts/${enc(id)}/save/`),
+  /** Keeps another member's post out of your feed and Explore. Private: nobody is told. */
+  hide: (id: string) => post<{ ok: true }>(`/members/posts/${enc(id)}/hide/`),
   stories: () => request<{ results: StoryGroup[] }>('/members/stories/'),
   markStoriesSeen: (keys: string[]) => post<{ ok: true }>('/members/stories/seen/', { keys }),
   memberPosts: (handle: string, cursor: string | null = null) =>
@@ -265,6 +271,23 @@ export const REPORT_REASONS: Array<{ value: ReportReason; label: string }> = [
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 /** "Mar 2026" for anything older than a week; relative time otherwise. */
+const SHORT_STEPS: Array<[string, number]> = [
+  ['w', 7 * 24 * 3600],
+  ['d', 24 * 3600],
+  ['h', 3600],
+  ['m', 60],
+]
+
+/** "2h", "3d", "1w" for the last seven days (design: the post header); the month after that. */
+export function postedShort(posted: Posted, now: Date = new Date()): string {
+  if (posted.recent && posted.at) {
+    const seconds = Math.max(0, (now.getTime() - new Date(posted.at).getTime()) / 1000)
+    for (const [unit, size] of SHORT_STEPS) if (seconds >= size) return `${Math.floor(seconds / size)}${unit}`
+    return 'now'
+  }
+  return postedLabel(posted, () => '')
+}
+
 export function postedLabel(posted: Posted, relative: (iso: string) => string): string {
   if (posted.recent && posted.at) return relative(posted.at)
   if (posted.month) {

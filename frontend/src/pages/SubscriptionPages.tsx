@@ -1,10 +1,12 @@
-import { CircleCheck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Button, ButtonLink } from '@/components/ui'
+import { Link } from 'react-router'
+import { LoadingState } from '@/components/content/States'
+import { Button } from '@/components/ui'
 import { api } from '@/lib/api'
 import { fragmentParams } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { AccountShell } from './account/AccountShell'
+import { SENT_ACTION, SentPanel } from './SentPanel'
 
 /** The token arrives in the URL fragment, which browsers never send to the server. */
 function useFragmentToken() {
@@ -41,18 +43,20 @@ export function ConfirmSubscriptionPage() {
 
   return (
     <AccountShell title="Email updates">
-      {status === 'working' && <p role="status" className="text-fg-muted">Confirming your address</p>}
+      {status === 'working' && <LoadingState label="Confirming your address" className="py-0" />}
       {status === 'done' && (
-        <div role="status">
-          <CircleCheck aria-hidden="true" className="size-8 text-success" />
-          <p className="mt-4 text-fg-muted">{message}</p>
-          <ButtonLink to="/" size="lg" className="mt-8 w-full">
-            Back to the site
-          </ButtonLink>
-        </div>
+        <SentPanel
+          actions={
+            <Link to="/" className={SENT_ACTION}>
+              Back to the site
+            </Link>
+          }
+        >
+          {message}
+        </SentPanel>
       )}
       {status === 'error' && (
-        <p role="alert" className="text-fg-muted">
+        <p role="alert" className="rounded-card bg-blush p-4 text-fg-muted-tint">
           {message}
         </p>
       )}
@@ -82,21 +86,16 @@ export function UnsubscribePage() {
   return (
     <AccountShell title="Unsubscribe">
       {(status === 'ready' || status === 'working') && (
-        <div>
+        <div className="flex flex-col items-start gap-6">
           <p className="text-fg-muted">Stop all email updates to this address. No login needed.</p>
-          <Button size="lg" className="mt-8 w-full" onClick={() => void leave()} disabled={status === 'working'} aria-busy={status === 'working'}>
+          <Button size="lg" onClick={() => void leave()} disabled={status === 'working'} aria-busy={status === 'working'}>
             {status === 'working' ? 'Unsubscribing' : 'Unsubscribe'}
           </Button>
         </div>
       )}
-      {status === 'done' && (
-        <div role="status">
-          <CircleCheck aria-hidden="true" className="size-8 text-success" />
-          <p className="mt-4 text-fg-muted">{message}</p>
-        </div>
-      )}
+      {status === 'done' && <SentPanel>{message}</SentPanel>}
       {status === 'error' && (
-        <p role="alert" className="text-fg-muted">
+        <p role="alert" className="rounded-card bg-blush p-4 text-fg-muted-tint">
           {message}
         </p>
       )}

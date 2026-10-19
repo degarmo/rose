@@ -24,19 +24,13 @@ import { fileURLToPath } from 'node:url'
 import AxeBuilder from '@axe-core/playwright'
 import { chromium } from 'playwright-core'
 
-const args = Object.fromEntries(
-  process.argv
-    .slice(2)
-    .join(' ')
-    .split('--')
-    .filter(Boolean)
-    .map((pair) => pair.trim().split(/\s+/)),
-)
+const args = {}
+for (let index = 2; index < process.argv.length; index += 2) args[process.argv[index].replace(/^--/, '')] = process.argv[index + 1]
 const base = args.base ?? 'http://localhost:5175'
 const folder = args.out ?? 'before'
 const only = args.only ? new RegExp(args.only) : null
 const docs = resolve(fileURLToPath(new URL('../../docs/design/', import.meta.url)))
-const out = join(docs, folder)
+const out = resolve(docs, folder)
 mkdirSync(out, { recursive: true })
 const photo = fileURLToPath(new URL('../fixtures/photo.jpg', import.meta.url))
 
@@ -343,7 +337,8 @@ async function joinSweep(browser, vp) {
     path: '/join',
     context: 'verified',
     steps: async (p) => {
-      await p.getByRole('button', { name: /^Choose/ }).first().click()
+      // Desktop shows a card per tier; phones a list and one "Continue with …" button.
+      await p.locator('button:visible', { hasText: /^(Choose|Continue with) / }).first().click()
       await p.waitForTimeout(600)
     },
   })
@@ -376,7 +371,14 @@ async function memberSweep(browser, vp, member, data, appearance) {
   const page = await context.newPage()
   const problems = watch(page)
   if (appearance === 'dark') {
+    // The account's own setting wins over the cookie after sign-in, so set it, then put it back.
+    const setAppearance = async (value) => {
+      const { csrfToken } = await (await context.request.get(base + '/api/csrf/')).json()
+      await context.request.patch(base + '/api/account/session/', { data: { appearance: value }, headers: { 'X-CSRFToken': csrfToken, Origin: base } })
+    }
+    await setAppearance('dark')
     await shot(page, problems, { name: `app--home-dark-${vp}`, vp, path: '/members/feed', context: 'member' })
+    await setAppearance('light')
     await context.close()
     return
   }
@@ -439,6 +441,7 @@ async function memberSweep(browser, vp, member, data, appearance) {
   await shot(page, problems, { name: `route--members-saved-${vp}`, vp, path: `/members/u/${data.handle}/saved`, context: ctx })
   await shot(page, problems, { name: `route--members-join-feed-${vp}`, vp, path: '/members/join-feed', context: ctx })
   await shot(page, problems, { name: `route--member-website-home-${vp}`, vp, path: '/', context: ctx, full: true })
+  await shot(page, problems, { name: `route--member-event-detail-${vp}`, vp, path: `/events/${data.event}`, context: ctx, full: true })
 
   // Create, step by step.
   const names =

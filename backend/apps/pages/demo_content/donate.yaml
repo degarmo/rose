@@ -3,11 +3,9 @@ source_url: []
 page: donate
 copy:
   hero:
-    eyebrow: Donate
     title: Keep the doors open.
     lede: Gifts pay for the space and everything that keeps it safe and welcoming.
   funds:
-    eyebrow: Where it goes
     title: What your gift pays for.
     1:
       title: Rent
@@ -25,7 +23,6 @@ copy:
       title: Outreach
       body: Help for community members facing hard times.
   ways:
-    eyebrow: Ways to give
     title: In person, by check or online.
     door:
       title: At the door
@@ -37,5 +34,4 @@ copy:
       title: Online
       body: A secure checkout page; card details never touch this site.
   form:
-    eyebrow: Give online
     title: Choose an amount.

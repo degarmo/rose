@@ -4,21 +4,21 @@ import { Link } from 'react-router'
 import { ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { ConfirmDialog } from '@/components/members/ConfirmDialog'
-import { Toggle } from '@/components/members/Toggle'
+import { Toggle } from '@/components/ui/Toggle'
 import { ReferenceCode } from '@/components/membership/ReferenceCode'
-import { Badge, Button, ButtonLink, Card, useToast } from '@/components/ui'
+import { Badge, Button, ButtonLink, Card, useToast, type BadgeTone } from '@/components/ui'
 import { formatDay, formatMoney } from '@/lib/format'
 import { goTo, isOpen, membershipApi, priceLabel, type MembershipPayload, type MyMembership } from '@/lib/membershipApi'
 import { useAsync } from '@/lib/useAsync'
 import { WhatToBring } from '../join/JoinConfirmation'
 
-const TONES: Record<MyMembership['status'], 'brass' | 'rose' | 'neutral'> = {
-  active: 'brass',
-  grace: 'rose',
-  pending_payment: 'neutral',
-  suspended: 'rose',
-  expired: 'neutral',
-  cancelled: 'neutral',
+const TONES: Record<MyMembership['status'], BadgeTone> = {
+  active: 'open',
+  grace: 'wait',
+  pending_payment: 'wait',
+  suspended: 'full',
+  expired: 'full',
+  cancelled: 'full',
 }
 
 function periodLine(m: MyMembership) {
@@ -47,29 +47,29 @@ function Status({ membership }: { membership: MyMembership }) {
 }
 
 function Payments({ membership }: { membership: MyMembership }) {
-  if (membership.payments.length === 0) return <p className="text-sm text-fg-subtle">No payments yet.</p>
+  if (membership.payments.length === 0) return <p className="text-sm text-fg-muted">No payments yet.</p>
   return (
     <ul className="divide-y divide-border">
       {membership.payments.map((payment) => (
-        <li key={payment.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+        <li key={payment.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm first:pt-0 last:pb-0">
           <div>
             <p className="text-fg">
               {payment.status === 'refunded' ? 'Refund' : payment.status === 'failed' ? 'Failed payment' : 'Payment'} &middot;{' '}
               {payment.method_label}
             </p>
-            <p className="text-fg-subtle">
+            <p className="text-fg-muted">
               <time dateTime={payment.created_at}>{formatDay(payment.created_at)}</time>
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <span className={payment.status === 'failed' ? 'text-fg-subtle line-through' : 'text-fg'}>
+            <span className={payment.status === 'failed' ? 'text-fg-muted line-through' : 'text-fg'}>
               {payment.status === 'refunded' ? '−' : ''}
               {formatMoney(payment.amount_cents, membership.tier.currency)}
             </span>
             {payment.status !== 'failed' && payment.method !== 'comp' && (
               <Link
                 to={`/account/receipts/${payment.id}`}
-                className="inline-flex min-h-11 items-center gap-1.5 text-accent underline decoration-highlight/60 underline-offset-4"
+                className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-link hover:text-primary-hover"
               >
                 <ReceiptIcon aria-hidden="true" className="size-4" />
                 Receipt
@@ -95,7 +95,7 @@ export function MembershipDetails({ payload, onChange }: { payload: MembershipPa
         <p className="text-fg-muted">
           You are not a member yet. Membership opens members&rsquo; evenings, members-only classes and the member community.
         </p>
-        <ButtonLink to="/join" className="self-start">
+        <ButtonLink to="/join" size="lg" className="self-start">
           Become a member
         </ButtonLink>
       </div>
@@ -133,41 +133,40 @@ export function MembershipDetails({ payload, onChange }: { payload: MembershipPa
   const canCancel = (running && !membership.cancel_at_period_end) || pending
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
-          <p className="font-display text-2xl text-fg">{membership.tier.name}</p>
+          <p className="font-display text-[1.375rem] leading-[1.2] text-fg">{membership.tier.name}</p>
           <Badge tone={TONES[membership.status]}>{membership.status_label}</Badge>
         </div>
-        <p className="text-sm text-fg-subtle">{priceLabel(membership.tier)}</p>
+        <p className="text-sm text-fg-muted">{priceLabel(membership.tier)}</p>
         <Status membership={membership} />
       </div>
 
       {membership.last_payment_failed && open && (
-        <div role="alert" className="flex flex-col gap-3 rounded-xl border border-danger/40 p-4 sm:flex-row sm:items-center">
+        <div role="alert" className="flex flex-col gap-3 rounded-field border-[1.5px] border-danger p-4 sm:flex-row sm:items-center">
           <CircleAlert aria-hidden="true" className="size-5 shrink-0 text-danger" />
           <p className="flex-1 text-sm text-fg-muted">Your last online payment did not go through. Nothing was charged.</p>
-          <Button variant="ghost" onClick={() => void payOnline()} disabled={busy}>
+          <Button variant="secondary" onClick={() => void payOnline()} disabled={busy}>
             Try again
           </Button>
         </div>
       )}
 
       {open && (
-        <div className="border-t border-border pt-6">
-          <ReferenceCode code={membership.reference_code} size="md" />
-          <p className="mt-3 text-sm text-fg-subtle">Show this at the door. It identifies your membership, not you.</p>
-        </div>
+        <ReferenceCode code={membership.reference_code} size="md">
+          Show this at the door. It identifies your membership, not you.
+        </ReferenceCode>
       )}
 
       {membership.status === 'pending_payment' && (
         <div className="border-t border-border pt-6">
-          <h3 className="font-display text-xl text-fg">What to bring</h3>
-          <div className="mt-4">
+          <h3 className="font-sans text-sm font-semibold text-fg">What to bring</h3>
+          <div className="mt-3">
             <WhatToBring membership={membership} />
           </div>
           {membership.code_expires_at && (
-            <p className="mt-4 text-sm text-fg-subtle">This code stays open until {formatDay(membership.code_expires_at)}.</p>
+            <p className="mt-3 text-[0.8125rem] text-fg-muted">This code stays open until {formatDay(membership.code_expires_at)}.</p>
           )}
         </div>
       )}
@@ -187,21 +186,21 @@ export function MembershipDetails({ payload, onChange }: { payload: MembershipPa
       )}
 
       <div className="border-t border-border pt-6">
-        <h3 className="font-display text-xl text-fg">Payments</h3>
+        <h3 className="font-sans text-sm font-semibold text-fg">Payments</h3>
         <div className="mt-3">
           <Payments membership={membership} />
         </div>
       </div>
 
       {(membership.status === 'expired' || membership.status === 'cancelled') && (
-        <ButtonLink to="/join" className="self-start">
+        <ButtonLink to="/join" size="lg" className="self-start">
           Join again
         </ButtonLink>
       )}
 
       {canCancel && (
         <div className="border-t border-border pt-6">
-          <Button variant="ghost" className="border-danger/60 text-danger" onClick={() => setConfirmCancel(true)} disabled={busy}>
+          <Button variant="secondary" className="border-danger text-danger hover:border-danger" onClick={() => setConfirmCancel(true)} disabled={busy}>
             Cancel membership
           </Button>
         </div>
@@ -241,11 +240,11 @@ export function MembershipCard() {
   const payload = override ?? (state.status === 'success' ? state.data : null)
 
   return (
-    <Card as="article" id="membership" aria-labelledby="membership-heading" className="scroll-mt-28 p-6 sm:p-8">
-      <h2 id="membership-heading" className="text-3xl text-fg">
+    <Card as="article" id="membership" aria-labelledby="membership-heading" className="scroll-mt-28 p-5 sm:p-8">
+      <h2 id="membership-heading" className="text-[1.375rem] leading-[1.2] text-fg lg:text-[1.625rem]">
         Membership
       </h2>
-      <div className="mt-6">
+      <div className="mt-5">
         {state.status === 'loading' && !override && <LoadingState label="Loading your membership" />}
         {state.status === 'error' && !override && <ErrorState title="Your membership did not load" onRetry={state.retry} />}
         {payload && <MembershipDetails payload={payload} onChange={setOverride} />}

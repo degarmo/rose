@@ -1,17 +1,17 @@
+import type { BadgeTone } from '@/components/ui'
 import type { EventCategory, RSVPState, RSVPStateName } from './api'
 
-type Tone = 'neutral' | 'rose' | 'brass'
-
-const STATE_LABELS: Record<RSVPStateName, { label: string; tone: Tone }> = {
-  open: { label: 'Open', tone: 'brass' },
-  waitlist: { label: 'Waitlist', tone: 'rose' },
-  full: { label: 'Full', tone: 'neutral' },
-  closed: { label: 'Closed', tone: 'neutral' },
-  unavailable: { label: 'Closed', tone: 'neutral' },
-  members_only: { label: 'Members only', tone: 'neutral' },
-  not_open_yet: { label: 'Opens soon', tone: 'neutral' },
-  going: { label: 'Going', tone: 'brass' },
-  waitlisted: { label: 'On the waitlist', tone: 'rose' },
+/** The status badge for each RSVP state (design system: "Status badges"). */
+const STATE_LABELS: Record<RSVPStateName, { label: string; tone: BadgeTone }> = {
+  open: { label: 'Open', tone: 'open' },
+  waitlist: { label: 'Waitlist', tone: 'wait' },
+  full: { label: 'Full', tone: 'full' },
+  closed: { label: 'Closed', tone: 'full' },
+  unavailable: { label: 'Closed', tone: 'full' },
+  members_only: { label: 'Members only', tone: 'members' },
+  not_open_yet: { label: 'Opens soon', tone: 'full' },
+  going: { label: 'Going', tone: 'going' },
+  waitlisted: { label: 'On the waitlist', tone: 'wait' },
 }
 
 export function rsvpBadge(rsvp: RSVPState) {

@@ -3,11 +3,9 @@ source_url: []
 page: rentals
 copy:
   hero:
-    eyebrow: Rentals
     title: The space, for your own gathering.
     lede: Available on nights we are not open, for private sessions, workshops, photoshoots and group events.
   spaces:
-    eyebrow: Spaces and uses
     title: Room to teach, gather or create.
     lede:
       rich: <p>Placeholder copy for development. The main floor holds a group comfortably, and quieter rooms suit smaller sessions. Tell us what you have in mind and we will suggest the right fit.</p>
@@ -24,6 +22,5 @@ copy:
     3: Safety supplies and a first aid kit
     4: Cleaning afterwards
   form:
-    eyebrow: Ask about a date
     title: Tell us what you are planning.
     lede: Nothing is booked until a volunteer confirms with you by email.

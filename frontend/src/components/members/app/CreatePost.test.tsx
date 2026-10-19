@@ -53,7 +53,7 @@ async function goToDetails() {
   const onPosted = vi.fn()
   renderWithProviders(<CreatePost open fullScreen={false} onClose={() => undefined} onPosted={onPosted} />)
   expect(screen.getByRole('heading', { name: 'Create new post' })).toBeInTheDocument()
-  await userEvent.upload(screen.getByLabelText(/Choose photos/, { selector: 'input' }), [photo('home.jpg'), photo('party.jpg')])
+  await userEvent.upload(screen.getByLabelText(/Select from computer/, { selector: 'input' }), [photo('home.jpg'), photo('party.jpg')])
   expect(await screen.findByText(/2 photos chosen/)).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: 'Next' }))
 
@@ -70,27 +70,26 @@ async function goToDetails() {
 }
 
 describe('CreatePost', () => {
-  it('goes Select, Crop & redact, Details, Share, and keeps Share off until consent is attested', async () => {
+  it('goes Select, Crop & redact, Details, and keeps Share off until consent is attested', async () => {
     await goToDetails()
-    expect(screen.getByLabelText(/Everyone identifiable in these photos agreed/)).not.toBeChecked()
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByRole('heading', { name: 'Share' })).toBeInTheDocument()
+    const consent = screen.getByLabelText(/Everyone identifiable in these photos agreed/)
+    expect(consent).not.toBeChecked()
     const share = screen.getByRole('button', { name: 'Share' })
+    const headerShare = screen.getByRole('button', { name: 'Share post' })
     expect(share).toBeDisabled()
+    expect(headerShare).toBeDisabled()
     await userEvent.click(share)
     expect(mocks.createPost).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
-    await userEvent.click(screen.getByLabelText(/Everyone identifiable in these photos agreed/))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByRole('button', { name: 'Share' })).toBeEnabled()
+    await userEvent.click(consent)
+    expect(share).toBeEnabled()
+    expect(headerShare).toBeEnabled()
   })
 
-  it('uploads only the redacted renders, never the original files', async () => {
+  it('uploads only the redacted renders, never the original files, then says it is shared', async () => {
     const onPosted = await goToDetails()
     await userEvent.type(screen.getByLabelText(/^Caption/, { selector: 'textarea' }), 'Quiet night')
     await userEvent.click(screen.getByLabelText(/Everyone identifiable in these photos agreed/))
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
     await userEvent.click(screen.getByRole('button', { name: 'Share' }))
 
     await waitFor(() => expect(mocks.createPost).toHaveBeenCalledOnce())
@@ -106,18 +105,39 @@ describe('CreatePost', () => {
     expect(await draft.images[1].blob.text()).toBe('redacted party.jpg with 0 cover-ups')
     expect(draft.images[0].alt).toBe('Two candles')
     expect(onPosted).toHaveBeenCalled()
+    expect(await screen.findByRole('heading', { name: 'Post shared' })).toBeInTheDocument()
+    expect(screen.getByText('It is in the feed now.')).toBeInTheDocument()
+  })
+
+  it('says when a first post waits for a host', async () => {
+    mocks.createPost.mockResolvedValue({ id: 'abc', state: 'pending', in_review: true })
+    await goToDetails()
+    await userEvent.click(screen.getByLabelText(/Everyone identifiable in these photos agreed/))
+    await userEvent.click(screen.getByRole('button', { name: 'Share' }))
+    expect(await screen.findByText(/Everyone else will see it after a quick look from a host/)).toBeInTheDocument()
+  })
+
+  it('keeps cover-ups in place when the photo is cropped to 1:1', async () => {
+    renderWithProviders(<CreatePost open fullScreen={false} onClose={() => undefined} onPosted={() => undefined} />)
+    await userEvent.upload(screen.getByLabelText(/Select from computer/, { selector: 'input' }), [photo('wide.jpg')])
+    await userEvent.click(await screen.findByRole('button', { name: 'Next' }))
+    drawRectangle()
+    await userEvent.click(screen.getByRole('button', { name: '1:1' }))
+    expect(screen.getByRole('button', { name: '1:1' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(/1 area covered, cropped/)).toBeInTheDocument()
   })
 
   it('allows a text-only post without attestation', async () => {
     renderWithProviders(<CreatePost open fullScreen onClose={() => undefined} onPosted={() => undefined} />)
     await userEvent.click(screen.getByRole('button', { name: 'Write a text post' }))
     expect(screen.queryByLabelText(/Everyone identifiable/)).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Share' }))
     expect(await screen.findByText('Write something or add a photo.')).toBeInTheDocument()
+    expect(mocks.createPost).not.toHaveBeenCalled()
     await userEvent.type(screen.getByLabelText(/^Caption/, { selector: 'textarea' }), 'Just words')
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
     await userEvent.click(screen.getByRole('button', { name: 'Share' }))
     await waitFor(() => expect(mocks.createPost).toHaveBeenCalledOnce())
     expect(mocks.createPost.mock.calls[0][0].images).toEqual([])
+    expect(await screen.findByRole('button', { name: 'Done' })).toBeInTheDocument()
   })
 })

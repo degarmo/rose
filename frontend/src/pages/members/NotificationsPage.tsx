@@ -1,3 +1,4 @@
+import { PhoneBar } from '@/components/members/app/Nav'
 import { NotificationsContent } from '@/components/members/app/NotificationsContent'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
@@ -5,10 +6,12 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 export function NotificationsPage() {
   useDocumentMeta({ title: 'Notifications', noindex: true })
   return (
-    <div className="mx-auto w-full max-w-[600px] pt-4 md:pt-8">
-      <h1 className="px-6 text-base font-semibold text-fg md:text-2xl">Notifications</h1>
-      <p className="px-6 pt-1 text-fg-muted">Only here, never by email.</p>
-      <NotificationsContent />
-    </div>
+    <>
+      <PhoneBar back title={<h1 className="truncate text-base font-semibold">Notifications</h1>} />
+      <div className="mx-auto w-full max-w-[600px] md:pt-8">
+        <h1 className="hidden px-6 pb-4 text-2xl font-semibold text-fg md:block">Notifications</h1>
+        <NotificationsContent />
+      </div>
+    </>
   )
 }

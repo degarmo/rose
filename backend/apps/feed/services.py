@@ -31,6 +31,7 @@ from .models import (
     Follow,
     Guidelines,
     GuidelinesAcceptance,
+    HiddenPost,
     ModerationActionType,
     Mute,
     Notification,
@@ -271,6 +272,19 @@ def save_post(viewer, public_id):
 
 def unsave_post(viewer, public_id):
     SavedPost.objects.filter(user=viewer, post__public_id=public_id).delete()
+
+
+def hide_post(viewer, public_id):
+    """Keep another member's post out of this member's feed and Explore. Nobody is told."""
+    post = _viewable_post(viewer, public_id)
+    if post.author_id == viewer.pk:
+        raise FeedError("not_found", "Not found.", status=404)
+    HiddenPost.objects.get_or_create(user=viewer, post=post)
+    return post
+
+
+def unhide_post(viewer, public_id):
+    HiddenPost.objects.filter(user=viewer, post__public_id=public_id).delete()
 
 
 def mark_stories_seen(viewer, keys):
@@ -562,6 +576,7 @@ def erase_feed_data(user):
         FeedComment.objects.filter(author=user).delete()
         FeedLike.objects.filter(user=user).delete()
         SavedPost.objects.filter(user=user).delete()
+        HiddenPost.objects.filter(user=user).delete()
         StorySeen.objects.filter(user=user).delete()
         Follow.objects.filter(follower=user).delete()
         Follow.objects.filter(followed=user).delete()
@@ -645,6 +660,10 @@ def build_export(export):
             "saved": [
                 {"post": saved.post.public_id, "created_at": _when(saved.created_at)}
                 for saved in SavedPost.objects.filter(user=user).select_related("post")
+            ],
+            "hidden": [
+                {"post": hidden.post.public_id, "created_at": _when(hidden.created_at)}
+                for hidden in HiddenPost.objects.filter(user=user).select_related("post")
             ],
             "stories_seen": [
                 {"story": seen.key, "seen_at": _when(seen.seen_at)}

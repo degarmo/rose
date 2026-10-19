@@ -1,9 +1,8 @@
-import { Banknote, CircleCheck, Globe, Mail, MapPin, type LucideIcon } from 'lucide-react'
+import { Banknote, Globe, Mail, MapPin, type LucideIcon } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { Copy, CopyHeading } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
-import { Reveal } from '@/components/content/Reveal'
 import { ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { Button, Card, Checkbox, FormField, Input, Section, useToast } from '@/components/ui'
@@ -15,6 +14,7 @@ import { usePageContent, type PageCopy } from '@/lib/pageContent'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { amountError, parseAmount } from './donationAmount'
+import { SentPanel } from './SentPanel'
 
 const CUSTOM = 'custom'
 
@@ -56,18 +56,17 @@ export function DonationForm({ options }: { options: DonationOptions }) {
   }
 
   return (
-    <form noValidate onSubmit={submit} className="flex flex-col gap-6" aria-label="Give online">
+    <form noValidate onSubmit={submit} className="flex flex-col gap-5" aria-label="Give online">
       <fieldset>
-        <legend className="mb-3 text-sm font-medium text-fg">Amount</legend>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <legend className="mb-2 text-sm font-semibold text-fg">Amount</legend>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[...options.presets_cents.map(String), CUSTOM].map((value) => (
             <label
               key={value}
               className={cn(
-                'flex min-h-12 cursor-pointer items-center justify-center rounded-full border px-4 text-sm font-medium transition-colors focus-within:ring-2 focus-within:ring-highlight',
-                choice === value
-                  ? 'border-highlight bg-primary text-on-primary'
-                  : 'border-border-strong text-fg hover:border-highlight',
+                'flex h-[72px] cursor-pointer items-center justify-center rounded-card border-[1.5px] font-display text-fg transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-link',
+                value === CUSTOM ? 'text-[1.375rem]' : 'text-[1.75rem]',
+                choice === value ? 'border-primary bg-tier-selected' : 'border-border bg-canvas hover:border-fg-muted',
               )}
             >
               <input
@@ -103,7 +102,7 @@ export function DonationForm({ options }: { options: DonationOptions }) {
           )}
         </FormField>
       )}
-      {choice !== CUSTOM && error && <p className="text-sm text-danger">{error}</p>}
+      {choice !== CUSTOM && error && <p className="text-[0.8125rem] text-danger">{error}</p>}
       <FormField label="Email for an acknowledgement" hint="Only if you would like one for your records. We forget it once it is sent.">
         {(field) => (
           <Input
@@ -133,25 +132,28 @@ export function DonationForm({ options }: { options: DonationOptions }) {
           <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(event) => setWebsite(event.target.value)} />
         </label>
       </div>
-      <Button type="submit" size="lg" disabled={busy} aria-busy={busy} className="self-start">
-        {busy ? 'Opening checkout' : cents && !amountError(cents, options.minimum_cents, options.maximum_cents) ? `Give ${formatMoney(cents)}` : 'Give'}
-      </Button>
-      <p className="text-sm text-fg-subtle">You finish on a secure checkout page. Card details never touch this site.</p>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="submit" size="lg" disabled={busy} aria-busy={busy}>
+          {busy ? 'Opening checkout' : cents && !amountError(cents, options.minimum_cents, options.maximum_cents) ? `Give ${formatMoney(cents)}` : 'Give'}
+        </Button>
+        <p className="text-[0.8125rem] text-fg-muted">You finish on a secure checkout page. Card details never touch this site.</p>
+      </div>
     </form>
   )
 }
 
 function Way({ icon: Icon, copy, k, children }: { icon: LucideIcon; copy: PageCopy; k: string; children?: ReactNode }) {
   return (
-    <Card className="h-full p-8">
-      <Icon aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-      <Copy copy={copy} k={`${k}.title`} as="h3" className="mt-6 text-2xl text-fg" />
-      <Copy copy={copy} k={`${k}.body`} lines={3} className="mt-3 leading-relaxed text-fg-muted" />
+    <Card className="h-full p-5 lg:p-6">
+      <Icon aria-hidden="true" className="size-6 text-link" strokeWidth={1.5} />
+      <Copy copy={copy} k={`${k}.title`} as="h3" className="mt-4 text-xl text-fg lg:text-card-title" />
+      <Copy copy={copy} k={`${k}.body`} lines={3} className="mt-2 text-sm text-fg-muted" />
       {children}
     </Card>
   )
 }
 
+/** Donate (no design: amounts chosen like the Join tiers, the thanks like Contact's confirmation). */
 export function DonatePage() {
   useDocumentMeta({
     title: 'Donate',
@@ -166,26 +168,20 @@ export function DonatePage() {
     <>
       <PageHero copy={copy} image="home-closing.webp" placeholder="rose">
         {options.status === 'success' && options.data.nonprofit_status && (
-          <p className="mt-6 text-sm text-fg-subtle">{options.data.nonprofit_status}</p>
+          <p className="text-sm text-fg-muted">{options.data.nonprofit_status}</p>
         )}
       </PageHero>
 
       {params.get('thanks') === '1' && (
         <Section width="narrow" spacing="tight" aria-label="Thank you">
-          <div role="status" className="flex gap-4 rounded-2xl border border-success/40 bg-surface p-6">
-            <CircleCheck aria-hidden="true" className="size-8 shrink-0 text-success" strokeWidth={1.5} />
-            <div>
-              <h2 className="text-3xl text-fg">Thank you for your gift.</h2>
-              <p className="mt-2 text-fg-muted">
-                It is recorded once the payment provider confirms it. If you asked for an acknowledgement, it will arrive by email.
-              </p>
-            </div>
-          </div>
+          <SentPanel title="Thank you for your gift.">
+            It is recorded once the payment provider confirms it. If you asked for an acknowledgement, it will arrive by email.
+          </SentPanel>
         </Section>
       )}
       {params.get('cancelled') === '1' && (
         <Section width="narrow" spacing="tight" aria-label="Checkout cancelled">
-          <p role="status" className="rounded-2xl border border-border bg-surface p-5 text-fg-muted">
+          <p role="status" className="rounded-card bg-blush p-5 text-center text-sm text-fg-muted-tint">
             Checkout was cancelled and nothing was charged.
           </p>
         </Section>
@@ -193,32 +189,32 @@ export function DonatePage() {
 
       <Section aria-labelledby="funds">
         <CopyHeading copy={copy} prefix="funds" id="funds" />
-        <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          {funds.map((n, index) => (
-            <Reveal as="li" key={n} delay={(index % 4) as 0 | 1 | 2 | 3} className="border-t border-border pt-6">
+        <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:mt-10 lg:grid-cols-5">
+          {funds.map((n) => (
+            <li key={n} className="border-t border-border pt-5">
               <Copy copy={copy} k={`funds.${n}.title`} as="h3" className="text-xl text-fg" />
-              <Copy copy={copy} k={`funds.${n}.body`} lines={2} className="mt-2 text-sm leading-relaxed text-fg-muted" />
-            </Reveal>
+              <Copy copy={copy} k={`funds.${n}.body`} lines={2} className="mt-2 text-sm text-fg-muted" />
+            </li>
           ))}
         </ul>
       </Section>
 
       <Section tone="surface" aria-labelledby="ways">
         <CopyHeading copy={copy} prefix="ways" id="ways" />
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-3 lg:mt-10 lg:gap-6">
           <Way icon={Banknote} copy={copy} k="ways.door" />
           <Way icon={Mail} copy={copy} k="ways.check">
             {options.status === 'success' && (options.data.check_payable_to || options.data.mailing_address) && (
-              <dl className="mt-5 space-y-3 text-sm">
+              <dl className="mt-4 space-y-3 text-sm">
                 {options.data.check_payable_to && (
                   <div>
-                    <dt className="text-fg-subtle">Payable to</dt>
+                    <dt className="text-fg-muted">Payable to</dt>
                     <dd className="text-fg">{options.data.check_payable_to}</dd>
                   </div>
                 )}
                 {options.data.mailing_address && (
                   <div>
-                    <dt className="flex items-center gap-2 text-fg-subtle">
+                    <dt className="flex items-center gap-2 text-fg-muted">
                       <MapPin aria-hidden="true" className="size-3.5" />
                       Mail to
                     </dt>
@@ -232,20 +228,22 @@ export function DonatePage() {
         </div>
       </Section>
 
-      <Section width="narrow" aria-labelledby="give">
-        <CopyHeading copy={copy} prefix="form" id="give" />
-        <Card className="mt-10 p-6 sm:p-10">
-          {options.status === 'loading' && <LoadingState label="Loading ways to give" />}
-          {options.status === 'error' && <ErrorState title="Giving options did not load" onRetry={options.retry} />}
-          {options.status === 'success' &&
-            (options.data.online ? (
-              <DonationForm options={options.data} />
-            ) : (
-              <p className="text-fg-muted">
-                Online giving is not open yet. You can give in person at the door or by check, as above.
-              </p>
-            ))}
-        </Card>
+      <Section aria-labelledby="give">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-24">
+          <CopyHeading copy={copy} prefix="form" id="give" />
+          <div className="w-full lg:max-w-[520px]">
+            {options.status === 'loading' && <LoadingState label="Loading ways to give" />}
+            {options.status === 'error' && <ErrorState title="Giving options did not load" onRetry={options.retry} />}
+            {options.status === 'success' &&
+              (options.data.online ? (
+                <DonationForm options={options.data} />
+              ) : (
+                <p className="rounded-card bg-surface p-5 text-fg-muted">
+                  Online giving is not open yet. You can give in person at the door or by check, as above.
+                </p>
+              ))}
+          </div>
+        </div>
       </Section>
     </>
   )

@@ -1,10 +1,11 @@
-import { CircleCheck } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { Button, ButtonLink, FormField, Input } from '@/components/ui'
+import { Link } from 'react-router'
+import { Button, FormField, Input } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
 import { fragmentParams } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
-import { AccountShell } from './AccountShell'
+import { SENT_ACTION, SentPanel } from '../SentPanel'
+import { AccountShell, FORM_ALERT } from './AccountShell'
 import { passwordError } from './validation'
 
 export function ResetPasswordPage() {
@@ -48,17 +49,19 @@ export function ResetPasswordPage() {
   return (
     <AccountShell title="Choose a new password">
       {done ? (
-        <div role="status">
-          <CircleCheck aria-hidden="true" className="size-8 text-success" />
-          <p className="mt-4 text-fg-muted">Your password has been changed.</p>
-          <ButtonLink to="/account/login" size="lg" className="mt-8 w-full">
-            Log in
-          </ButtonLink>
-        </div>
+        <SentPanel
+          actions={
+            <Link to="/account/login" className={SENT_ACTION}>
+              Log in
+            </Link>
+          }
+        >
+          Your password has been changed.
+        </SentPanel>
       ) : (
         <form noValidate onSubmit={submit} className="flex flex-col gap-5" aria-label="Choose a new password">
           {formError && (
-            <p role="alert" className="rounded-xl border border-danger/50 p-3 text-sm text-danger">
+            <p role="alert" className={FORM_ALERT}>
               {formError}
             </p>
           )}
@@ -72,7 +75,7 @@ export function ResetPasswordPage() {
               <Input {...field} name="confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
             )}
           </FormField>
-          <Button type="submit" size="lg" disabled={submitting || !uid || !token} aria-busy={submitting}>
+          <Button type="submit" size="lg" disabled={submitting || !uid || !token} aria-busy={submitting} className="self-start">
             {submitting ? 'Saving' : 'Save new password'}
           </Button>
         </form>

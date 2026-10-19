@@ -12,7 +12,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
   return { ...actual, api: { ...actual.api, subscribe } }
 })
 
-const field = () => screen.getByRole('textbox', { name: /Occasional news/ })
+const field = () => screen.getByRole('textbox', { name: /Occasional email/ })
 
 beforeEach(() => {
   subscribe.mockReset()
@@ -22,8 +22,8 @@ describe('SubscribeForm', () => {
   it('checks the address before sending', async () => {
     renderWithProviders(<SubscribeForm />)
     await userEvent.type(field(), 'not-an-address')
-    await userEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
-    expect(screen.getByText('Enter a full email address.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+    expect(screen.getByText('Enter a full email address, like name@example.com.')).toBeInTheDocument()
     expect(field()).toHaveAttribute('aria-invalid', 'true')
     expect(subscribe).not.toHaveBeenCalled()
   })
@@ -33,7 +33,7 @@ describe('SubscribeForm', () => {
     subscribe.mockReturnValue(new Promise((r) => (resolve = r)))
     renderWithProviders(<SubscribeForm />)
     await userEvent.type(field(), 'reader@example.org')
-    await userEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sign up' }))
     expect(screen.getByRole('button', { name: 'Sending' })).toBeDisabled()
     resolve({ detail: 'Check your inbox for a link to confirm.' })
     expect(await screen.findByText('Check your inbox for a link to confirm.')).toBeInTheDocument()
@@ -47,7 +47,7 @@ describe('SubscribeForm', () => {
     })
     renderWithProviders(<SubscribeForm />)
     await userEvent.type(field(), 'reader@example.org')
-    await userEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Sign up' }))
     expect(await screen.findByText('Too many attempts. Please try again later.')).toBeInTheDocument()
   })
 })

@@ -20,7 +20,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel, busy = fals
       title={title}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={onConfirm} disabled={busy || disabled} aria-busy={busy}>

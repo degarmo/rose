@@ -1,37 +1,122 @@
-import { ChevronRight, ExternalLink } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { Ban, Check, ChevronRight, Download, EyeOff, Pause, Search, Sun, Trash2, User, UserCog, type LucideIcon } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
+import { PhoneBar } from '@/components/members/app/Nav'
+import { ICON } from '@/components/members/app/ui'
 import { ConfirmDialog } from '@/components/members/ConfirmDialog'
 import { useMembers } from '@/components/members/membersContext'
 import { BlockedList, EditProfileDialog } from '@/components/members/ProfileSettings'
-import { Toggle } from '@/components/members/Toggle'
-import { FormField, Input, useToast } from '@/components/ui'
+import { FormField, Input, Switch, useToast } from '@/components/ui'
 import type { Appearance } from '@/lib/api'
 import { chooseAppearance } from '@/lib/appearance'
 import { cn } from '@/lib/cn'
 import { feedAccount, members } from '@/lib/membersApi'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+/** One settings row (design: 56px, a 24px icon, the label at 600 over an optional 12px line). */
+const settingsRow = 'flex min-h-14 w-full items-center gap-4 border-b border-border py-2 text-left'
+
+function RowText({ label, sub, danger = false }: { label: ReactNode; sub?: ReactNode; danger?: boolean }) {
   return (
-    <section aria-label={title} className="border-b border-border py-4 last:border-b-0">
-      <h2 className="px-4 pb-2 text-base font-semibold text-fg">{title}</h2>
-      <div className="flex flex-col">{children}</div>
-    </section>
+    <span className="min-w-0 flex-1">
+      <span className={cn('block font-semibold', danger ? 'text-danger' : 'text-fg')}>{label}</span>
+      {sub && <span className="block text-meta text-fg-muted">{sub}</span>}
+    </span>
   )
 }
 
-const row = 'flex min-h-12 w-full items-center gap-3 rounded-lg px-4 text-left hover:bg-surface'
+function RowIcon({ icon: Icon, danger = false }: { icon: LucideIcon; danger?: boolean }) {
+  return <Icon aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} className={cn('shrink-0', danger ? 'text-danger' : 'text-fg')} />
+}
 
-/** Everything about how you appear and what the app does with your data, as one list. */
+const chevron = <ChevronRight aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} className="shrink-0 text-fg-muted" />
+
+/** A row that opens something: icon, label, an optional value, then a chevron. */
+function ActionRowButton({ icon, label, sub, value, danger, onClick, disabled }: { icon: LucideIcon; label: string; sub?: ReactNode; value?: string; danger?: boolean; onClick: () => void; disabled?: boolean }) {
+  return (
+    <li>
+      <button type="button" className={cn(settingsRow, 'hover:bg-surface disabled:cursor-default disabled:hover:bg-transparent')} onClick={onClick} disabled={disabled}>
+        <RowIcon icon={icon} danger={danger} />
+        <RowText label={label} sub={sub} danger={danger} />
+        {value && <span className="shrink-0 text-fg-muted">{value}</span>}
+        {chevron}
+      </button>
+    </li>
+  )
+}
+
+/** A row with a switch on the right; the words are its label. */
+function SwitchRow({ icon, label, sub, checked, disabled, onChange }: { icon: LucideIcon; label: string; sub: string; checked: boolean; disabled: boolean; onChange: (value: boolean) => void }) {
+  const id = useId()
+  return (
+    <li className={settingsRow}>
+      <RowIcon icon={icon} />
+      <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
+        <RowText label={label} sub={sub} />
+      </label>
+      <Switch id={id} checked={checked} disabled={disabled} onChange={onChange} />
+    </li>
+  )
+}
+
+/** A small sheet with Light and Dark, the current one ticked; choosing applies at once. */
+function AppearanceChooser({ open, value, onClose, onChoose }: { open: boolean; value: Appearance; onClose: () => void; onChoose: (value: Appearance) => void }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
+  useEffect(() => {
+    const dialog = ref.current
+    if (!dialog) return
+    if (open && !dialog.open) dialog.showModal()
+    if (!open && dialog.open) dialog.close()
+  }, [open])
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === ref.current) onClose()
+      }}
+      className="m-0 h-dvh max-h-none w-screen max-w-none items-center justify-center bg-transparent p-4 open:flex"
+    >
+      <div className="w-full max-w-[400px] overflow-hidden rounded-sheet bg-canvas text-fg shadow-sheet">
+        <h2 id={titleId} className="flex h-12 items-center justify-center border-b border-border font-semibold">
+          Appearance
+        </h2>
+        <div role="radiogroup" aria-labelledby={titleId} className="divide-y divide-border">
+          {(['light', 'dark'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={value === option}
+              onClick={() => onChoose(option)}
+              className="flex min-h-12 w-full items-center gap-3 px-4 text-left hover:bg-surface"
+            >
+              <span className="flex-1">{option === 'light' ? 'Light' : 'Dark'}</span>
+              {value === option && <Check aria-hidden="true" size={20} strokeWidth={ICON.stroke} className="text-link" />}
+            </button>
+          ))}
+        </div>
+        <p className="border-t border-border px-4 py-3 text-meta text-fg-muted">Applies to the website too, on every device you sign in on.</p>
+        <button type="button" onClick={onClose} className="flex min-h-12 w-full items-center justify-center border-t border-border hover:bg-surface">
+          Cancel
+        </button>
+      </div>
+    </dialog>
+  )
+}
+
+/** Settings (design: "Settings"): one list of 56px rows, then your blocks and the website account. */
 export function SettingsPage() {
   useDocumentMeta({ title: 'Settings', noindex: true })
   const auth = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
   const { me, setMe } = useMembers()
-  const [dialog, setDialog] = useState<'edit' | 'step-away' | 'erase' | null>(null)
+  const [dialog, setDialog] = useState<'edit' | 'appearance' | 'step-away' | 'erase' | null>(null)
+  const blockedId = useId()
   const [busy, setBusy] = useState(false)
   const [exportAsked, setExportAsked] = useState(false)
   const [confirmName, setConfirmName] = useState('')
@@ -68,97 +153,66 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[600px] pb-10 pt-4 md:pt-8">
-      <h1 className="px-4 pb-2 text-base font-semibold text-fg md:text-2xl">Settings</h1>
-
-      <Group title="Your profile">
-        <button type="button" className={row} onClick={() => setDialog('edit')}>
-          <span className="flex-1">Edit profile</span>
-          <ChevronRight aria-hidden="true" className="size-4 text-fg-muted" />
-        </button>
-      </Group>
-
-      <Group title="Appearance">
-        <div role="radiogroup" aria-label="Appearance" className="flex gap-2 px-4 py-2">
-          {(['light', 'dark'] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={appearance === value}
-              onClick={() => void setAppearance(value)}
-              className={cn(
-                'h-8 flex-1 rounded-lg border text-sm font-semibold transition-colors duration-150',
-                appearance === value ? 'border-fg bg-fg text-canvas' : 'border-border text-fg hover:bg-surface',
-              )}
-            >
-              {value === 'light' ? 'Light' : 'Dark'}
-            </button>
-          ))}
-        </div>
-        <p className="px-4 text-xs text-fg-muted">Applies to the website too, on every device you sign in on.</p>
-      </Group>
-
-      <Group title="What you see">
-        <div className="px-4 py-2">
-          <Toggle
+    <>
+      <PhoneBar back title={<h1 className="truncate text-base font-semibold">Settings</h1>} />
+      <div className="mx-auto w-full max-w-[632px] px-4 pb-10 md:pt-10">
+        <h1 className="hidden pb-6 text-xl font-semibold text-fg md:block">Settings</h1>
+        <ul>
+          <ActionRowButton icon={User} label="Edit profile" onClick={() => setDialog('edit')} />
+          <ActionRowButton icon={Sun} label="Appearance" value={appearance === 'dark' ? 'Dark' : 'Light'} onClick={() => setDialog('appearance')} />
+          <SwitchRow
+            icon={EyeOff}
             label="Always show sensitive posts"
-            hint="Skip the blur on posts marked sensitive."
+            sub="Skip the blur and View step"
             checked={me.always_show_sensitive}
             disabled={busy}
             onChange={(value) => void update({ always_show_sensitive: value })}
           />
-        </div>
-      </Group>
-
-      <Group title="Who can find you">
-        <div className="px-4 py-2">
-          <Toggle
-            label="Show me in search"
-            hint="When off, people can only find you through your posts and comments."
-            checked={!me.hide_from_directory}
+          <SwitchRow
+            icon={Search}
+            label="Hide me from the member directory"
+            sub="You can still post and comment"
+            checked={me.hide_from_directory}
             disabled={busy}
-            onChange={(value) => void update({ hide_from_directory: !value })}
+            onChange={(value) => void update({ hide_from_directory: value })}
           />
-        </div>
-      </Group>
-
-      <Group title="Blocked">
-        <div className="px-4 py-2">
+          <ActionRowButton icon={Pause} label="Step away from the feed" sub="Pause your feed profile for a while" onClick={() => setDialog('step-away')} />
+          <ActionRowButton
+            icon={Download}
+            label="Export my data"
+            sub={exportAsked ? 'Your copy is being prepared. Watch your inbox.' : undefined}
+            disabled={busy || exportAsked}
+            onClick={() => void act(feedAccount.requestExport, 'We will email you a link shortly', () => setExportAsked(true))}
+          />
+          <ActionRowButton icon={Trash2} label="Leave and erase" sub="Permanently delete everything you shared" danger onClick={() => setDialog('erase')} />
+        </ul>
+        <section aria-labelledby={blockedId}>
+          <div className={settingsRow}>
+            <RowIcon icon={Ban} />
+            <RowText label={<span id={blockedId}>Blocked</span>} sub="They are not told, and you can unblock any time" />
+          </div>
           <BlockedList />
-        </div>
-      </Group>
+        </section>
+        <ul>
+          <li>
+            <Link to="/account" className={cn(settingsRow, 'hover:bg-surface')}>
+              <RowIcon icon={UserCog} />
+              <RowText label="Your account on the website" />
+              {chevron}
+            </Link>
+          </li>
+        </ul>
+      </div>
 
-      <Group title="Your data">
-        <button type="button" className={row} onClick={() => setDialog('step-away')}>
-          <span className="flex-1">Step away from the feed</span>
-          <ChevronRight aria-hidden="true" className="size-4 text-fg-muted" />
-        </button>
-        <button
-          type="button"
-          className={row}
-          disabled={busy || exportAsked}
-          onClick={() => void act(feedAccount.requestExport, 'We will email you a link shortly', () => setExportAsked(true))}
-        >
-          <span className="flex-1">
-            Export my data
-            <span className="block text-xs text-fg-muted">
-              {exportAsked ? 'Your copy is being prepared. Watch your inbox.' : 'A zip of your profile, posts, comments, likes, saved posts and photos.'}
-            </span>
-          </span>
-        </button>
-        <button type="button" className={cn(row, 'text-danger')} onClick={() => setDialog('erase')}>
-          <span className="flex-1 font-semibold">Leave and erase</span>
-        </button>
-      </Group>
-
-      <Group title="Account">
-        <Link to="/account" className={row}>
-          <span className="flex-1">Your account on the website</span>
-          <ExternalLink aria-hidden="true" className="size-4 text-fg-muted" />
-        </Link>
-      </Group>
-
+      <AppearanceChooser
+        open={dialog === 'appearance'}
+        value={appearance}
+        onClose={() => setDialog((d) => (d === 'appearance' ? null : d))}
+        onChoose={(next) => {
+          setDialog(null)
+          void setAppearance(next)
+        }}
+      />
       <EditProfileDialog open={dialog === 'edit'} onClose={() => setDialog(null)} />
       <ConfirmDialog
         open={dialog === 'step-away'}
@@ -193,6 +247,6 @@ export function SettingsPage() {
           {(field) => <Input {...field} autoComplete="off" spellCheck={false} value={confirmName} onChange={(e) => setConfirmName(e.target.value)} />}
         </FormField>
       </ConfirmDialog>
-    </div>
+    </>
   )
 }

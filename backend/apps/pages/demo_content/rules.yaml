@@ -4,7 +4,7 @@ page: rules
 copy:
   hero:
     eyebrow: House rules
-    title: The agreements that keep every evening good.
+    title: House rules
     lede: Short, specific and the same for everyone, every night.
   intro: Placeholder rules for development. The club's own rules replace these before launch.
   rules:

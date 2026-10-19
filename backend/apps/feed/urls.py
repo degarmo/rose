@@ -15,6 +15,7 @@ urlpatterns = [
     path("posts/<str:public_id>/", views.PostDetailView.as_view(), name="feed-post"),
     path("posts/<str:public_id>/like/", views.PostLikeView.as_view(), name="feed-post-like"),
     path("posts/<str:public_id>/save/", views.PostSaveView.as_view(), name="feed-post-save"),
+    path("posts/<str:public_id>/hide/", views.PostHideView.as_view(), name="feed-post-hide"),
     path(
         "posts/<str:public_id>/comments/",
         views.PostCommentsView.as_view(),

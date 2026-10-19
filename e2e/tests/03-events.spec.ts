@@ -11,6 +11,7 @@ test.describe('Events and RSVPs', () => {
     await expect(panel.getByText('You are going')).toBeVisible()
     await expect.poll(() => mailSubjects(data.feed.poster)).toContainEqual(expect.stringMatching(/^Your plans for /))
 
+    await panel.getByRole('button', { name: 'Change or cancel' }).click()
     await panel.getByRole('button', { name: 'Cancel my RSVP' }).click()
     await page.getByRole('dialog', { name: 'Cancel your RSVP?' }).getByRole('button', { name: 'Yes, cancel' }).click()
     await expect(panel.getByRole('button', { name: 'RSVP', exact: true })).toBeVisible()
@@ -30,6 +31,7 @@ test.describe('Events and RSVPs', () => {
     await second.getByRole('button', { name: 'Join the waitlist' }).click()
     await expect(second.getByText('You are on the waitlist').first()).toBeVisible()
 
+    await first.getByRole('button', { name: 'Change or cancel' }).click()
     await first.getByRole('button', { name: 'Cancel my RSVP' }).click()
     await first.getByRole('dialog', { name: 'Cancel your RSVP?' }).getByRole('button', { name: 'Yes, cancel' }).click()
 
@@ -46,13 +48,16 @@ test.describe('Events and RSVPs', () => {
     const data = fixtures().viewports[info.project.name]
     await confirmAge(page.context(), baseURL!)
     await page.goto(`/events/${data.events.members}`)
-    const paywall = page.getByTestId('paywall')
-    await expect(paywall.getByRole('link', { name: 'Log in' })).toBeVisible()
-    await expect(paywall.getByRole('link', { name: 'Create an account' })).toBeVisible()
+    const panel = page.getByRole('article', { name: 'RSVP' })
+    await expect(panel.getByRole('link', { name: 'Join to RSVP' })).toBeVisible()
+    await expect(panel.getByRole('link', { name: 'Log in' })).toBeVisible()
+    await expect(panel.getByRole('link', { name: 'Create an account' })).toHaveCount(0)
 
     await apiLogin(page, baseURL!, data.feed.friend, fixtures().password)
     await page.reload()
-    await expect(page.getByTestId('paywall').getByRole('link', { name: 'Become a member' })).toBeVisible()
+    await expect(panel.getByRole('link', { name: 'Join to RSVP' })).toBeVisible()
+    await expect(panel.getByRole('link', { name: 'Log in' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Become a member' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'RSVP', exact: true })).toHaveCount(0)
   })
 })

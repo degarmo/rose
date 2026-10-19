@@ -3,14 +3,11 @@ source_url: []
 page: staff
 copy:
   hero:
-    eyebrow: Our staff
-    title: The people who keep the lights on.
+    title: Our staff
     lede: Hosts, teachers and organisers, every one a volunteer, known here by the names they choose.
   team:
-    eyebrow: The team
     title: Ask for any of us at the door.
   roles:
-    eyebrow: Volunteer roles
     title: Where help goes.
     lede: Most staff began as volunteers. These are the teams you can join.
     1:
@@ -23,8 +20,7 @@ copy:
       title: Operations
       body: Keep the space clean, stocked, safe and in good repair.
   cta:
-    eyebrow: Join the team
-    title: Volunteers make the house.
+    title: Volunteers make the club.
     lede: Start with a few shifts. Many of our staff began exactly that way.
 staff:
   - slug: marlowe

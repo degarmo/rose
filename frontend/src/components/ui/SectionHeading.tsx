@@ -1,43 +1,31 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { cn } from '@/lib/cn'
 
 interface SectionHeadingProps {
-  eyebrow?: string
   title: ReactNode
+  /** A rose link on the right, like "All events". */
+  action?: { to: string; label: string }
   lede?: ReactNode
-  as?: 'h1' | 'h2' | 'h3'
-  align?: 'start' | 'center'
   id?: string
   className?: string
 }
 
-export function SectionHeading({
-  eyebrow,
-  title,
-  lede,
-  as: Heading = 'h2',
-  align = 'start',
-  id,
-  className,
-}: SectionHeadingProps) {
+/** A section title in Fraunces 300 (32px, 28 on phones), with an optional link at the end. */
+export function SectionHeading({ title, action, lede, id, className }: SectionHeadingProps) {
   return (
-    <header className={cn('max-w-2xl', align === 'center' && 'mx-auto text-center', className)}>
-      {eyebrow && (
-        <p className="mb-4 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-highlight">
-          <span aria-hidden="true" className={cn('h-px w-8 bg-highlight/70', align === 'center' && 'hidden')} />
-          {eyebrow}
-        </p>
-      )}
-      <Heading
-        id={id}
-        className={cn(
-          'text-fg',
-          Heading === 'h1' ? 'text-5xl leading-[1.05] sm:text-6xl lg:text-7xl' : 'text-4xl leading-tight sm:text-5xl',
+    <header className={cn('mb-4 lg:mb-8', className)}>
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 id={id} className="text-[1.75rem] font-light leading-[1.2] text-fg lg:text-h2">
+          {title}
+        </h2>
+        {action && (
+          <Link to={action.to} className="shrink-0 text-sm font-semibold text-link hover:text-primary-hover">
+            {action.label}
+          </Link>
         )}
-      >
-        {title}
-      </Heading>
-      {lede && <div className="mt-6 text-lg leading-relaxed text-fg-muted">{lede}</div>}
+      </div>
+      {lede && <div className="mt-2 max-w-[680px] text-fg-muted lg:text-lead">{lede}</div>}
     </header>
   )
 }

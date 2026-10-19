@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, Megaphone, X, type LucideIcon } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/cn'
 import { formatEventDate } from '@/lib/format'
@@ -6,39 +6,31 @@ import { members, type StoryGroup, type StoryItem } from '@/lib/membersApi'
 import { useAsync } from '@/lib/useAsync'
 import { SiteLink } from './PostCard'
 import { LeaveIcon, RoseMark } from './primitives'
-import { igButtonClasses } from './ui'
 
 const STORY_MS = 5000
-// 8px padding, the circle (64px on phones, 66px wider), 4px gap, a 16px label, 8px padding:
-// the tabs below sit 8px under the labels, and the loading placeholder is the same height.
-const TRAY_HEIGHT = 'h-[100px] md:h-[102px]'
+// The circle (64px), a 6px gap and an 18px label, with 8px above and 12px below on phones
+// and 8px below wider; the loading placeholder takes the same height.
+const TRAY_HEIGHT = 'h-[108px] md:h-24'
 
-const GROUP_ICONS: Record<string, LucideIcon> = {
-  tonight: CalendarDays,
-  'this-week': CalendarDays,
-  journal: BookOpen,
-  news: Megaphone,
+/** What fills a circle without a picture (design: Tonight oxblood, This week rose, Journal warm, News grey). */
+const GROUP_FILLS: Record<string, string> = {
+  tonight: 'bg-oxblood',
+  'this-week': 'wash-rose',
+  journal: 'wash-warm',
+  news: 'bg-control',
 }
 
 function reducedMotion() {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+/** Design: 64px with a 2px ring (rose unseen, grey seen) and 3px of page colour inside it. */
 function Circle({ group }: { group: StoryGroup }) {
-  const Icon = GROUP_ICONS[group.id] ?? CalendarDays
   const image = group.items.find((item) => item.image)?.image
   return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'inline-flex size-16 items-center justify-center rounded-full p-[3px] md:size-[66px]',
-        group.seen ? 'bg-border' : 'bg-primary',
-      )}
-    >
-      <span className="inline-flex size-full items-center justify-center rounded-full bg-canvas p-[2px]">
-        <span className="relative inline-flex size-full items-center justify-center overflow-hidden rounded-full bg-surface text-fg">
-          {image ? <img src={image.url} alt="" className="size-full object-cover" loading="lazy" /> : <Icon className="size-6" strokeWidth={1.75} />}
-        </span>
+    <span aria-hidden="true" className={cn('inline-flex size-16 rounded-full border-2 p-[3px]', group.seen ? 'border-border' : 'border-primary')}>
+      <span className={cn('relative inline-flex size-full overflow-hidden rounded-full', GROUP_FILLS[group.id] ?? 'bg-control')}>
+        {image && <img src={image.url} alt="" className="size-full object-cover" loading="lazy" />}
       </span>
     </span>
   )
@@ -58,12 +50,12 @@ export function StoriesTray() {
 
   return (
     <section aria-label="Stories" className={TRAY_HEIGHT}>
-      <ul className="flex gap-4 overflow-x-auto px-2 py-2 [scrollbar-width:none]">
+      <ul className="flex gap-3 overflow-x-auto px-4 pb-3 pt-2 [scrollbar-width:none] md:gap-3.5 md:px-0 md:pb-2 md:pt-0">
         {groups.map((group, index) => (
           <li key={group.id} className="shrink-0">
-            <button type="button" onClick={() => setOpen(index)} className="flex w-16 flex-col items-center gap-1 md:w-[66px]">
+            <button type="button" onClick={() => setOpen(index)} className="flex w-[72px] flex-col items-center gap-1.5">
               <Circle group={group} />
-              <span className="w-full truncate text-center text-xs text-fg">
+              <span className="w-full truncate text-center text-meta text-fg">
                 {group.title}
                 <span className="sr-only">{group.seen ? ', seen' : ', new'}</span>
               </span>
@@ -87,8 +79,7 @@ export function StoriesTray() {
 
 function itemMeta(item: StoryItem) {
   if (item.kind === 'event' && item.starts_at) return formatEventDate(item.starts_at)
-  if (item.kind === 'journal') return 'Journal'
-  return 'From the club'
+  return ''
 }
 
 /**
@@ -145,12 +136,24 @@ export function StoryViewer({ groups, start, onClose }: { groups: StoryGroup[]; 
           step(-1)
         }
       }}
-      className="m-0 h-dvh max-h-none w-screen max-w-none bg-[#1a1a1a] p-0 text-white open:flex open:items-center open:justify-center"
+      className="m-0 h-dvh max-h-none w-screen max-w-none bg-story p-0 text-white open:flex open:items-center open:justify-center"
     >
-      <div className="relative flex h-full w-full max-w-[min(100vw,calc(100dvh*9/16))] flex-col bg-[#262626] md:my-6 md:h-[calc(100dvh-3rem)] md:rounded-lg">
-        <ol className="absolute inset-x-2 top-2 z-10 flex gap-1" aria-hidden="true">
+      <span aria-hidden="true" className="absolute left-6 top-5 hidden font-serif text-[1.625rem] leading-none md:block">
+        Rose
+      </span>
+      <div className="absolute right-4 top-4 hidden items-center gap-1 md:flex">
+        <LeaveIcon className="text-white" />
+        <button type="button" onClick={onClose} className="inline-flex size-10 items-center justify-center">
+          <X aria-hidden="true" className="size-6" strokeWidth={1.8} />
+          <span className="sr-only">Close stories</span>
+        </button>
+      </div>
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-[repeating-linear-gradient(135deg,#3a2a2f_0_12px,#2e2226_12px_24px)] px-3 pb-9 pt-14 md:h-[min(782px,calc(100dvh-48px))] md:w-[440px] md:rounded-sheet md:pb-5 md:pt-3">
+        {item.image && <img src={item.image.url} alt={item.image.alt} className="absolute inset-0 size-full object-cover" />}
+        {item.image && <div aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-black/40" />}
+        <ol className="relative z-10 flex gap-1" aria-hidden="true">
           {group.items.map((entry, index) => (
-            <li key={entry.key} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/35">
+            <li key={entry.key} className="h-0.5 flex-1 overflow-hidden rounded-[1px] bg-white/35">
               <span
                 key={`${position.group}-${position.item}`}
                 className={cn(
@@ -164,54 +167,33 @@ export function StoryViewer({ groups, start, onClose }: { groups: StoryGroup[]; 
             </li>
           ))}
         </ol>
-        <header className="absolute inset-x-0 top-4 z-10 flex items-center gap-2 px-4 pt-2">
-          <span className="inline-flex size-8 items-center justify-center rounded-full bg-white">
-            <RoseMark className="size-7 text-sm" />
+        <header className="relative z-10 flex items-center gap-2.5 pt-3">
+          <RoseMark className="size-8 border border-white/50 text-sm" />
+          <span className="min-w-0 flex-1 truncate text-[0.8125rem]">
+            <span className="font-semibold">Rose</span> <span className="opacity-70">{[group.title, itemMeta(item)].filter(Boolean).join(' · ')}</span>
           </span>
-          <span className="text-sm font-semibold">{group.title}</span>
-          <span className="text-sm text-white/80">{itemMeta(item)}</span>
-          <LeaveIcon className="ml-auto text-white" />
-          <button type="button" onClick={onClose} className="inline-flex size-10 items-center justify-center">
-            <X aria-hidden="true" className="size-6" />
-            <span className="sr-only">Close stories</span>
-          </button>
+          <span className="flex items-center md:hidden">
+            <LeaveIcon className="text-white" />
+            <button type="button" onClick={onClose} className="inline-flex size-10 items-center justify-center">
+              <X aria-hidden="true" className="size-6" strokeWidth={1.8} />
+              <span className="sr-only">Close stories</span>
+            </button>
+          </span>
         </header>
 
-        <div className="relative flex min-h-0 flex-1 flex-col justify-end overflow-hidden">
-          {item.image && <img src={item.image.url} alt={item.image.alt} className="absolute inset-0 size-full object-cover" />}
-          <div className="relative bg-gradient-to-t from-black/85 via-black/60 to-transparent px-6 pb-24 pt-24">
-            <h2 className="text-2xl font-semibold leading-tight">{item.title}</h2>
-            {item.text && <p className="mt-2 text-[0.9375rem] leading-relaxed text-white/90">{item.text}</p>}
-          </div>
-          {/* Tap zones: the left third goes back, the rest goes forward. */}
-          <button type="button" onClick={() => step(-1)} className="absolute inset-y-16 left-0 w-1/3" tabIndex={-1} aria-hidden="true" />
-          <button type="button" onClick={() => step(1)} className="absolute inset-y-16 right-0 w-2/3" tabIndex={-1} aria-hidden="true" />
-        </div>
+        {/* Tap zones: the left third goes back, the rest goes forward. */}
+        <button type="button" onClick={() => step(-1)} className="absolute inset-y-24 left-0 z-0 w-1/3" tabIndex={-1} aria-hidden="true" />
+        <button type="button" onClick={() => step(1)} className="absolute inset-y-24 right-0 z-0 w-2/3" tabIndex={-1} aria-hidden="true" />
 
-        {item.link && (
-          <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center px-6">
-            <SiteLink to={item.link.url} className={igButtonClasses('primary', 'w-full max-w-xs')}>
+        <div className="pointer-events-none relative z-10 mt-auto flex flex-col">
+          <h2 className="mb-2 font-serif text-[2rem] font-normal leading-[1.1]">{item.title}</h2>
+          {item.text && <p className="mb-5 text-sm opacity-85">{item.text}</p>}
+          {item.link && (
+            <SiteLink to={item.link.url} className="pointer-events-auto flex h-11 items-center justify-center rounded-app bg-white font-semibold text-[#262626]">
               {item.link.label}
             </SiteLink>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => step(-1)}
-          className="absolute -left-12 top-1/2 hidden size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#262626] md:inline-flex"
-        >
-          <ChevronLeft aria-hidden="true" className="size-5" />
-          <span className="sr-only">Previous story</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => step(1)}
-          className="absolute -right-12 top-1/2 hidden size-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#262626] md:inline-flex"
-        >
-          <ChevronRight aria-hidden="true" className="size-5" />
-          <span className="sr-only">Next story</span>
-        </button>
+          )}
+        </div>
       </div>
     </dialog>
   )

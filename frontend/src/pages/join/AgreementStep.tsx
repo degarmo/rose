@@ -1,19 +1,24 @@
-import { ArrowLeft, ScrollText } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { RICH_TEXT } from '@/components/content/richText'
-import { Badge, Button, FormField, Input } from '@/components/ui'
+import { Button, CheckboxBox, FormField, Input } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import type { Agreement } from '@/lib/membershipApi'
+import type { Agreement, Tier } from '@/lib/membershipApi'
+import { BACK_BUTTON } from './joinParts'
+import { JoinProgress, TierSummary } from './JoinSteps'
 
 interface AgreementStepProps {
   agreement: Agreement
+  tier: Tier
   notice?: string
   onBack: () => void
   onSigned: (typedName: string) => void
 }
 
-/** Read to the end, tick the box, type a full name. Only staff ever see that name. */
-export function AgreementStep({ agreement, notice, onBack, onSigned }: AgreementStepProps) {
+/**
+ * Join step 2 (design: "Join step 2"): read to the end, tick the box, type a full name.
+ * Only staff ever see that name.
+ */
+export function AgreementStep({ agreement, tier, notice, onBack, onSigned }: AgreementStepProps) {
   const [read, setRead] = useState(false)
   const [agreed, setAgreed] = useState(false)
   const [name, setName] = useState('')
@@ -55,78 +60,91 @@ export function AgreementStep({ agreement, notice, onBack, onSigned }: Agreement
   const ready = read && agreed && name.trim().length >= 2
 
   return (
-    <form noValidate onSubmit={submit} aria-labelledby="agreement-heading" className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="agreement-heading" className="flex items-center gap-3 text-3xl text-fg">
-          <ScrollText aria-hidden="true" className="size-6 text-highlight" />
+    <form noValidate onSubmit={submit} aria-labelledby="agreement-heading" className="grid gap-5 lg:grid-cols-[420px_1fr] lg:gap-20">
+      <div className="flex flex-col gap-3 lg:gap-4">
+        <JoinProgress current={2} caption="Agreement" />
+        <h1 id="agreement-heading" className="text-[2rem] font-light leading-[1.05] text-fg lg:text-h2-lg">
           {agreement.title}
-        </h2>
-        {agreement.is_placeholder && <Badge tone="rose">Placeholder text</Badge>}
-      </div>
-      {notice && (
-        <p role="alert" className="rounded-xl border border-highlight/40 bg-canvas p-4 text-sm text-fg">
-          {notice}
-        </p>
-      )}
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        tabIndex={0}
-        role="region"
-        aria-label="Agreement text"
-        className="max-h-[50svh] overflow-y-auto rounded-2xl border border-border bg-surface-sunken p-5 focus-visible:outline-2 focus-visible:outline-highlight sm:p-7"
-      >
-        <div className={RICH_TEXT} dangerouslySetInnerHTML={{ __html: agreement.body }} />
-        <div ref={endRef} className="h-px" />
-      </div>
-      <p className={cn('text-sm', read ? 'text-success' : 'text-fg-subtle')} aria-live="polite">
-        {read ? 'You have reached the end.' : 'Scroll to the end to continue.'}
-      </p>
-
-      <div className="flex items-start gap-3">
-        <input
-          id={checkboxId}
-          type="checkbox"
-          checked={agreed}
-          disabled={!read}
-          onChange={(event) => setAgreed(event.target.checked)}
-          className="mt-1 size-5 accent-[var(--color-primary)] disabled:opacity-40"
-        />
-        <label htmlFor={checkboxId} className={cn('text-fg', !read && 'text-fg-subtle')}>
-          I have read and agree
-        </label>
+        </h1>
+        <p className="hidden text-base text-fg-muted lg:block">Please read the whole thing. Hosts will hold you to it.</p>
+        <div className="hidden lg:mt-2 lg:block">
+          <TierSummary tier={tier} />
+        </div>
       </div>
 
-      <FormField
-        label="Your full name"
-        hint="Typing your name signs the agreement. Only staff can see it, and it is never shown to other members."
-        error={error}
-        required
-      >
-        {(field) => (
-          <Input
-            {...field}
-            name="typed_name"
-            autoComplete="name"
-            maxLength={200}
-            value={name}
-            disabled={!agreed}
-            onChange={(e) => {
-              setName(e.target.value)
-              setError(undefined)
-            }}
-          />
+      <div className="flex min-w-0 flex-col gap-4 lg:gap-5">
+        {notice && (
+          <p role="alert" className="rounded-card bg-blush p-4 text-sm text-fg">
+            {notice}
+          </p>
         )}
-      </FormField>
+        <div className="relative">
+          <div
+            ref={scrollRef}
+            onScroll={onScroll}
+            tabIndex={0}
+            role="region"
+            aria-label="Agreement text"
+            className="h-[300px] overflow-y-auto rounded-card border border-border p-5 text-sm focus-visible:outline-2 focus-visible:outline-link lg:h-[360px] lg:px-8 lg:py-7 lg:text-[0.9375rem]"
+          >
+            <div className={cn(RICH_TEXT, 'space-y-4 [&_strong]:font-semibold')} dangerouslySetInnerHTML={{ __html: agreement.body }} />
+            <div ref={endRef} className="h-px" />
+          </div>
+          {/* The fade says "there is more"; it goes once the end has been reached. */}
+          <div
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute inset-x-px bottom-px h-[70px] rounded-b-card bg-linear-to-b from-transparent to-canvas transition-opacity lg:h-20',
+              read && 'opacity-0',
+            )}
+          />
+        </div>
+        <p className={cn('sr-only text-[0.8125rem] lg:not-sr-only', read ? 'text-link' : 'text-fg-muted')} aria-live="polite">
+          {read ? 'You have reached the end.' : 'Scroll to the end to enable the checkbox.'}
+        </p>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-        <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft aria-hidden="true" className="size-4" />
-          Back
-        </Button>
-        <Button type="submit" size="lg" disabled={!ready}>
-          Sign and continue
-        </Button>
+        <div className="flex items-start gap-3">
+          <CheckboxBox id={checkboxId} checked={agreed} disabled={!read} onChange={(event) => setAgreed(event.target.checked)} className="mt-px lg:mt-0.5" />
+          <label htmlFor={checkboxId} className={cn('text-sm lg:text-[0.9375rem]', read ? 'text-fg' : 'text-fg-muted')}>
+            I have read the agreement and I agree to it.
+          </label>
+        </div>
+
+        <div className="lg:max-w-[400px]">
+          <FormField
+            label="Type your full name to sign"
+            hint="Only staff can see it. It is never shown to other members."
+            error={error}
+            required
+            optionalLabel=""
+          >
+            {(field) => (
+              <Input
+                {...field}
+                name="typed_name"
+                autoComplete="name"
+                maxLength={200}
+                placeholder="Your name"
+                value={name}
+                disabled={!agreed}
+                className="font-display text-lg italic"
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setError(undefined)
+                }}
+              />
+            )}
+          </FormField>
+        </div>
+
+        <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <Button type="submit" size="lg" disabled={!ready}>
+            Agree and continue
+          </Button>
+          <button type="button" onClick={onBack} className={cn(BACK_BUTTON, 'self-center sm:self-auto')}>
+            Back
+          </button>
+        </div>
       </div>
     </form>
   )

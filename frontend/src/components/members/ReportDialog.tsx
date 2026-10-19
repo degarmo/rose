@@ -42,7 +42,7 @@ export function ReportDialog({ open, onClose, targetType, targetId }: ReportDial
       title={`Report this ${targetType}`}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={submit} disabled={busy} aria-busy={busy}>
@@ -55,7 +55,7 @@ export function ReportDialog({ open, onClose, targetType, targetId }: ReportDial
         <legend className="mb-3 text-sm text-fg-muted">What is wrong? Only our team sees this.</legend>
         <div className="flex flex-col gap-1">
           {REPORT_REASONS.map((option) => (
-            <label key={option.value} className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-fg hover:bg-surface-raised">
+            <label key={option.value} className="flex min-h-11 items-center gap-3 rounded-app px-2 text-fg hover:bg-surface">
               <input
                 type="radio"
                 name={`${groupId}-reason`}

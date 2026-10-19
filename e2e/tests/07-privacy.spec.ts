@@ -96,7 +96,7 @@ test.describe('Privacy and accessibility on every page @smoke', () => {
     const watch = watchRequests(page, baseURL!)
     const response = await visit(page, '/', watch)
     expectDocumentHeaders(response)
-    await expect(page.getByRole('button', { name: 'I am 18 or older' })).toBeVisible()
+    await expect(page.getByRole('button', { name: "I'm 18 or older" })).toBeVisible()
     expect(await seriousA11yViolations(page)).toEqual([])
   })
 

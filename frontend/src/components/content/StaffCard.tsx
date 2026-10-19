@@ -1,27 +1,24 @@
 import type { StaffProfile } from '@/lib/api'
 import { Card, ImageFrame } from '../ui'
 
-/** A volunteer's display name, role and (on the staff page) a few words. Never an email. */
+/**
+ * A volunteer's display name, role and (on the staff page) a few words, in the site's
+ * bordered card (laid out like the Education cards). Never an email.
+ */
 export function StaffCard({ person, compact = false }: { person: StaffProfile; compact?: boolean }) {
+  const Name = compact ? 'p' : 'h3'
   return (
-    <Card className="h-full items-start p-6">
+    <Card className="h-full items-start p-5 lg:p-6">
       {person.photo ? (
-        <ImageFrame remote={person.photo} alt={person.photo.alt} ratio="1/1" sizes="80px" placeholder="velvet" className="w-20 rounded-full" />
+        <ImageFrame remote={person.photo} alt={person.photo.alt} ratio="1/1" sizes="56px" placeholder="rose" className="w-14 rounded-full" />
       ) : (
-        <span
-          aria-hidden="true"
-          className="inline-flex size-14 items-center justify-center rounded-full border border-highlight/50 bg-primary-deep font-display text-2xl text-fg"
-        >
+        <span aria-hidden="true" className="inline-flex size-14 items-center justify-center rounded-full bg-tint font-display text-2xl text-tint-fg">
           {person.display_name[0]}
         </span>
       )}
-      {compact ? (
-        <p className="mt-5 font-display text-2xl text-fg">{person.display_name}</p>
-      ) : (
-        <h3 className="mt-5 font-display text-2xl text-fg">{person.display_name}</h3>
-      )}
-      <p className="mt-1 text-sm text-highlight">{person.role_title}</p>
-      {!compact && person.bio && <p className="mt-4 whitespace-pre-line leading-relaxed text-fg-muted">{person.bio}</p>}
+      <Name className="mt-4 font-display text-xl leading-[1.2] text-fg lg:text-card-title">{person.display_name}</Name>
+      <p className="mt-1 text-[0.8125rem] text-fg-muted lg:text-sm">{person.role_title}</p>
+      {!compact && person.bio && <p className="mt-3 whitespace-pre-line text-sm text-fg-muted">{person.bio}</p>}
     </Card>
   )
 }

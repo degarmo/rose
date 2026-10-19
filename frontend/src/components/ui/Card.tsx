@@ -2,19 +2,16 @@ import type { HTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
 interface CardProps extends HTMLAttributes<HTMLElement> {
-  interactive?: boolean
-  as?: 'div' | 'article'
+  as?: 'div' | 'article' | 'section'
+  /** `panel` is the larger 20px-cornered box (RSVP, forms); `card` is the 16px one. */
+  shape?: 'card' | 'panel'
 }
 
-export function Card({ interactive = false, as: Tag = 'div', className, ...rest }: CardProps) {
+/** A white box with a 1px border (design system: "Cards"). Callers set the padding. */
+export function Card({ as: Tag = 'div', shape = 'card', className, ...rest }: CardProps) {
   return (
     <Tag
-      className={cn(
-        'relative flex flex-col overflow-hidden rounded-card border border-border bg-surface',
-        interactive &&
-          'transition-[border-color,transform] duration-500 ease-velvet hover:-translate-y-0.5 hover:border-border-strong focus-within:border-border-strong',
-        className,
-      )}
+      className={cn('relative flex flex-col overflow-hidden border border-border bg-canvas', shape === 'card' ? 'rounded-card' : 'rounded-panel', className)}
       {...rest}
     />
   )

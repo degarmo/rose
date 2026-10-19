@@ -7,9 +7,9 @@ import type { FeedPost } from '@/lib/membersApi'
 import { useCursorList, type CursorPage } from '@/lib/useCursorList'
 import { useMembers } from '../membersContext'
 import { useLatestPost } from './usePost'
-import { IgButton } from './primitives'
+import { AppButton } from './primitives'
 
-function Tile({ post, ids }: { post: FeedPost; ids: string[] }) {
+function Tile({ post, ids, shape }: { post: FeedPost; ids: string[]; shape: Shape }) {
   const { openPost } = useMembers()
   const latest = useLatestPost(post)
   if (!latest) return null
@@ -24,7 +24,7 @@ function Tile({ post, ids }: { post: FeedPost; ids: string[] }) {
           openPost(latest.id, ids)
         }}
         onContextMenu={(event) => event.preventDefault()}
-        className="group relative block aspect-[3/4] overflow-hidden bg-surface"
+        className={cn('group relative block overflow-hidden bg-surface', shape === 'square' ? 'aspect-square' : 'aspect-[3/4]')}
         aria-label={label}
       >
         {cover ? (
@@ -50,30 +50,34 @@ function Tile({ post, ids }: { post: FeedPost; ids: string[] }) {
   )
 }
 
+type Shape = 'portrait' | 'square'
+
 interface PostGridProps {
+  /** 3:4 tiles with 2px gaps (profiles), or square tiles with 4px gaps from 768px (Explore). */
+  shape?: Shape
   loader: (cursor: string | null) => Promise<CursorPage<FeedPost>>
   listKey: string
   empty: ReactNode
 }
 
-/** Three columns of 3:4 portrait tiles with 2px gaps; edge to edge on phones. */
-export function PostGrid({ loader, listKey, empty }: PostGridProps) {
+/** Three columns of tiles, edge to edge on phones (design: profile and Explore grids). */
+export function PostGrid({ loader, listKey, empty, shape = 'portrait' }: PostGridProps) {
   const { base, status, loadMore, retry, bindSentinel } = useCursorList(loader, listKey)
   const ids = base.map((post) => post.id)
   return (
     <div>
-      <ul className="grid grid-cols-3 gap-0.5">
+      <ul className={cn('grid grid-cols-3 gap-0.5', shape === 'square' && 'md:gap-1')}>
         {base.map((post) => (
-          <Tile key={post.id} post={post} ids={ids} />
+          <Tile key={post.id} post={post} ids={ids} shape={shape} />
         ))}
       </ul>
       <div ref={bindSentinel} className="mt-6 flex justify-center" aria-live="polite">
         {status === 'loading' && <LoadingState label="Loading posts" />}
         {status === 'error' && <ErrorState title="Posts did not load" onRetry={retry} />}
         {status === 'idle' && (
-          <IgButton variant="secondary" onClick={() => void loadMore()}>
+          <AppButton variant="secondary" onClick={() => void loadMore()}>
             Load more
-          </IgButton>
+          </AppButton>
         )}
         {status === 'done' && base.length === 0 && empty}
       </div>

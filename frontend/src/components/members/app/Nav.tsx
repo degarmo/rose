@@ -1,14 +1,14 @@
-import { Compass, Globe, Heart, House, LogOut, Menu, Moon, Search, Settings, SquarePlus, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Bell, Compass, Globe, House, LogOut, Menu, Moon, Search, Settings, SquarePlus, User, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
+import { Switch } from '@/components/ui'
 import { chooseAppearance } from '@/lib/appearance'
 import { cn } from '@/lib/cn'
 import type { Me } from '@/lib/membersApi'
 import { leaveNow, quickExitUrl } from '@/lib/quickExit'
-import { Avatar } from '../Avatar'
 import { profilePath } from './postUtils'
-import { RoseMark, Wordmark } from './primitives'
+import { Wordmark } from './primitives'
 import { ICON } from './ui'
 
 export type Panel = 'search' | 'notifications' | null
@@ -18,12 +18,16 @@ function leave(event: { preventDefault: () => void }) {
   leaveNow()
 }
 
-/** 48px rows with a 12px gap; labels from 1264px unless a panel has collapsed the sidebar. */
+/**
+ * Sidebar rows (design: 48px tall with 12px padding, 8px corners, the icon 16px from the
+ * label, #FAFAFA on hover). They sit 76px apart, as drawn. The labels show from 1264px
+ * unless a panel has collapsed the sidebar to its rail.
+ */
 function rowClass(collapsed: boolean, tone = 'text-fg') {
   return cn(
-    'group flex h-12 w-full items-center gap-3 rounded-lg p-3 text-[0.95rem] transition-colors duration-150 ease-out hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40',
+    'group my-3 flex h-12 w-full items-center gap-4 rounded-app p-3 transition-colors duration-150 ease-out hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40',
     tone,
-    !collapsed && 'wide:my-0.5',
+    collapsed && 'justify-center',
   )
 }
 
@@ -36,12 +40,12 @@ function Label({ children, active, collapsed }: { children: ReactNode; active: b
   )
 }
 
-function Glyph({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
+function Glyph({ icon: Icon, active, phone = false }: { icon: LucideIcon; active: boolean; phone?: boolean }) {
   return (
     <Icon
       aria-hidden="true"
       size={ICON.size}
-      strokeWidth={active ? ICON.activeStroke : ICON.stroke}
+      strokeWidth={active ? (phone ? ICON.tabStroke : ICON.activeStroke) : ICON.stroke}
       className="shrink-0 transition-transform duration-150 ease-out group-hover:scale-105"
     />
   )
@@ -59,7 +63,7 @@ function UnreadBadge({ count }: { count: number }) {
   )
 }
 
-/** Opens upwards from the bottom of the sidebar: Settings, Appearance, Website, Log out. */
+/** Opens upwards from the bottom of the sidebar: Settings, Dark appearance, Website, Log out. */
 function MoreMenu({ collapsed }: { collapsed: boolean }) {
   const auth = useAuth()
   const navigate = useNavigate()
@@ -90,7 +94,8 @@ function MoreMenu({ collapsed }: { collapsed: boolean }) {
     }
   }, [open])
 
-  const item = 'flex h-12 w-full items-center gap-3 rounded-lg px-4 text-left text-sm text-fg hover:bg-surface'
+  const item = 'flex h-12 w-full items-center gap-3 rounded-app px-4 text-left text-fg hover:bg-surface'
+  const onSettings = pathname === '/members/settings'
 
   return (
     <div ref={wrapper} className="relative">
@@ -103,13 +108,13 @@ function MoreMenu({ collapsed }: { collapsed: boolean }) {
         onClick={() => setOpenOn(open ? null : pathname)}
         className={rowClass(collapsed)}
       >
-        <Glyph icon={Menu} active={open} />
-        <Label active={open} collapsed={collapsed}>
+        <Glyph icon={Menu} active={open || onSettings} />
+        <Label active={open || onSettings} collapsed={collapsed}>
           More
         </Label>
       </button>
       {open && (
-        <div id={menuId} className="absolute bottom-full left-0 z-50 mb-2 w-[266px] rounded-2xl bg-surface-raised p-2 shadow-[var(--ui-shadow)] ring-1 ring-border">
+        <div id={menuId} className="absolute bottom-full left-0 z-50 mb-2 w-[266px] rounded-sheet border border-border bg-canvas p-2 shadow-sheet">
           <ul>
             <li>
               <Link to="/members/settings" className={item}>
@@ -118,22 +123,16 @@ function MoreMenu({ collapsed }: { collapsed: boolean }) {
               </Link>
             </li>
             <li>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={dark}
-                className={item}
-                onClick={() => {
-                  const next = dark ? 'light' : 'dark'
-                  void chooseAppearance(next, Boolean(auth.user)).then((session) => session && auth.applySession(session))
-                }}
-              >
+              <label className={cn(item, 'cursor-pointer')}>
                 <Moon aria-hidden="true" size={20} strokeWidth={ICON.stroke} />
                 <span className="flex-1">Dark appearance</span>
-                <span aria-hidden="true" className={cn('relative h-5 w-9 rounded-full transition-colors duration-150', dark ? 'bg-primary' : 'bg-border-strong')}>
-                  <span className={cn('absolute top-0.5 size-4 rounded-full bg-knob transition-transform duration-150', dark ? 'translate-x-[18px]' : 'translate-x-0.5')} />
-                </span>
-              </button>
+                <Switch
+                  checked={dark}
+                  onChange={(next) => {
+                    void chooseAppearance(next ? 'dark' : 'light', Boolean(auth.user)).then((session) => session && auth.applySession(session))
+                  }}
+                />
+              </label>
             </li>
             <li>
               <Link to="/" className={item}>
@@ -169,17 +168,19 @@ interface SidebarProps {
 }
 
 /**
- * Tablets and up: fixed on the left. 245px with labels from 1264px, a 72px icon rail
- * below that, and a rail whenever the Search or Notifications panel is open.
+ * Tablets and up (design: "Sidebar 245px, 1px right border"): fixed on the left. Labels
+ * and the wordmark from 1264px; below that, and whenever the Search or Notifications panel
+ * is open, a 72px icon rail with "R" and the active item outlined.
  */
 export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
   const collapsed = panel !== null
   const { pathname } = useLocation()
-  const link = (to: string, label: string, icon: LucideIcon, end = false) => (
+  const outline = (active: boolean) => active && 'border border-border wide:border-transparent'
+  const link = (to: string, label: string, icon: LucideIcon, activeFor?: (path: string) => boolean) => (
     <li>
-      <NavLink to={to} end={end} title={label} onClick={() => onPanel(null)} className={rowClass(collapsed)}>
+      <NavLink to={to} title={label} onClick={() => onPanel(null)} className={({ isActive }) => cn(rowClass(collapsed), outline((activeFor ? activeFor(pathname) : isActive) && !collapsed))}>
         {({ isActive }) => {
-          const active = isActive && !collapsed
+          const active = (activeFor ? activeFor(pathname) : isActive) && !collapsed
           return (
             <>
               <Glyph icon={icon} active={active} />
@@ -194,7 +195,13 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
   )
   const toggle = (kind: Exclude<Panel, null>, label: string, icon: LucideIcon, badge = 0) => (
     <li>
-      <button type="button" title={label} aria-expanded={panel === kind} onClick={() => onPanel(panel === kind ? null : kind)} className={rowClass(collapsed)}>
+      <button
+        type="button"
+        title={label}
+        aria-expanded={panel === kind}
+        onClick={() => onPanel(panel === kind ? null : kind)}
+        className={cn(rowClass(collapsed), panel === kind && 'border border-border')}
+      >
         <span className="relative">
           <Glyph icon={icon} active={panel === kind} />
           <UnreadBadge count={badge} />
@@ -207,63 +214,41 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
     </li>
   )
   const profile = profilePath(me.handle)
-  const onProfile = pathname.startsWith(profile)
 
   return (
     <nav
       aria-label="Members"
       className={cn(
-        'fixed inset-y-0 left-0 z-40 hidden w-[72px] flex-col border-r border-border bg-canvas px-3 pb-5 pt-2 transition-[width] duration-200 ease-out md:flex print:hidden',
+        'fixed inset-y-0 left-0 z-40 hidden w-[72px] flex-col overflow-y-auto border-r border-border bg-canvas px-3 pb-5 pt-2 transition-[width] duration-200 ease-out [scrollbar-width:none] md:flex print:hidden',
         !collapsed && 'wide:w-[245px]',
       )}
     >
-      <Link to="/members/feed" onClick={() => onPanel(null)} className="mb-5 flex h-[73px] items-center px-1 pt-3">
-        <Wordmark className={cn('hidden pl-2', !collapsed && 'wide:inline')} />
-        <span className={cn('flex size-12 items-center justify-center', !collapsed && 'wide:hidden')}>
-          <RoseMark className="size-8 text-base" />
+      <Link to="/members/feed" onClick={() => onPanel(null)} className={cn('flex shrink-0 items-center pb-5 pt-6', collapsed ? 'justify-center' : 'justify-center wide:justify-start wide:px-3')}>
+        <Wordmark className={cn('hidden', !collapsed && 'wide:inline')} />
+        <span aria-hidden="true" className={cn('font-serif text-2xl leading-none text-wordmark', !collapsed && 'wide:hidden')}>
+          R
         </span>
         <span className="sr-only">Home</span>
       </Link>
-      <ul className="flex flex-1 flex-col gap-0.5">
+      <ul className="flex flex-1 flex-col">
         {link('/members/feed', 'Home', House)}
         {toggle('search', 'Search', Search)}
         {link('/members/explore', 'Explore', Compass)}
-        {toggle('notifications', 'Notifications', Heart, me.unread_notifications)}
+        {toggle('notifications', 'Notifications', Bell, me.unread_notifications)}
         <li>
-          <button
-            type="button"
-            title={me.can_post ? 'Create' : 'Posting is paused on your account'}
-            disabled={!me.can_post}
-            onClick={onCreate}
-            className={rowClass(collapsed)}
-          >
+          <button type="button" title={me.can_post ? 'Create' : 'Posting is paused on your account'} disabled={!me.can_post} onClick={onCreate} className={rowClass(collapsed)}>
             <Glyph icon={SquarePlus} active={false} />
             <Label active={false} collapsed={collapsed}>
               Create
             </Label>
           </button>
         </li>
-        <li>
-          <NavLink to={profile} title="Profile" onClick={() => onPanel(null)} className={rowClass(collapsed)}>
-            <span aria-hidden="true" className={cn('inline-flex rounded-full', onProfile && !collapsed && 'ring-2 ring-fg ring-offset-1 ring-offset-canvas')}>
-              <Avatar member={me} size="xs" />
-            </span>
-            <Label active={onProfile && !collapsed} collapsed={collapsed}>
-              Profile
-            </Label>
-          </NavLink>
-        </li>
+        {link(profile, 'Profile', User, (path) => path.startsWith(profile))}
       </ul>
       <MoreMenu collapsed={collapsed} />
       {/* The quick exit is always the last item. */}
-      <a
-        href={quickExitUrl()}
-        onClick={leave}
-        rel="noreferrer"
-        title="Leave this site now. Shortcut: press Esc twice."
-        className={cn(rowClass(collapsed, 'text-danger'), 'font-semibold')}
-      >
-        <LogOut aria-hidden="true" size={ICON.size} strokeWidth={ICON.activeStroke} className="shrink-0" />
+      <a href={quickExitUrl()} onClick={leave} rel="noreferrer" title="Leave this site now. Shortcut: press Esc twice." className={cn(rowClass(collapsed, 'text-fg-muted'), 'mb-0')}>
+        <LogOut aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} className="shrink-0" />
         <span className={cn('hidden', !collapsed && 'wide:inline')}>Leave</span>
         <span className={cn('sr-only', !collapsed && 'wide:hidden')}>Leave</span>
         <span className="sr-only"> this site now. Shortcut: press Escape twice.</span>
@@ -272,53 +257,93 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
   )
 }
 
-/** Phones: a 44px top bar with the wordmark, Notifications and the quick exit. */
-export function TopBar({ me }: { me: Me }) {
+/** The quick exit as a muted icon, for the phone bars. */
+export function LeaveButton({ className }: { className?: string }) {
   return (
-    <header className="fixed inset-x-0 top-0 z-40 flex h-11 items-center justify-between border-b border-border bg-canvas px-4 md:hidden print:hidden">
-      <Link to="/members/feed" className="flex items-center">
-        <Wordmark className="text-2xl" />
-        <span className="sr-only">Home</span>
-      </Link>
-      <div className="-mr-2 flex items-center">
-        <NavLink to="/members/notifications" className="relative inline-flex size-11 items-center justify-center text-fg">
-          {({ isActive }) => (
-            <>
-              <span className="relative">
-                <Heart aria-hidden="true" size={ICON.size} strokeWidth={isActive ? ICON.activeStroke : ICON.stroke} />
-                <UnreadBadge count={me.unread_notifications} />
-              </span>
-              <span className="sr-only">
-                Notifications{me.unread_notifications ? `, ${me.unread_notifications} unread` : ''}
-              </span>
-            </>
-          )}
-        </NavLink>
-        <a
-          href={quickExitUrl()}
-          onClick={leave}
-          rel="noreferrer"
-          title="Leave this site now. Shortcut: press Esc twice."
-          className="inline-flex size-11 items-center justify-center text-danger"
-        >
-          <LogOut aria-hidden="true" size={ICON.size} strokeWidth={ICON.activeStroke} />
-          <span className="sr-only">Leave this site now. Shortcut: press Escape twice.</span>
-        </a>
+    <a href={quickExitUrl()} onClick={leave} rel="noreferrer" title="Leave this site now. Shortcut: press Esc twice." className={cn('inline-flex size-10 items-center justify-center text-fg-muted', className)}>
+      <LogOut aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} />
+      <span className="sr-only">Leave this site now. Shortcut: press Escape twice.</span>
+    </a>
+  )
+}
+
+/** Steps back in the app's history, or to the feed when the page was opened directly. */
+export function BackButton() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  return (
+    <button
+      type="button"
+      onClick={() => (location.key === 'default' ? navigate('/members/feed') : navigate(-1))}
+      className="-ml-2 inline-flex size-10 items-center justify-center text-fg"
+    >
+      <ArrowLeft aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} />
+      <span className="sr-only">Back</span>
+    </button>
+  )
+}
+
+interface PhoneBarProps {
+  /** The bar's title (16/600), or the wordmark when absent. */
+  title?: ReactNode
+  back?: boolean
+  /** Icons before the Leave control, which always comes last. */
+  actions?: ReactNode
+  /** A 1px rule under the bar (design: the Post page). */
+  rule?: boolean
+  className?: string
+}
+
+/**
+ * The phone top bar (design: 44px, 16px side padding): a back arrow or nothing, the title,
+ * then the page's own icons and the quick exit, 20px apart. Only below 768px.
+ */
+export function PhoneBar({ title, back = false, actions, rule = false, className }: PhoneBarProps) {
+  return (
+    <header className={cn('sticky top-0 z-30 flex h-11 items-center gap-3 bg-canvas px-4 md:hidden print:hidden', rule && 'border-b border-border', className)}>
+      {back && <BackButton />}
+      <div className="min-w-0 flex-1 truncate text-base font-semibold text-fg">{title}</div>
+      <div className="-mr-2 flex items-center gap-1">
+        {actions}
+        <LeaveButton />
       </div>
     </header>
   )
 }
 
-/** Phones: a 50px tab bar above the home indicator. */
+/** The feed's phone bar: the wordmark, Notifications and the quick exit. */
+export function HomeBar({ me }: { me: Me }) {
+  return (
+    <PhoneBar
+      title={
+        <Link to="/members/feed" className="flex items-center">
+          <Wordmark className="text-2xl" />
+          <span className="sr-only">Home</span>
+        </Link>
+      }
+      actions={
+        <NavLink to="/members/notifications" className="relative inline-flex size-10 items-center justify-center text-fg">
+          <span className="relative">
+            <Bell aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} />
+            <UnreadBadge count={me.unread_notifications} />
+          </span>
+          <span className="sr-only">Notifications{me.unread_notifications ? `, ${me.unread_notifications} unread` : ''}</span>
+        </NavLink>
+      }
+    />
+  )
+}
+
+/** Phones: a 50px tab bar (design: Home, Search, Create, Explore, Profile). */
 export function TabBar({ me, onCreate }: { me: Me; onCreate: () => void }) {
   const { pathname } = useLocation()
   const profile = profilePath(me.handle)
-  const tab = (to: string, label: string, icon: LucideIcon) => (
+  const tab = (to: string, label: string, icon: LucideIcon, active?: boolean) => (
     <li className="flex-1">
       <NavLink to={to} className="flex h-[50px] items-center justify-center text-fg">
         {({ isActive }) => (
           <>
-            <Glyph icon={icon} active={isActive} />
+            <Glyph icon={icon} active={active ?? isActive} phone />
             <span className="sr-only">{label}</span>
           </>
         )}
@@ -326,10 +351,7 @@ export function TabBar({ me, onCreate }: { me: Me; onCreate: () => void }) {
     </li>
   )
   return (
-    <nav
-      aria-label="Members"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
-    >
+    <nav aria-label="Members" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-canvas px-2 pb-[env(safe-area-inset-bottom)] md:hidden print:hidden">
       <ul className="flex">
         {tab('/members/feed', 'Home', House)}
         {tab('/members/search', 'Search', Search)}
@@ -341,19 +363,12 @@ export function TabBar({ me, onCreate }: { me: Me; onCreate: () => void }) {
             title={me.can_post ? 'Create' : 'Posting is paused on your account'}
             className="flex h-[50px] w-full items-center justify-center text-fg disabled:opacity-40"
           >
-            <Glyph icon={SquarePlus} active={false} />
+            <Glyph icon={SquarePlus} active={false} phone />
             <span className="sr-only">Create</span>
           </button>
         </li>
         {tab('/members/explore', 'Explore', Compass)}
-        <li className="flex-1">
-          <NavLink to={profile} className="flex h-[50px] items-center justify-center">
-            <span aria-hidden="true" className={cn('inline-flex rounded-full', pathname.startsWith(profile) && 'ring-2 ring-fg ring-offset-1 ring-offset-canvas')}>
-              <Avatar member={me} size="xs" />
-            </span>
-            <span className="sr-only">Profile</span>
-          </NavLink>
-        </li>
+        {tab(profile, 'Profile', User, pathname.startsWith(profile) || pathname === '/members/settings')}
       </ul>
     </nav>
   )

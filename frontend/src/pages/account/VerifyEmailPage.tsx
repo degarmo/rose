@@ -1,10 +1,12 @@
-import { CircleCheck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
+import { LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { ButtonLink } from '@/components/ui'
 import { api } from '@/lib/api'
 import { fragmentParams } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { SENT_ACTION, SentPanel } from '../SentPanel'
 import { AccountShell } from './AccountShell'
 
 export function VerifyEmailPage() {
@@ -34,20 +36,22 @@ export function VerifyEmailPage() {
 
   return (
     <AccountShell title="Confirm your email">
-      {status === 'working' && <p role="status" className="text-fg-muted">Confirming your address</p>}
+      {status === 'working' && <LoadingState label="Confirming your address" className="py-0" />}
       {status === 'done' && (
-        <div role="status">
-          <CircleCheck aria-hidden="true" className="size-8 text-success" />
-          <p className="mt-4 text-fg-muted">Your email is confirmed. You can RSVP to events now.</p>
-          <ButtonLink to={auth.user ? '/events' : '/account/login?next=/events'} size="lg" className="mt-8 w-full">
-            {auth.user ? 'See events' : 'Log in'}
-          </ButtonLink>
-        </div>
+        <SentPanel
+          actions={
+            <Link to={auth.user ? '/events' : '/account/login?next=/events'} className={SENT_ACTION}>
+              {auth.user ? 'See events' : 'Log in'}
+            </Link>
+          }
+        >
+          Your email is confirmed. You can RSVP to events now.
+        </SentPanel>
       )}
       {status === 'error' && (
-        <div role="alert">
-          <p className="text-fg-muted">{message}</p>
-          <ButtonLink to="/account" variant="ghost" className="mt-8 w-full">
+        <div role="alert" className="flex flex-col items-start gap-6">
+          <p className="w-full rounded-card bg-blush p-4 text-fg-muted-tint">{message}</p>
+          <ButtonLink to="/account" variant="secondary" size="lg">
             Go to my account
           </ButtonLink>
         </div>

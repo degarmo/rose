@@ -1,4 +1,4 @@
-import { ChevronDown, LogOut, User } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/cn'
@@ -30,15 +30,14 @@ export function AccountMenu({ className }: { className?: string }) {
     }
   }, [open])
 
-  if (auth.status === 'loading') return <span className={cn('inline-block w-24', className)} aria-hidden="true" />
+  if (auth.status === 'loading') return <span className={cn('inline-block w-12', className)} aria-hidden="true" />
 
   if (!auth.user) {
     return (
       <Link
         to={`/account/login?next=${encodeURIComponent(pathname)}`}
-        className={cn('inline-flex min-h-11 items-center gap-2 px-3 text-sm text-fg-muted hover:text-fg', className)}
+        className={cn('inline-flex min-h-10 items-center text-sm font-semibold text-fg hover:text-link', className)}
       >
-        <User aria-hidden="true" className="size-4" />
         Log in
       </Link>
     )
@@ -51,20 +50,18 @@ export function AccountMenu({ className }: { className?: string }) {
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpenOn(open ? null : pathname)}
-        className="inline-flex min-h-11 max-w-48 items-center gap-2 rounded-full px-3 text-sm text-fg hover:text-accent"
+        className="inline-flex min-h-10 max-w-48 items-center gap-1 text-sm font-semibold text-fg hover:text-link"
       >
-        <User aria-hidden="true" className="size-4 shrink-0 text-highlight" />
         <span className="truncate">{auth.user.display_name}</span>
-        <ChevronDown aria-hidden="true" className="size-4 shrink-0" />
+        <ChevronDown aria-hidden="true" strokeWidth={2} className="size-3.5 shrink-0" />
       </button>
       {open && (
         <ul
           id={menuId}
-          className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-xl border border-border-strong bg-surface-raised py-1 shadow-2xl shadow-black/50"
+          className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-sheet border border-border bg-canvas py-1 shadow-sheet"
         >
           <li>
-            <Link to="/account" className="flex min-h-11 items-center gap-2 px-4 text-sm text-fg hover:bg-primary-deep">
-              <User aria-hidden="true" className="size-4 text-highlight" />
+            <Link to="/account" className="flex min-h-11 items-center px-4 text-sm font-medium text-fg hover:bg-surface">
               My account
             </Link>
           </li>
@@ -76,9 +73,8 @@ export function AccountMenu({ className }: { className?: string }) {
                 await auth.logout()
                 navigate('/', { replace: true })
               }}
-              className="flex min-h-11 w-full items-center gap-2 px-4 text-sm text-fg hover:bg-primary-deep"
+              className="flex min-h-11 w-full items-center px-4 text-sm font-medium text-fg hover:bg-surface"
             >
-              <LogOut aria-hidden="true" className="size-4 text-highlight" />
               Log out
             </button>
           </li>

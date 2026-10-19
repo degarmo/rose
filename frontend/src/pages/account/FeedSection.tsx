@@ -61,11 +61,11 @@ function FeedControls() {
   }
 
   return (
-    <Card as="article" aria-labelledby="feed-heading" className="p-6 sm:p-8">
-      <h2 id="feed-heading" className="text-3xl text-fg">
+    <Card as="article" aria-labelledby="feed-heading" className="p-5 sm:p-8">
+      <h2 id="feed-heading" className="text-[1.375rem] leading-[1.2] text-fg lg:text-[1.625rem]">
         Member feed
       </h2>
-      <div className="mt-6 flex flex-col gap-6 text-fg-muted">
+      <div className="mt-5 flex flex-col gap-6 text-fg-muted">
         {account.banned && <p>Your access to the member feed has been withdrawn. You can still download or erase what you shared.</p>}
         {account.suspended_until && <p>Your feed access is paused until {formatEventDate(account.suspended_until)}.</p>}
 
@@ -77,7 +77,7 @@ function FeedControls() {
                 Open the feed
                 <ArrowRight aria-hidden="true" className="size-4" />
               </ButtonLink>
-              <Button variant="ghost" onClick={() => setDialog('step-away')}>
+              <Button variant="secondary" onClick={() => setDialog('step-away')}>
                 Step away from the feed
               </Button>
             </div>
@@ -100,10 +100,10 @@ function FeedControls() {
 
         {showData && (
           <div className="flex flex-col gap-3 border-t border-border pt-6">
-            <h3 className="font-display text-xl text-fg">Your data</h3>
+            <h3 className="font-sans text-sm font-semibold text-fg">Your data</h3>
             <p className="text-sm">Get a zip of your profile, posts, comments, likes and photos. We email a link that works once, for 24 hours.</p>
-            {account.export && !account.export.ready && <p className="text-sm text-highlight">Your copy is being prepared. Watch your inbox.</p>}
-            <Button variant="ghost" className="self-start" disabled={busy || Boolean(account.export && !account.export.ready)} onClick={() => void act(feedAccount.requestExport, 'We will email you a link shortly')}>
+            {account.export && !account.export.ready && <p className="text-sm text-link">Your copy is being prepared. Watch your inbox.</p>}
+            <Button variant="secondary" className="self-start" disabled={busy || Boolean(account.export && !account.export.ready)} onClick={() => void act(feedAccount.requestExport, 'We will email you a link shortly')}>
               Export my data
             </Button>
           </div>
@@ -111,9 +111,9 @@ function FeedControls() {
 
         {showData && (
           <div className="flex flex-col gap-3 border-t border-border pt-6">
-            <h3 className="font-display text-xl text-fg">Leave and erase</h3>
+            <h3 className="font-sans text-sm font-semibold text-fg">Leave and erase</h3>
             <p className="text-sm">Permanently deletes your posts, photos, comments, likes, follows, blocks and notifications. Your account stays.</p>
-            <Button variant="ghost" className="self-start border-danger/60 text-danger" onClick={() => setDialog('erase')}>
+            <Button variant="secondary" className="self-start border-danger text-danger hover:border-danger" onClick={() => setDialog('erase')}>
               Leave and erase
             </Button>
           </div>

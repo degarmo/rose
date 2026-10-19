@@ -3,11 +3,11 @@ source_url: []
 page: join
 copy:
   hero:
-    eyebrow: Membership
-    title: Become part of the house.
-    lede: Membership supports a volunteer-run nonprofit and opens members' evenings, members-only classes and the member community.
+    title: Choose how you'd like to join
+    lede: Every option includes members' evenings and classes. Cancel any time from your account.
+  note:
+    rich: <p>Membership supports a volunteer-run nonprofit. If the price is a barrier, ask at the door or <a href="/contact">write to us</a>.</p>
   benefits:
-    eyebrow: What membership includes
     title: More of what you love about the house.
     1:
       title: Members-only evenings

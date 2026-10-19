@@ -1,9 +1,8 @@
-import { Check, CircleCheck } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { Copy, CopyHeading } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
-import { Reveal } from '@/components/content/Reveal'
 import { LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { Button, Card, Checkbox, FormField, Input, Section, Select, Textarea, useToast } from '@/components/ui'
@@ -20,14 +19,15 @@ import {
   validateRentalField,
   type RentalField,
 } from './rentalsValidation'
+import { SENT_ACTION, SentPanel } from './SentPanel'
 
 function CopyList({ copy, prefix }: { copy: PageCopy; prefix: string }) {
   const items = copy.status === 'loading' ? [1, 2, 3] : copy.items(prefix)
   return (
-    <ul className="mt-6 flex flex-col gap-3">
+    <ul className="mt-4 flex flex-col gap-2.5">
       {items.map((n) => (
         <li key={n} className="flex gap-3 text-fg-muted">
-          <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-highlight" />
+          <Check aria-hidden="true" className="mt-[5px] size-4 shrink-0 text-link" />
           <Copy copy={copy} k={`${prefix}.${n}`} as="span" />
         </li>
       ))}
@@ -106,24 +106,23 @@ export function RentalInquiryForm() {
 
   if (sent) {
     return (
-      <div className="py-6" role="status">
-        <CircleCheck aria-hidden="true" className="size-10 text-success" strokeWidth={1.5} />
-        <h2 ref={successRef} tabIndex={-1} className="mt-6 text-4xl text-fg focus:outline-none">
-          Thank you. Your request is with us.
-        </h2>
-        <p className="mt-4 max-w-lg leading-relaxed text-fg-muted">
-          A volunteer will reply by email, usually within a few days. Nothing is booked until we confirm with you.
-        </p>
-        <Button variant="ghost" className="mt-8" onClick={() => setSent(false)}>
-          Send another request
-        </Button>
-      </div>
+      <SentPanel
+        headingRef={successRef}
+        title="Thank you. Your request is with us."
+        actions={
+          <button type="button" onClick={() => setSent(false)} className={SENT_ACTION}>
+            Send another request
+          </button>
+        }
+      >
+        A volunteer will reply by email, usually within a few days. Nothing is booked until we confirm with you.
+      </SentPanel>
     )
   }
 
   return (
-    <form ref={formRef} noValidate onSubmit={submit} className="flex flex-col gap-6" aria-label="Rental inquiry">
-      <div className="grid gap-6 sm:grid-cols-2">
+    <form ref={formRef} noValidate onSubmit={submit} className="flex flex-col gap-5" aria-label="Rental inquiry">
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
         <FormField label="Name or display name" error={errors.contact_name} required>
           {(field) => (
             <Input
@@ -151,7 +150,7 @@ export function RentalInquiryForm() {
           )}
         </FormField>
       </div>
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
         <FormField label="Phone" hint="Only if you would like a call back." error={errors.contact_phone}>
           {(field) => (
             <Input
@@ -178,7 +177,7 @@ export function RentalInquiryForm() {
           )}
         </FormField>
       </div>
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
         <FormField label="Preferred date" error={errors.preferred_date} required>
           {(field) => (
             <Input
@@ -204,7 +203,7 @@ export function RentalInquiryForm() {
           )}
         </FormField>
       </div>
-      <div className="grid gap-6 sm:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-3 sm:gap-4">
         <FormField label="Start time" error={errors.start_time} required>
           {(field) => (
             <Input
@@ -262,7 +261,7 @@ export function RentalInquiryForm() {
         )}
       </FormField>
       {values.type === 'photoshoot' && (
-        <div className="rounded-xl border border-highlight/40 bg-canvas p-4">
+        <div className="rounded-field bg-blush p-4">
           <Checkbox
             name="photoshoot_acknowledged"
             label={PHOTOSHOOT_PROMISE}
@@ -290,21 +289,22 @@ export function RentalInquiryForm() {
         </label>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-fg-subtle">
-          We use your details only to reply.{' '}
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
+          {submitting ? 'Sending' : 'Send request'}
+        </Button>
+        <p className="text-[0.8125rem] text-fg-muted">
+          We only use your details to reply.{' '}
           <Link to="/privacy" className="underline underline-offset-4 hover:text-fg">
             Privacy
           </Link>
         </p>
-        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
-          {submitting ? 'Sending' : 'Send request'}
-        </Button>
       </div>
     </form>
   )
 }
 
+/** Rentals (no design: the spaces as a card, the inquiry form laid out like Contact). */
 export function RentalsPage() {
   useDocumentMeta({
     title: 'Rentals',
@@ -315,34 +315,30 @@ export function RentalsPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="about-hero.webp" placeholder="leather" />
+      <PageHero copy={copy} image="about-hero.webp" placeholder="warm" />
 
       <Section aria-labelledby="spaces">
-        <div className="grid gap-12 lg:grid-cols-[1.3fr_1fr]">
-          <Reveal>
-            <CopyHeading copy={copy} prefix="spaces" id="spaces" />
-          </Reveal>
-          <Reveal delay={1}>
-            <Card className="p-8">
-              <Copy copy={copy} k="uses.title" as="h3" className="text-2xl text-fg" />
-              <CopyList copy={copy} prefix="uses" />
-              <Copy copy={copy} k="included.title" as="h3" className="mt-10 text-2xl text-fg" />
-              <CopyList copy={copy} prefix="included" />
-            </Card>
-          </Reveal>
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-24">
+          <CopyHeading copy={copy} prefix="spaces" id="spaces" />
+          <Card className="p-6 lg:p-8">
+            <Copy copy={copy} k="uses.title" as="h3" className="text-xl text-fg lg:text-card-title" />
+            <CopyList copy={copy} prefix="uses" />
+            <Copy copy={copy} k="included.title" as="h3" className="mt-8 text-xl text-fg lg:text-card-title" />
+            <CopyList copy={copy} prefix="included" />
+          </Card>
         </div>
       </Section>
 
-      <Section tone="surface" aria-labelledby="inquire">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
+      <Section rule aria-labelledby="inquire">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-24">
           <CopyHeading copy={copy} prefix="form" id="inquire" />
-          <Card className="p-6 sm:p-10">
+          <div className="w-full lg:max-w-[520px]">
             {auth.status === 'loading' ? (
               <LoadingState label="Loading the form" />
             ) : (
               <RentalInquiryForm key={auth.user?.display_name ?? 'signed-out'} />
             )}
-          </Card>
+          </div>
         </div>
       </Section>
     </>

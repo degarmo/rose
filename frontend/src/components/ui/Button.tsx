@@ -3,27 +3,41 @@ import { Link } from 'react-router'
 import { cn } from '@/lib/cn'
 import { isExternalUrl } from '@/lib/format'
 
-export type ButtonVariant = 'primary' | 'ghost' | 'link'
-export type ButtonSize = 'md' | 'lg'
+/**
+ * The website's buttons (design system: "Public site · 48px pill, 40px compact").
+ * primary   rose fill, white text
+ * secondary 1px border, page text
+ * outline   1px text-coloured border
+ * dark      text-coloured fill (the footer's Sign up)
+ * link      rose text, weight 600 (callers add the arrow)
+ */
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'dark' | 'link'
+/** lg 48px, md 40px, sm 36px. */
+export type ButtonSize = 'sm' | 'md' | 'lg'
 
 const base =
-  'inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-colors duration-300 ease-velvet disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50'
+  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap font-semibold transition-colors duration-150 ease-out disabled:cursor-not-allowed aria-disabled:cursor-not-allowed'
 
 const variants: Record<ButtonVariant, string> = {
-  primary:
-    'rounded-control bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-hover shadow-[0_0_0_1px_rgb(0_0_0/0.06)_inset]',
-  ghost:
-    'rounded-control border border-border-strong text-fg hover:border-highlight hover:text-accent active:bg-surface-raised',
-  link: 'text-accent underline decoration-highlight/60 underline-offset-[6px] hover:decoration-highlight hover:text-fg',
+  primary: 'rounded-full bg-primary text-on-primary hover:bg-primary-hover',
+  secondary: 'rounded-full border border-border bg-canvas text-fg hover:border-fg-muted',
+  outline: 'rounded-full border border-fg bg-canvas text-fg hover:bg-surface',
+  dark: 'rounded-full bg-fg text-canvas hover:bg-fg/85',
+  link: 'text-link hover:text-primary-hover',
 }
+
+/** Disabled pills turn grey rather than fading (design system: "Disabled"). */
+const disabled =
+  'disabled:border-control disabled:bg-control disabled:text-fg-faint aria-disabled:border-control aria-disabled:bg-control aria-disabled:text-fg-faint'
 
 const sizes: Record<ButtonSize, string> = {
-  md: 'min-h-11 px-5 text-sm',
-  lg: 'min-h-12 px-7 text-base',
+  sm: 'h-9 px-4 text-[0.8125rem]',
+  md: 'h-10 px-5 text-sm',
+  lg: 'h-12 px-7 text-[0.9375rem]',
 }
 
-function classes(variant: ButtonVariant, size: ButtonSize, className?: string) {
-  return cn(base, variants[variant], variant === 'link' ? 'min-h-11 text-sm' : sizes[size], className)
+function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md', className?: string) {
+  return cn(base, variants[variant], variant === 'link' ? 'min-h-6 text-sm' : cn(sizes[size], disabled), className)
 }
 
 interface CommonProps {
@@ -36,7 +50,7 @@ interface CommonProps {
 type ButtonProps = CommonProps & ButtonHTMLAttributes<HTMLButtonElement>
 
 export function Button({ variant = 'primary', size = 'md', className, type = 'button', ...rest }: ButtonProps) {
-  return <button type={type} className={classes(variant, size, className)} {...rest} />
+  return <button type={type} className={buttonClasses(variant, size, className)} {...rest} />
 }
 
 interface ButtonLinkProps extends CommonProps {
@@ -46,7 +60,7 @@ interface ButtonLinkProps extends CommonProps {
 
 /** A link styled as a button. Internal paths use the router; others are plain anchors. */
 export function ButtonLink({ to, variant = 'primary', size = 'md', className, children, ...rest }: ButtonLinkProps) {
-  const cls = classes(variant, size, className)
+  const cls = buttonClasses(variant, size, className)
   if (isExternalUrl(to)) {
     return (
       <a href={to} className={cls} rel="noopener noreferrer" {...rest}>

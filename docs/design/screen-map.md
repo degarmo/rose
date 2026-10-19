@@ -121,10 +121,13 @@ buttons, inputs and cards, laid out like the nearest designed screen (in bracket
 
 The designs draw only 390 and 1440. In between:
 
-- **Website:** phone layout up to 1023px (menu button, stacked sections, 20px gutter
-  growing to 32px from 640px); desktop header and grids from 1024px, with the gutter at
-  32px until 1280px and 48px from there. Three-column card grids drop to two columns from
-  640px to 1023px.
+- **Website:** page layouts are the phone design up to 1023px (stacked sections, a 20px
+  gutter growing to 32px from 640px) and the desktop design from 1024px. Card grids are one
+  column on phones, two from 640px and three from 1024px. The header keeps the phone form
+  (wordmark, Leave, menu button) until 1280px, because the full navigation, Log in, Join
+  and Leave need that width; the gutter is 32px until 1280px and 48px from there.
+- **Join:** `/join` has its own quiet header (wordmark, the three steps from 1024px, Leave),
+  with no site navigation, as drawn.
 - **Member app:** from 768px the sidebar replaces the tab bar, collapsed to its 72px icon
   rail until 1264px, where the labels and wordmark appear at 245px. The right rail appears
   from 1160px. The feed column stays 470px wide; profile and Explore grids fill up to 935px.

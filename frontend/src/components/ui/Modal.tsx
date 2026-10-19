@@ -14,19 +14,10 @@ interface ModalProps {
 }
 
 /**
- * Built on the native <dialog>, which traps focus, restores it on close and
- * closes on Escape without extra code.
+ * Built on the native <dialog>, which traps focus, restores it on close and closes on
+ * Escape without extra code. A white panel with 20px corners and the modal shadow.
  */
-export function Modal({
-  open,
-  onClose,
-  title,
-  hideTitle = false,
-  variant = 'dialog',
-  size = 'md',
-  children,
-  footer,
-}: ModalProps) {
+export function Modal({ open, onClose, title, hideTitle = false, variant = 'dialog', size = 'md', children, footer }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
 
@@ -52,13 +43,10 @@ export function Modal({
     >
       <div
         className={cn(
-          'relative flex flex-col bg-surface',
+          'relative flex flex-col bg-canvas',
           variant === 'sheet'
-            ? 'h-full w-full overflow-y-auto px-6 pb-10 pt-6'
-            : cn(
-                'max-h-[92dvh] w-full overflow-y-auto rounded-card border border-border p-6 sm:p-8',
-                size === 'wide' ? 'max-w-5xl' : 'max-w-lg',
-              ),
+            ? 'h-full w-full overflow-y-auto px-5 pb-10 pt-5'
+            : cn('max-h-[92dvh] w-full overflow-y-auto rounded-panel p-6 shadow-modal sm:p-8', size === 'wide' ? 'max-w-5xl' : 'max-w-lg'),
         )}
       >
         <div className="flex items-start justify-between gap-6">
@@ -68,7 +56,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="-mr-2 -mt-1 ml-auto inline-flex size-11 items-center justify-center rounded-full text-fg-muted hover:text-fg"
+            className="-mr-2 -mt-1 ml-auto inline-flex size-10 items-center justify-center rounded-full text-fg-muted hover:text-fg"
           >
             <X aria-hidden="true" className="size-5" />
             <span className="sr-only">Close</span>

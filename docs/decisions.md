@@ -2,9 +2,11 @@
 
 Choices made where the brief did not specify. Privacy-over-convenience calls are marked **(privacy)**.
 
-Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173), prompt 05 and its follow-ups (174 to 227), prompt 06 (228 to 284) and prompt 07 (285 onwards).
+Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173), prompt 05 and its follow-ups (174 to 227), prompt 06 (228 to 284), prompt 07 and 07b (285 to 331) and prompt 08 (332 onwards).
 
 **Prompt 07:** the member area under `/members/*` uses an Instagram-style app shell and design. The public website keeps its prompt 01–06 layout and structure, with a lighter palette. Where an earlier doc conflicts with prompt 07 on member-area layout or on colors, prompt 07 wins.
+
+**Prompt 08:** the designs in `docs/design/` replace every earlier visual spec, for the website and the member app alike. The privacy, access and security rules in `docs/architecture.md` still win over the designs; each conflict is recorded below.
 
 ## Prompt 01
 
@@ -508,3 +510,63 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 330. On the website the Leave control sits in the header at every width (after the account menu on desktop), and the floating desktop pill is gone. The floating variant remains only where there is no header: the age gate and the member app's loading screen.
 331. The screenshot helpers moved to `e2e/tests/screenshots.ts`. They no longer wait for "network idle", which never came on a slow machine; they wait for the page load, fonts and every on-screen image.
 
+## Prompt 08
+
+### Sources and tools
+
+332. The design files moved unchanged to `docs/design/source/`; they link to each other by file name, so no links needed fixing. `e2e/scripts/capture-design-reference.mjs` serves that folder on a local port (the files load each other with `fetch`, which `file://` refuses) and screenshots every `data-screen-label` element, the whole design-system page and the post card into `docs/design/reference/`, named `<file>--<label>.png`.
+333. `e2e/scripts/design-sweep.mjs` checks every website and member route and every designed state (age gate, month view, contact error and success, the three join steps, the post modal, stories, the panels, each Create step, dark) at 390×844 and 1440×900. It records console errors, failed and third-party requests, sideways overflow, a covered or missing Leave control, missing styles and serious or critical axe findings, follows every internal link it saw and submits the public forms. It runs against a local stack loaded with `seed_demo`; it creates one verified account for the join flow and deletes the post Create shares. For many runs an hour, the local server was started with higher login and contact rate limits through environment variables; nothing in the settings changed. `scripts/design_compare.py` writes the design / built side-by-sides.
+
+### Functional breaks found first (gap report)
+
+334. Development served journal pictures from the backend's port, which the browser refused as cross-origin: Vite's proxy shorthand turns on `changeOrigin`. The `/api` and `/media` proxies now keep the browser's Host.
+335. **(privacy)** `/members/*` without access rendered a bare 404 with no Leave control. It now renders inside `SiteFrame`, the website's own header, main area and footer, so it is the site's ordinary 404 with the quick exit.
+336. Blurred sensitive photos were `aria-hidden` while still focusable; they are `inert` until View.
+337. The account page asked the feed for controls that answer 404 to anyone without feed access. The session payload gained `feed_controls` (entitled, or with feed history), and the page asks only then. It tells the person nothing new about themselves and nothing about anyone else.
+
+### Tokens and type
+
+338. The palette is the design's, with these dark values where the designs give none: blush `#1A1416`, waitlist `#2B2210` / `#F5C76B`, error `#F87171` (7.2:1), tint `#2A1218` / `#F1A6BD` (from the dark rail), field and control `#262626`. Rose fills stay `#CE2156` in dark (white on it is 5.2:1); rose text becomes `#E0527D` (5.4:1).
+339. Tailwind's default colour palette is switched off (`--color-*: initial`), so only the design's colours can be used. The old texture placeholders, film grain and scroll-reveal motion are removed; a missing or loading picture shows the design's striped wash.
+340. Two colours differ from the drawings for contrast: muted text on blush or tint uses `#6B6B6B` (the drawn `#737373` measures 4.45:1 on `#FAF7F8`), and the member app's 11px footer links use `#737373` rather than `#A3A3A3` (2.5:1). `#A3A3A3` is kept for disabled text only.
+341. Fonts stay self-hosted (`@fontsource-variable`: Fraunces with its optical-size axis and italic, Manrope). A `font-serif` token keeps Fraunces for the wordmark and the club's name inside the app, where `font-display` is the system face.
+342. `cn()` now merges classes with `tailwind-merge` (a new, bundled dependency), with the design's text sizes, corners and shadows registered. Before, a `className` could not reliably override a component's own size, spacing or display: the category chip on phone event cards showed when it should have been hidden.
+343. Event times read "7:00–9:00 PM" and "9:00 PM–1:00 AM", as drawn.
+
+### Website
+
+344. The header is 72px and stays at the top of the page (it no longer floats transparent over the hero). Join is a rose pill (Membership for anyone with a membership), "My feed" a rose link for entitled members. The full navigation needs 1280px; below that the phone header (wordmark, Leave, menu) is used.
+345. The home page has the full footer from the Home design (address and email, the email list, Privacy and Leave); other pages have the one-row footer from the Events and Contact designs. The footer's link columns are gone: every page is still in the header menus, and About links to the staff page. The nonprofit and "Adults 18+" lines are dropped from the footer, as drawn; the staff guide link remains for staff.
+346. The age gate uses the design's card and copy. Its Leave button goes to the neutral `/exit` page and replaces the history entry (what "I am under 18" did); double Escape still works there.
+347. `/join` has its own quiet header, as drawn: the wordmark, the three steps (filled in by the join page through a portal) and Leave, with no site navigation.
+348. The RSVP panel is the design's: "RSVP" with a status badge, a party-size stepper, the note to hosts behind "Add a note for the hosts", the main button, the calendar file (offered when open and when going, discreet by default) and a short note; going and waitlisted show "Change or cancel". The five-state row under the design's event page is a design-system illustration and is not rendered.
+349. **(privacy)** Badges show the state only ("Open", "Waitlist"), not the drawn "Open · 14 spots" or "Waitlist · 6 ahead": spaces left and waitlist length reveal how many people are coming, which is shown only when an event opts in (`show_attendee_count`, as "N going").
+350. The paywall is the design's blush panel with Join and Log in (Join alone when signed in, "See my membership" for members); members-only RSVP says "Join to RSVP".
+351. **(privacy)** "Save to wallet" on the join confirmation is not built: a wallet pass would carry the club's name onto the lock screen and to Apple or Google. "Go to my account" (or "Open the member app" when the app opens for them) takes its place. The confirmation greets people by display name, never the typed legal name, and claims only what is true ("We have emailed you this code too").
+352. Contact keeps the phone field, honeypot and priority topic; the success panel uses only what the visitor typed (their name and email) and drops the design's "call the door line in your RSVP", which RSVPs do not carry.
+353. Copy the designs write as interface text (button labels, tab names, form labels, "This week", "Learn with us") is in the components; headlines and prose remain staff-editable page copy, whose development values in `demo_content/*.yaml` now read like the designs. The `eyebrow` keys are no longer shown.
+
+### Member app
+
+354. **(privacy)** Every phone screen keeps the quick exit as the last icon in its top bar, although several phone designs (post, notifications, settings, explore, search, another member's profile) leave it out; the post modal, story viewer and Create keep their own Leave icon.
+355. Each app page renders its own 44px phone bar (the designs give each screen a different one); the shell no longer draws a shared one.
+356. Sidebar rows are 48px with 76px between them, as the design renders them; Leave is muted grey, as drawn, not red.
+357. The post card follows `Post Card.dc.html`: full-bleed media, dots under the picture, icons 16px apart. Club posts keep their website link in the action row, without likes, comments or saves (decision 302). The design's on-screen watermark overlay is not drawn, because every member photo already carries the server's viewer watermark.
+358. Members without a picture get a soft wash chosen by their handle, as the design's avatars are drawn, rather than an initial.
+359. The post menu follows the design: Report to hosts, Hide this post, Mute, Save, Go to post, Cancel. Block stays in it (a safety control the design leaves out). There is no Share, Send or Copy link.
+360. **(privacy)** "Hide this post" is built: a `HiddenPost` row, private to the person hiding it, removes the post from their own feed and Explore only. The author is never told, nothing counts it, the post can still be opened directly, and the rows are exported and erased with the hider's feed data.
+361. Notifications show the post's picture and, for comments, the commenter's avatar. **(privacy)** Likes stay grouped and nameless.
+362. **(privacy)** Search shows no "Recent" list: remembering who someone looked up would reveal it to anyone else on a shared device.
+363. The page behind an open Search or Notifications panel fades under a half-transparent layer, as drawn; fading the page itself made its text fail contrast checks.
+364. The feed still opens on Everyone, not Following as drawn, so a new member's first screen is not empty.
+365. Settings is one list of rows as drawn. Its words stay true: "Leave and erase" deletes everything shared in the feed (the account stays), "Step away" pauses the feed profile, and "Hide me from the member directory" is the existing directory setting. Appearance opens a Light / Dark chooser; the Blocked list and the website account link stay below.
+366. Create shares from Details (the review step is gone) and then shows "Post shared", whose text follows the real state: in review for first posts, still being prepared, or in the feed now. Block (solid cover) stays the default redaction tool because it is the safest; changing the crop carries cover-ups into the new frame.
+
+### Widths
+
+367. Tablets (768–1263px): the website uses the phone layouts below 1024px with two-column card grids from 640px, and the phone header below 1280px; the member app shows its 72px icon rail from 768px and the labelled sidebar from 1264px, with the right rail from 1160px.
+
+
+### Verification
+
+368. Results at the end of prompt 08: backend 952 tests; frontend 128 tests, type check, oxlint and build clean; Playwright 117 passed (1 skipped: the post modal on phones); the design sweep reports 108 captures with no console errors, failed or third-party requests, sideways overflow or serious or critical axe findings, and the Leave control on every page. Lighthouse (mobile, production build in the e2e stack): Home 97 / 100 / 100, Events 96 / 100 / 100, Visit 96 / 100 / 100 and the member feed 93 / 100 / 100 for performance, accessibility and best practices. SEO is 63 on all four only because that environment's `robots.txt` closes the whole site to crawlers (`SITE_INDEXABLE` is off outside production; member pages are `noindex` in every environment); every other SEO audit passes.

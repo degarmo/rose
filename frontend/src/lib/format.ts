@@ -63,12 +63,29 @@ export function chicagoDateKey(iso: string | Date): string {
   return keyFormatter.format(typeof iso === 'string' ? new Date(iso) : iso)
 }
 
+/** "7:00–9:00 PM", or "9:00 PM–1:00 AM" when the evening crosses noon or midnight. */
 export function formatTimeRange(startIso: string, endIso: string): string {
-  return `${timeFormatter.format(new Date(startIso))} to ${timeFormatter.format(new Date(endIso))}`
+  const start = timeFormatter.format(new Date(startIso))
+  const end = timeFormatter.format(new Date(endIso))
+  const [startTime, startHalf] = start.split(' ')
+  const endHalf = end.split(' ')[1]
+  return startHalf === endHalf ? `${startTime}\u2013${end}` : `${start}\u2013${end}`
 }
 
 export function formatLongDate(iso: string): string {
   return longDateFormatter.format(new Date(iso))
+}
+
+const shortDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  timeZone: CHICAGO,
+})
+
+/** "Thu, Oct 22" in Chicago time, as on cards. */
+export function formatShortDate(iso: string): string {
+  return shortDateFormatter.format(new Date(iso))
 }
 
 const relativeFormatter = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' })

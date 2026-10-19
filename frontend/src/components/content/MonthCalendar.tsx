@@ -4,10 +4,20 @@ import { Link } from 'react-router'
 import type { EventSummary } from '@/lib/api'
 import { monthGrid, monthKey, shiftMonth, type MonthRef } from '@/lib/calendar'
 import { cn } from '@/lib/cn'
-import { chicagoDateKey } from '@/lib/format'
-import { Button } from '../ui'
+import { rsvpBadge } from '@/lib/events'
+import { chicagoDateKey, formatLongDate, formatTimeRange } from '@/lib/format'
+import { Badge } from '../ui'
+import { DateColumn } from './EventCard'
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const WEEKDAYS = [
+  ['S', 'Sunday'],
+  ['M', 'Monday'],
+  ['T', 'Tuesday'],
+  ['W', 'Wednesday'],
+  ['T', 'Thursday'],
+  ['F', 'Friday'],
+  ['S', 'Saturday'],
+] as const
 
 const monthTitle = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 
@@ -17,6 +27,31 @@ interface MonthCalendarProps {
   onMonthChange: (month: MonthRef) => void
 }
 
+/** A compact event card for the chosen day (design: Events · phone, under the month). */
+function DayEvent({ event }: { event: EventSummary }) {
+  const badge = rsvpBadge(event.rsvp)
+  return (
+    <li className="relative flex items-center gap-4 rounded-card border border-border bg-canvas p-4">
+      <DateColumn iso={event.starts_at} size="compact" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <h3 className="text-[1.1875rem] leading-[1.2] text-fg">
+          <Link to={`/events/${event.slug}`} className="after:absolute after:inset-0 hover:text-link">
+            {event.title}
+          </Link>
+        </h3>
+        <p className="text-[0.8125rem] text-fg-muted">
+          {event.category_label} · {formatTimeRange(event.starts_at, event.ends_at)}
+        </p>
+      </div>
+      <Badge tone={badge.tone}>{badge.label}</Badge>
+    </li>
+  )
+}
+
+/**
+ * The month view (design: "Events · phone (month view)"): a seven-column grid of days with
+ * a rose dot under each day that has events; choosing a day lists its events below.
+ */
 export function MonthCalendar({ month, events, onMonthChange }: MonthCalendarProps) {
   const days = monthGrid(month)
   const [today] = useState(() => chicagoDateKey(new Date()))
@@ -26,70 +61,75 @@ export function MonthCalendar({ month, events, onMonthChange }: MonthCalendarPro
     byDay.set(key, [...(byDay.get(key) ?? []), event])
   }
   const currentPrefix = monthKey(month)
+  const firstWithEvents = days.find((key) => key.startsWith(currentPrefix) && key >= today && byDay.has(key))
+  const [chosen, setChosen] = useState<string | null>(null)
+  const selected = chosen?.startsWith(currentPrefix) ? chosen : (firstWithEvents ?? (today.startsWith(currentPrefix) ? today : null))
+  const selectedEvents = selected ? (byDay.get(selected) ?? []) : []
+  // Trailing weeks that hold no day of this month are left out.
+  const visible = days.slice(0, Math.ceil((days.findLastIndex((key) => key.startsWith(currentPrefix)) + 1) / 7) * 7)
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-3xl text-fg" aria-live="polite">
-          {monthTitle.format(new Date(Date.UTC(month.year, month.month, 1)))}
-        </h2>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => onMonthChange(shiftMonth(month, -1))}>
-            <ChevronLeft aria-hidden="true" className="size-4" />
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr] lg:gap-12">
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <button type="button" onClick={() => onMonthChange(shiftMonth(month, -1))} className="inline-flex size-10 items-center justify-center text-fg-muted hover:text-fg">
+            <ChevronLeft aria-hidden="true" strokeWidth={2} className="size-[18px]" />
             <span className="sr-only">Previous month</span>
-          </Button>
-          <Button variant="ghost" onClick={() => onMonthChange(shiftMonth(month, 1))}>
-            <ChevronRight aria-hidden="true" className="size-4" />
+          </button>
+          <h2 className="font-sans text-[0.9375rem] font-semibold text-fg" aria-live="polite">
+            {monthTitle.format(new Date(Date.UTC(month.year, month.month, 1)))}
+          </h2>
+          <button type="button" onClick={() => onMonthChange(shiftMonth(month, 1))} className="inline-flex size-10 items-center justify-center text-fg-muted hover:text-fg">
+            <ChevronRight aria-hidden="true" strokeWidth={2} className="size-[18px]" />
             <span className="sr-only">Next month</span>
-          </Button>
+          </button>
         </div>
-      </div>
-
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border">
-        <div aria-hidden="true" className="grid grid-cols-7 border-b border-border bg-surface-sunken">
-          {WEEKDAYS.map((day) => (
-            <div key={day} className="py-2 text-center text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-fg-subtle">
-              {day}
+        <div aria-hidden="true" className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-fg-muted">
+          {WEEKDAYS.map(([letter, name]) => (
+            <div key={name} className="py-1">
+              {letter}
             </div>
           ))}
         </div>
-        <ol aria-label="Days of the month" className="grid grid-cols-7 gap-px bg-border">
-          {days.map((key) => {
+        <ol aria-label="Days of the month" className="grid grid-cols-7 gap-1 text-center text-xs">
+          {visible.map((key) => {
             const inMonth = key.startsWith(currentPrefix)
             const dayEvents = byDay.get(key) ?? []
+            const isSelected = key === selected
+            const allFull = dayEvents.length > 0 && dayEvents.every((event) => event.rsvp.state === 'full' || event.rsvp.state === 'closed')
+            if (!inMonth) return <li key={key} aria-hidden="true" />
             return (
-              <li
-                key={key}
-                aria-label={`${key}${dayEvents.length ? `, ${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}` : ''}`}
-                className={cn(
-                  'min-h-14 bg-surface p-1.5 sm:min-h-28 sm:p-2',
-                  !inMonth && 'bg-surface-sunken text-fg-subtle',
-                )}
-              >
-                <span
+              <li key={key}>
+                <button
+                  type="button"
+                  onClick={() => setChosen(key)}
+                  aria-pressed={isSelected}
+                  aria-label={`${formatLongDate(`${key}T18:00:00Z`)}${dayEvents.length ? `, ${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}` : ''}`}
                   className={cn(
-                    'inline-flex size-6 items-center justify-center rounded-full text-xs',
-                    key === today ? 'bg-primary text-on-primary' : inMonth ? 'text-fg' : 'text-fg-subtle',
+                    'flex aspect-square w-full flex-col items-center justify-center gap-[3px] rounded-app transition-colors',
+                    isSelected ? 'bg-tint font-semibold text-tint-fg' : 'text-fg hover:bg-surface',
+                    key === today && !isSelected && 'font-semibold',
                   )}
                 >
                   {Number(key.slice(8))}
-                </span>
-                <ul className="mt-1 flex flex-wrap gap-1 sm:block sm:space-y-1">
-                  {dayEvents.map((event) => (
-                    <li key={event.id}>
-                      <Link
-                        to={`/events/${event.slug}`}
-                        className="block size-2 rounded-full bg-rose sm:size-auto sm:truncate sm:rounded-md sm:bg-primary-deep sm:px-1.5 sm:py-0.5 sm:text-xs sm:text-fg sm:hover:bg-primary sm:hover:text-on-primary"
-                      >
-                        <span className="sr-only sm:not-sr-only sm:block sm:truncate">{event.title}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                  {dayEvents.length > 0 && <span aria-hidden="true" className={cn('size-[5px] rounded-full', allFull ? 'bg-fg-muted' : 'bg-primary')} />}
+                </button>
               </li>
             )
           })}
         </ol>
+      </div>
+      <div className="flex flex-col gap-3">
+        {selected && <p className="text-[0.8125rem] font-semibold text-fg-muted">{formatLongDate(`${selected}T18:00:00Z`)}</p>}
+        {selectedEvents.length > 0 ? (
+          <ul className="flex flex-col gap-3">
+            {selectedEvents.map((event) => (
+              <DayEvent key={event.id} event={event} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-fg-muted">{selected ? 'Nothing on this day.' : 'Choose a day to see what is on.'}</p>
+        )}
       </div>
     </div>
   )

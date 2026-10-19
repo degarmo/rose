@@ -22,13 +22,15 @@ interface MediaCarouselProps {
   fill?: boolean
   /** Fetch the first image at once and at high priority (the first post in a feed); others wait until near the screen. */
   priority?: boolean
+  /** Rose dots under the picture (design: the post card) rather than white ones over it. */
+  dotsBelow?: boolean
 }
 
 /**
  * One image at a time: swipe, arrow keys when focused, or the arrow buttons that appear
  * on hover with a mouse. Dots show the position. Double-tapping shows a heart burst.
  */
-export function MediaCarousel({ images, label, protect, onDoubleTap, fill = false, priority = false }: MediaCarouselProps) {
+export function MediaCarousel({ images, label, protect, onDoubleTap, fill = false, priority = false, dotsBelow = false }: MediaCarouselProps) {
   const [index, setIndex] = useState(0)
   const [burst, setBurst] = useState(0)
   const touchStart = useRef<number | null>(null)
@@ -78,7 +80,18 @@ export function MediaCarousel({ images, label, protect, onDoubleTap, fill = fals
     }
   }
 
-  return (
+  const dots = (below: boolean) => (
+    <ol aria-hidden="true" className={cn('pointer-events-none flex justify-center gap-1', below ? 'pt-3' : 'absolute inset-x-0 bottom-3')}>
+      {images.map((image, position) => (
+        <li
+          key={image.id}
+          className={cn('size-1.5 rounded-full', below ? (position === index ? 'bg-primary' : 'bg-dot') : position === index ? 'bg-white' : 'bg-white/50')}
+        />
+      ))}
+    </ol>
+  )
+
+  const carousel = (
     <div
       role="region"
       aria-roledescription="carousel"
@@ -92,7 +105,7 @@ export function MediaCarousel({ images, label, protect, onDoubleTap, fill = fals
         like()
       }}
       onContextMenu={protect ? blockSave : undefined}
-      className={cn('group relative select-none overflow-hidden outline-offset-[-2px]', fill ? 'h-full bg-black' : 'bg-surface')}
+      className={cn('group relative select-none overflow-hidden outline-offset-[-2px]', fill ? 'h-full bg-black' : 'wash-rose')}
       style={fill ? undefined : { aspectRatio: String(mediaRatio(images)) }}
     >
       <div
@@ -156,16 +169,20 @@ export function MediaCarousel({ images, label, protect, onDoubleTap, fill = fals
             <ChevronRight aria-hidden="true" className="size-4" strokeWidth={2.5} />
             <span className="sr-only">Next image</span>
           </button>
-          <ol aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-1">
-            {images.map((image, position) => (
-              <li key={image.id} className={cn('size-1.5 rounded-full', position === index ? 'bg-white' : 'bg-white/50')} />
-            ))}
-          </ol>
+          {!dotsBelow && dots(false)}
           <p className="sr-only" aria-live="polite">
             Image {index + 1} of {count}
           </p>
         </>
       )}
+    </div>
+  )
+
+  if (!dotsBelow || count < 2) return carousel
+  return (
+    <div>
+      {carousel}
+      {dots(true)}
     </div>
   )
 }

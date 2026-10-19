@@ -1,32 +1,29 @@
-import { CalendarHeart, Check, GraduationCap, KeyRound, Lock, UserPlus } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
-import { Copy, CopyHeading } from '@/components/content/Copy'
-import { PageHero } from '@/components/content/PageHero'
-import { Reveal } from '@/components/content/Reveal'
+import { Check } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router'
+import { Copy, CopyHeading, CopySkeleton } from '@/components/content/Copy'
 import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
-import { Badge, Button, ButtonLink, Card, Section, useToast } from '@/components/ui'
+import { Button, ButtonLink, useToast } from '@/components/ui'
 import { ApiError } from '@/lib/api'
 import { cn } from '@/lib/cn'
+import { formatMoney } from '@/lib/format'
 import {
   goTo,
   isOpen,
   membershipApi,
   type JoinOptions,
   type MyMembership,
-  priceLabel,
   type PaymentMethod,
   type Tier,
 } from '@/lib/membershipApi'
-import { usePageContent } from '@/lib/pageContent'
+import { usePageContent, type PageCopy } from '@/lib/pageContent'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { AgreementStep } from './AgreementStep'
 import { JoinConfirmation } from './JoinConfirmation'
-
-// Icons for the benefits, in order. Their words are editable copy (benefits.1 ...).
-const BENEFIT_ICONS = [CalendarHeart, GraduationCap, KeyRound, Lock]
+import { BACK_BUTTON, JOIN_FRAME, perLabel } from './joinParts'
+import { JoinProgress, JoinSteps, TierSummary } from './JoinSteps'
 
 type Step =
   | { name: 'tiers' }
@@ -34,67 +31,134 @@ type Step =
   | { name: 'method'; tier: Tier; typedName: string }
   | { name: 'done'; membership: MyMembership }
 
-const STEPS = ['Choose', 'Agreement', 'Payment'] as const
+type Access = 'anonymous' | 'unverified' | 'verified'
 
-function Stepper({ current }: { current: number }) {
+/** Signed out, a tier's button leads to a free account and back here with the tier chosen. */
+function registerFor(tier: Tier) {
+  return `/account/register?next=${encodeURIComponent(`/join?tier=${tier.slug}`)}`
+}
+
+function ChooseButton({ tier, access, onChoose, className }: { tier: Tier; access: Access; onChoose: (tier: Tier) => void; className?: string }) {
+  if (access === 'anonymous') {
+    return (
+      <ButtonLink to={registerFor(tier)} size="lg" variant="outline" className={className}>
+        Choose {tier.name}
+      </ButtonLink>
+    )
+  }
   return (
-    <ol className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm" aria-label="Steps">
-      {STEPS.map((label, index) => (
-        <li
-          key={label}
-          aria-current={index === current ? 'step' : undefined}
-          className={cn('flex items-center gap-2', index === current ? 'text-fg' : index < current ? 'text-fg-muted' : 'text-fg-subtle')}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'inline-flex size-7 items-center justify-center rounded-full border text-xs',
-              index <= current ? 'border-highlight text-highlight' : 'border-border-strong',
-            )}
-          >
-            {index < current ? <Check className="size-3.5" /> : index + 1}
-          </span>
-          {label}
-        </li>
-      ))}
-    </ol>
+    <Button size="lg" variant="outline" className={className} disabled={access !== 'verified'} onClick={() => onChoose(tier)}>
+      Choose {tier.name}
+    </Button>
   )
 }
 
-function TierCards({ tiers, canChoose, onChoose }: { tiers: Tier[]; canChoose: boolean; onChoose: (tier: Tier) => void }) {
+/** Desktop tiers (design: "Join step 1 · desktop"): 320px cards, 20px corners, price in Fraunces 44. */
+function TierCards({ tiers, access, onChoose }: { tiers: Tier[]; access: Access; onChoose: (tier: Tier) => void }) {
   return (
-    <ul className="grid gap-6 md:grid-cols-3">
+    <ul className="hidden flex-wrap justify-center gap-6 lg:flex">
       {tiers.map((tier) => (
-        <li key={tier.slug}>
-          <Card className="h-full p-6 sm:p-7">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-2xl text-fg">{tier.name}</h3>
-              {tier.is_placeholder && <Badge tone="rose">Placeholder price</Badge>}
-            </div>
-            <p className="mt-2 font-display text-3xl text-accent">{priceLabel(tier)}</p>
-            {tier.description && <p className="mt-3 text-sm leading-relaxed text-fg-muted">{tier.description}</p>}
+        <li key={tier.slug} className="flex w-[320px] flex-col gap-3 rounded-panel border-[1.5px] border-border bg-canvas p-8">
+          <h2 className="text-[1.625rem] leading-[1.2] text-fg">{tier.name}</h2>
+          <p className="flex items-baseline gap-1">
+            <span className="font-display text-[2.75rem] leading-none text-fg">{formatMoney(tier.price_cents, tier.currency)}</span>
+            <span className="text-fg-muted">{perLabel(tier)}</span>
+          </p>
+          <div className="flex flex-1 flex-col gap-3 text-sm text-fg-muted">
+            {tier.description && <p>{tier.description}</p>}
             {tier.benefits.length > 0 && (
-              <ul className="mt-5 flex flex-col gap-2 text-sm text-fg-muted">
+              <ul className="flex flex-col gap-1.5">
                 {tier.benefits.map((benefit) => (
                   <li key={benefit} className="flex gap-2">
-                    <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-highlight" />
+                    <Check aria-hidden="true" className="mt-[3px] size-4 shrink-0 text-link" />
                     {benefit}
                   </li>
                 ))}
               </ul>
             )}
-            <div className="mt-auto pt-7">
-              <Button className="w-full" size="lg" disabled={!canChoose} onClick={() => onChoose(tier)} aria-label={`Choose ${tier.name}`}>
-                Choose
-              </Button>
-            </div>
-          </Card>
+          </div>
+          <ChooseButton tier={tier} access={access} onChoose={onChoose} className="mt-3 w-full" />
         </li>
       ))}
     </ul>
   )
 }
 
+/** Phone tiers (design: "Join step 1 · phone"): compact rows to pick from, then "Continue with …". */
+function TierRows({ tiers, access, onChoose }: { tiers: Tier[]; access: Access; onChoose: (tier: Tier) => void }) {
+  const [picked, setPicked] = useState(tiers[0]?.slug)
+  const tier = tiers.find((t) => t.slug === picked) ?? tiers[0]
+  return (
+    <div className="flex flex-col gap-4 lg:hidden">
+      <fieldset className="flex flex-col gap-3">
+        <legend className="sr-only">Tier</legend>
+        {tiers.map((option) => {
+          const selected = option.slug === tier?.slug
+          return (
+            <label
+              key={option.slug}
+              className={cn(
+                'flex cursor-pointer items-center gap-4 rounded-card border-[1.5px] p-5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-link',
+                selected ? 'border-primary bg-tier-selected' : 'border-border bg-canvas',
+              )}
+            >
+              <input type="radio" name="tier" value={option.slug} checked={selected} onChange={() => setPicked(option.slug)} className="sr-only" />
+              <span className="flex flex-1 flex-col">
+                <span className="font-display text-[1.375rem] leading-[1.3] text-fg">{option.name}</span>
+                {option.description && <span className="text-[0.8125rem] text-fg-muted">{option.description}</span>}
+              </span>
+              <span className="flex flex-col items-end text-right">
+                <span className="font-display text-[1.75rem] leading-none text-fg">{formatMoney(option.price_cents, option.currency)}</span>
+                <span className="mt-1 text-xs text-fg-muted">{perLabel(option)}</span>
+              </span>
+            </label>
+          )
+        })}
+      </fieldset>
+      {tier &&
+        (access === 'anonymous' ? (
+          <ButtonLink to={registerFor(tier)} size="lg" className="w-full">
+            Continue with {tier.name}
+          </ButtonLink>
+        ) : (
+          <Button size="lg" className="w-full" disabled={access !== 'verified'} onClick={() => onChoose(tier)}>
+            Continue with {tier.name}
+          </Button>
+        ))}
+    </div>
+  )
+}
+
+/** The page title over the tiers, from the page's editable copy. */
+function TierIntro({ copy }: { copy: PageCopy }) {
+  return (
+    <div className="flex flex-col gap-3 lg:items-center lg:gap-2 lg:text-center">
+      <JoinProgress current={1} caption="Choose a tier" />
+      <h1 className="text-[2rem] font-light leading-[1.05] text-fg lg:text-h1">
+        {copy.status === 'loading' ? (
+          <>
+            <span className="sr-only">Join</span>
+            <CopySkeleton className="w-[12ch]" />
+          </>
+        ) : (
+          <Copy copy={copy} k="hero.title" as="span" />
+        )}
+      </h1>
+      <Copy copy={copy} k="hero.lede" lines={1} className="text-sm text-fg-muted lg:text-lead" />
+    </div>
+  )
+}
+
+/** A quiet notice above the tiers (cancelled checkout, unverified email, signing in). */
+function Notice({ children, role }: { children: ReactNode; role?: 'status' }) {
+  return (
+    <div role={role} className="mx-auto w-full max-w-[680px] rounded-card bg-blush p-5 text-sm text-fg-muted-tint lg:text-center">
+      {children}
+    </div>
+  )
+}
+
+/** How to pay, the last part of step 2 (no design: laid out like the agreement, choices like the tier cards). */
 function MethodStep({
   tier,
   methods,
@@ -116,50 +180,59 @@ function MethodStep({
         onSubmit(method)
       }}
       aria-labelledby="method-heading"
-      className="flex flex-col gap-6"
+      className="grid gap-6 lg:grid-cols-[420px_1fr] lg:gap-20"
     >
-      <h2 id="method-heading" className="text-3xl text-fg">
-        How would you like to pay?
-      </h2>
-      <p className="text-fg-muted">
-        {tier.name}, {priceLabel(tier)}. Your bank statement shows a neutral name and the word &ldquo;Membership&rdquo;.
-      </p>
-      <fieldset className="flex flex-col gap-3">
-        <legend className="sr-only">Payment method</legend>
-        {methods.map((option) => (
-          <label
-            key={option.key}
-            className={cn(
-              'flex cursor-pointer items-start gap-4 rounded-2xl border p-5 transition-colors',
-              method === option.key ? 'border-highlight bg-surface-raised' : 'border-border bg-surface hover:border-border-strong',
-            )}
-          >
-            <input
-              type="radio"
-              name="method"
-              value={option.key}
-              checked={method === option.key}
-              onChange={() => setMethod(option.key)}
-              className="mt-1 size-4 accent-[var(--color-primary)]"
-            />
-            <span>
-              <span className="block font-medium text-fg">{option.label}</span>
-              <span className="mt-1 block text-sm text-fg-muted">
-                {option.online
-                  ? 'Pay now on a secure checkout page. Your membership starts once payment is confirmed and staff have seen your photo ID once.'
-                  : 'Get a reference code now. Bring it, your payment and a valid photo ID on your first visit, and staff will start your membership at the door.'}
-              </span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-        <Button variant="ghost" onClick={onBack} disabled={busy}>
-          Back
-        </Button>
-        <Button type="submit" size="lg" disabled={busy} aria-busy={busy}>
-          {busy ? 'Working' : methods.find((m) => m.key === method)?.online ? 'Continue to checkout' : 'Get my reference code'}
-        </Button>
+      <div className="flex flex-col gap-3 lg:gap-4">
+        <JoinProgress current={2} caption="Payment" />
+        <h1 id="method-heading" className="text-[2rem] font-light leading-[1.05] text-fg lg:text-h2-lg">
+          How would you like to pay?
+        </h1>
+        <p className="text-fg-muted lg:text-base">Your bank statement shows a neutral name and the word &ldquo;Membership&rdquo;.</p>
+        <div className="lg:mt-2">
+          <TierSummary tier={tier} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-5">
+        <fieldset className="flex flex-col gap-3">
+          <legend className="sr-only">Payment method</legend>
+          {methods.map((option) => {
+            const selected = method === option.key
+            return (
+              <label
+                key={option.key}
+                className={cn(
+                  'flex cursor-pointer items-start gap-4 rounded-card border-[1.5px] p-5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-link sm:p-6',
+                  selected ? 'border-primary bg-tier-selected' : 'border-border bg-canvas hover:border-fg-muted',
+                )}
+              >
+                <input
+                  type="radio"
+                  name="method"
+                  value={option.key}
+                  checked={selected}
+                  onChange={() => setMethod(option.key)}
+                  className="mt-1 size-[18px] shrink-0 accent-[var(--color-primary)]"
+                />
+                <span>
+                  <span className="block font-display text-[1.375rem] leading-[1.3] text-fg">{option.label}</span>
+                  <span className="mt-1 block text-sm text-fg-muted">
+                    {option.online
+                      ? 'Pay now on a secure checkout page. Your membership starts once payment is confirmed and staff have seen your photo ID once.'
+                      : 'Get a reference code now. Bring it, your payment and a valid photo ID on your first visit, and staff will start your membership at the door.'}
+                  </span>
+                </span>
+              </label>
+            )
+          })}
+        </fieldset>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button type="submit" size="lg" disabled={busy} aria-busy={busy}>
+            {busy ? 'Working' : methods.find((m) => m.key === method)?.online ? 'Continue to checkout' : 'Get my reference code'}
+          </Button>
+          <button type="button" onClick={onBack} disabled={busy} className={BACK_BUTTON}>
+            Back
+          </button>
+        </div>
       </div>
     </form>
   )
@@ -167,37 +240,52 @@ function MethodStep({
 
 function ExistingMembership({ membership }: { membership: MyMembership }) {
   return (
-    <Card className="p-6 sm:p-8">
-      <h2 className="text-3xl text-fg">You already have a membership</h2>
-      <p className="mt-3 text-fg-muted">
+    <div className="mx-auto flex max-w-[560px] flex-col items-center gap-3 rounded-panel bg-blush px-6 py-10 text-center">
+      <h1 className="text-[2rem] font-light leading-[1.1] text-fg lg:text-h2-lg">You already have a membership</h1>
+      <p className="text-fg-muted-tint">
         {membership.tier.name} &middot; {membership.status_label}. Your code, payments and renewal are on your account page.
       </p>
-      <ButtonLink to="/account#membership" size="lg" className="mt-6 self-start">
+      <ButtonLink to="/account#membership" size="lg" className="mt-3">
         See my membership
       </ButtonLink>
-    </Card>
+    </div>
   )
 }
 
 function SignInFirst({ guest }: { guest?: Tier }) {
   const next = encodeURIComponent(guest ? `/join?tier=${guest.slug}` : '/join')
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 sm:flex-row sm:items-center">
-      <p className="flex-1 text-fg-muted">
-        {guest
-          ? 'A guest pass takes a free account, so your code and ID check are there for your next visit too.'
-          : 'Joining takes a free account, so your membership has somewhere private to live.'}
-      </p>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <ButtonLink to={`/account/register?next=${next}`}>
-          <UserPlus aria-hidden="true" className="size-4" />
-          Create an account
-        </ButtonLink>
-        <ButtonLink to={`/account/login?next=${next}`} variant="ghost">
-          Log in
-        </ButtonLink>
-      </div>
-    </div>
+    <p className="text-sm text-fg-muted lg:text-center">
+      {guest
+        ? 'A guest pass takes a free account, so your code and ID check are there for your next visit too. '
+        : 'Joining takes a free account, so your membership has somewhere private to live. '}
+      <Link to={`/account/register?next=${next}`} className="font-semibold text-link hover:text-primary-hover">
+        Create an account
+      </Link>{' '}
+      or{' '}
+      <Link to={`/account/login?next=${next}`} className="font-semibold text-link hover:text-primary-hover">
+        log in
+      </Link>
+      .
+    </p>
+  )
+}
+
+function Benefits({ copy }: { copy: PageCopy }) {
+  const items = copy.status === 'loading' ? [1, 2, 3, 4] : copy.items('benefits')
+  if (items.length === 0) return null
+  return (
+    <section aria-labelledby="benefits" className="mt-14 border-t border-border pt-10 lg:mt-20 lg:pt-16">
+      <CopyHeading copy={copy} prefix="benefits" id="benefits" />
+      <ul className="mt-8 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:mt-10 lg:grid-cols-4">
+        {items.map((n) => (
+          <li key={n} className="flex flex-col gap-2">
+            <Copy copy={copy} k={`benefits.${n}.title`} as="h3" className="text-xl text-fg lg:text-card-title" />
+            <Copy copy={copy} k={`benefits.${n}.body`} lines={2} className="text-sm text-fg-muted" />
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -207,19 +295,24 @@ function JoinFlow({
   existing,
   reloadOptions,
   preselected,
+  copy,
+  cancelled,
 }: {
   tiers: Tier[]
   options: JoinOptions
   existing: MyMembership | null
   reloadOptions: () => void
   preselected: Tier | null
+  copy: PageCopy
+  cancelled: boolean
 }) {
   const auth = useAuth()
   const toast = useToast()
   const guest = preselected?.is_guest_pass ? preselected : null
   const verified = Boolean(auth.user?.email_verified)
-  // Someone arriving from the Guests page goes straight to the agreement.
-  const [step, setStep] = useState<Step>(guest && verified ? { name: 'agreement', tier: guest } : { name: 'tiers' })
+  const access: Access = !auth.user ? 'anonymous' : verified ? 'verified' : 'unverified'
+  // A tier chosen before signing in, or a guest arriving from the Guests page, goes straight to the agreement.
+  const [step, setStep] = useState<Step>(preselected && verified ? { name: 'agreement', tier: preselected } : { name: 'tiers' })
   const [busy, setBusy] = useState(false)
   const top = useRef<HTMLDivElement>(null)
   const agreement = options.agreement
@@ -232,20 +325,34 @@ function JoinFlow({
   if (step.name === 'done') {
     return (
       <div ref={top} className="scroll-mt-24">
-        <JoinConfirmation membership={step.membership} />
+        <JoinSteps current={3} />
+        <div className={JOIN_FRAME}>
+          <JoinConfirmation membership={step.membership} />
+        </div>
       </div>
     )
   }
   // A guest becoming a member gives up their open guest pass; anything else stops here.
   const guestPassOpen = isOpen(existing) && existing.tier.is_guest_pass
-  if (isOpen(existing) && (!guestPassOpen || guest)) return <ExistingMembership membership={existing} />
+  if (isOpen(existing) && (!guestPassOpen || guest)) {
+    return (
+      <div className={JOIN_FRAME}>
+        <ExistingMembership membership={existing} />
+      </div>
+    )
+  }
   const membershipTiers = tiers.filter((tier) => !tier.is_guest_pass)
   if (!agreement || (!guest && membershipTiers.length === 0)) {
     return (
-      <EmptyState
-        title="Joining online is not open yet"
-        message="Start with a newcomer orientation on any Thursday and our hosts will walk you through membership in person."
-      />
+      <div className={JOIN_FRAME}>
+        <TierIntro copy={copy} />
+        <div className="mx-auto mt-8 max-w-[680px]">
+          <EmptyState
+            title="Joining online is not open yet"
+            message="Start with a newcomer orientation on any Thursday and our hosts will walk you through membership in person."
+          />
+        </div>
+      </div>
     )
   }
 
@@ -272,55 +379,66 @@ function JoinFlow({
     }
   }
 
-  const current = step.name === 'tiers' ? 0 : step.name === 'agreement' ? 1 : 2
   // Guest passes are paid at the door, never online.
   const methodsFor = (tier: Tier) => (tier.is_guest_pass ? options.methods.filter((m) => !m.online) : options.methods)
+  const choose = (tier: Tier) => setStep({ name: 'agreement', tier })
+  const shown = guest ? [guest] : membershipTiers
 
   return (
-    <div ref={top} className="flex scroll-mt-24 flex-col gap-8">
-      <Stepper current={current} />
-      {step.name === 'tiers' && (
-        <>
-          {auth.status === 'ready' && !auth.user && <SignInFirst guest={guest ?? undefined} />}
-          {guestPassOpen && (
-            <p role="status" className="rounded-2xl border border-border bg-surface p-5 text-fg-muted">
-              Choosing a membership replaces your guest pass. Your ID check carries over.
-            </p>
-          )}
-          {auth.user && !auth.user.email_verified && (
-            <p role="status" className="rounded-2xl border border-highlight/40 bg-canvas p-5 text-fg-muted">
-              Confirm your email first. Open the link we sent to {auth.user.email}, then come back here.
-            </p>
-          )}
-          <TierCards
-            tiers={guest ? [guest] : membershipTiers}
-            canChoose={verified}
-            onChoose={(tier) => setStep({ name: 'agreement', tier })}
+    <div ref={top} className="scroll-mt-24">
+      <JoinSteps current={step.name === 'tiers' ? 1 : 2} />
+      <div className={JOIN_FRAME}>
+        {step.name === 'tiers' && (
+          <>
+            <TierIntro copy={copy} />
+            <div className="mt-6 flex flex-col gap-3 empty:hidden lg:mt-8">
+              {cancelled && (
+                <Notice role="status">Checkout was cancelled and nothing was charged. You can pick up where you left off below.</Notice>
+              )}
+              {guestPassOpen && <Notice role="status">Choosing a membership replaces your guest pass. Your ID check carries over.</Notice>}
+              {access === 'unverified' && auth.user && (
+                <Notice role="status">Confirm your email first. Open the link we sent to {auth.user.email}, then come back here.</Notice>
+              )}
+            </div>
+            <div className="mt-6 lg:mt-8">
+              <TierCards tiers={shown} access={access} onChoose={choose} />
+              <TierRows tiers={shown} access={access} onChoose={choose} />
+            </div>
+            <div className="mt-6 flex flex-col gap-2 lg:mt-8">
+              {access === 'anonymous' && <SignInFirst guest={guest ?? undefined} />}
+              <Copy copy={copy} k="note" className="text-sm text-fg-muted lg:text-center" />
+            </div>
+            <Benefits copy={copy} />
+          </>
+        )}
+        {step.name === 'agreement' && (
+          <AgreementStep
+            key={agreement.version}
+            agreement={agreement}
+            tier={step.tier}
+            notice={step.notice}
+            onBack={() => setStep({ name: 'tiers' })}
+            onSigned={(typedName) => setStep({ name: 'method', tier: step.tier, typedName })}
           />
-        </>
-      )}
-      {step.name === 'agreement' && (
-        <AgreementStep
-          key={agreement.version}
-          agreement={agreement}
-          notice={step.notice}
-          onBack={() => setStep({ name: 'tiers' })}
-          onSigned={(typedName) => setStep({ name: 'method', tier: step.tier, typedName })}
-        />
-      )}
-      {step.name === 'method' && (
-        <MethodStep
-          tier={step.tier}
-          methods={methodsFor(step.tier)}
-          busy={busy}
-          onBack={() => setStep({ name: 'agreement', tier: step.tier })}
-          onSubmit={(method) => void join(step.tier, step.typedName, method)}
-        />
-      )}
+        )}
+        {step.name === 'method' && (
+          <MethodStep
+            tier={step.tier}
+            methods={methodsFor(step.tier)}
+            busy={busy}
+            onBack={() => setStep({ name: 'agreement', tier: step.tier })}
+            onSubmit={(method) => void join(step.tier, step.typedName, method)}
+          />
+        )}
+      </div>
     </div>
   )
 }
 
+/**
+ * Join (design: "Join step 1–3"): tier, agreement (with the payment method), confirmation.
+ * The steps sit in a band under the site header rather than replacing it.
+ */
 export function JoinPage() {
   useDocumentMeta({ title: 'Join', description: 'What membership includes and how to become a member.' })
   const auth = useAuth()
@@ -333,66 +451,46 @@ export function JoinPage() {
   const signedIn = auth.user ? auth.user.display_name : ''
   const me = useAsync(() => (signedIn ? membershipApi.me() : Promise.resolve(null)), `me:${signedIn}`)
 
-  let flow
   if (tiers.status === 'loading' || options.status === 'loading' || (signedIn && me.status === 'loading') || auth.status === 'loading') {
-    flow = <LoadingState label="Loading membership options" />
-  } else if (tiers.status === 'error' || options.status === 'error' || me.status === 'error') {
-    flow = (
-      <ErrorState
-        title="Membership options did not load"
-        onRetry={() => {
-          tiers.retry()
-          options.retry()
-          me.retry()
-        }}
-      />
-    )
-  } else {
-    flow = (
-      <JoinFlow
-        key={signedIn}
-        tiers={tiers.data}
-        options={options.data}
-        existing={me.data?.membership ?? null}
-        reloadOptions={options.retry}
-        preselected={tiers.data.find((tier) => tier.slug === wanted) ?? null}
-      />
+    return (
+      <>
+        <JoinSteps current={1} />
+        <div className={JOIN_FRAME}>
+          <TierIntro copy={copy} />
+          <LoadingState label="Loading membership options" className="justify-center" />
+        </div>
+      </>
     )
   }
-
+  if (tiers.status === 'error' || options.status === 'error' || me.status === 'error') {
+    return (
+      <>
+        <JoinSteps current={1} />
+        <div className={JOIN_FRAME}>
+          <TierIntro copy={copy} />
+          <ErrorState
+            className="mx-auto mt-8 max-w-[680px]"
+            title="Membership options did not load"
+            onRetry={() => {
+              tiers.retry()
+              options.retry()
+              me.retry()
+            }}
+          />
+        </div>
+      </>
+    )
+  }
   return (
-    <>
-      <PageHero copy={copy} image="join-hero.webp" placeholder="rose" />
-
-      <Section width="narrow" aria-labelledby="join-heading">
-        <h2 id="join-heading" className="mb-10 text-4xl text-fg sm:text-5xl">
-          Join
-        </h2>
-        {cancelled && (
-          <p role="status" className="mb-8 rounded-2xl border border-border bg-surface p-5 text-fg-muted">
-            Checkout was cancelled and nothing was charged. You can pick up where you left off below.
-          </p>
-        )}
-        {flow}
-      </Section>
-
-      <Section tone="surface" aria-labelledby="benefits">
-        <CopyHeading copy={copy} prefix="benefits" id="benefits" />
-        <ul className="mt-14 grid gap-6 sm:grid-cols-2">
-          {(copy.status === 'loading' ? [1, 2, 3, 4] : copy.items('benefits')).map((n, index) => {
-            const Icon = BENEFIT_ICONS[index % BENEFIT_ICONS.length]
-            return (
-              <Reveal as="li" key={n} delay={(index % 2) as 0 | 1}>
-                <Card className="h-full p-8">
-                  <Icon aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-                  <Copy copy={copy} k={`benefits.${n}.title`} as="h3" className="mt-6 text-2xl text-fg" />
-                  <Copy copy={copy} k={`benefits.${n}.body`} lines={2} className="mt-3 leading-relaxed text-fg-muted" />
-                </Card>
-              </Reveal>
-            )
-          })}
-        </ul>
-      </Section>
-    </>
+    <JoinFlow
+      key={signedIn}
+      tiers={tiers.data}
+      options={options.data}
+      existing={me.data?.membership ?? null}
+      reloadOptions={options.retry}
+      preselected={tiers.data.find((tier) => tier.slug === wanted) ?? null}
+      copy={copy}
+      cancelled={cancelled}
+    />
   )
 }

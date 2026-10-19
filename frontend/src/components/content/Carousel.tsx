@@ -12,7 +12,7 @@ interface CarouselProps {
   protect?: boolean
 }
 
-/** Swipe on touch, arrow keys when focused, or the buttons. One image at a time. */
+/** A journal post's pictures, one at a time: swipe on touch, arrow keys when focused, or the buttons. */
 export function Carousel({ images, label, protect = false }: CarouselProps) {
   const [index, setIndex] = useState(0)
   const touchStart = useRef<number | null>(null)
@@ -52,10 +52,10 @@ export function Carousel({ images, label, protect = false }: CarouselProps) {
       onKeyDown={onKeyDown}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      className="group relative overflow-hidden rounded-xl bg-surface-raised focus-visible:outline-2"
+      className="group relative overflow-hidden rounded-card bg-canvas"
     >
       <div
-        className="flex transition-transform duration-500 ease-velvet"
+        className="flex transition-transform duration-500 ease-out"
         style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {(images.length ? images : [null]).map((image, i) => (
@@ -71,8 +71,8 @@ export function Carousel({ images, label, protect = false }: CarouselProps) {
               remote={image}
               alt={image?.alt ?? ''}
               ratio="1/1"
-              placeholder="velvet"
-              reveal={false}
+              placeholder="rose"
+              sizes="(min-width: 1024px) 60vw, 100vw"
               protect={protect}
             />
           </div>
@@ -85,7 +85,7 @@ export function Carousel({ images, label, protect = false }: CarouselProps) {
             type="button"
             onClick={() => go(index - 1)}
             disabled={index === 0}
-            className="absolute left-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink-950/70 text-cream-100 backdrop-blur transition-opacity disabled:opacity-0"
+            className="absolute left-3 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-sheet transition-opacity hover:bg-white disabled:opacity-0"
           >
             <ChevronLeft aria-hidden="true" className="size-5" />
             <span className="sr-only">Previous image</span>
@@ -94,7 +94,7 @@ export function Carousel({ images, label, protect = false }: CarouselProps) {
             type="button"
             onClick={() => go(index + 1)}
             disabled={index === count - 1}
-            className="absolute right-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink-950/70 text-cream-100 backdrop-blur transition-opacity disabled:opacity-0"
+            className="absolute right-3 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black shadow-sheet transition-opacity hover:bg-white disabled:opacity-0"
           >
             <ChevronRight aria-hidden="true" className="size-5" />
             <span className="sr-only">Next image</span>
@@ -103,7 +103,7 @@ export function Carousel({ images, label, protect = false }: CarouselProps) {
             {images.map((image, i) => (
               <span
                 key={image.url}
-                className={cn('size-1.5 rounded-full transition-colors', i === index ? 'bg-fg' : 'bg-fg/40')}
+                className={cn('size-1.5 rounded-full ring-1 ring-black/10 transition-colors', i === index ? 'bg-white' : 'bg-white/50')}
               />
             ))}
           </div>

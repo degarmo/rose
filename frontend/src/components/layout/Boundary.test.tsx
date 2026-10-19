@@ -32,7 +32,7 @@ describe('website and member app boundary', () => {
   it.each(['/', '/events', '/journal', '/account'])('%s is the website, never the app shell, even for members', (path) => {
     renderSite(path, entitled)
     expect(screen.getByText('Page body')).toBeInTheDocument()
-    expect(document.querySelector('.ig-app')).toBeNull()
+    expect(document.querySelector('.member-app')).toBeNull()
     expect(screen.queryByRole('navigation', { name: 'Members', hidden: true })).not.toBeInTheDocument()
     expect(screen.getAllByRole('navigation', { name: 'Main', hidden: true }).length).toBeGreaterThan(0)
   })

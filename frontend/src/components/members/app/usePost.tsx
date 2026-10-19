@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { members, type FeedPost } from '@/lib/membersApi'
 import { useToast } from '../../ui'
 import { ConfirmDialog } from '../ConfirmDialog'
@@ -17,6 +18,8 @@ export function useLatestPost(post: FeedPost): FeedPost | null {
 export function usePostActions(post: FeedPost) {
   const { updatePost, patchPost } = useMembers()
   const toast = useToast()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [dialog, setDialog] = useState<'sheet' | 'report' | 'edit' | 'delete' | 'block' | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -68,15 +71,18 @@ export function usePostActions(post: FeedPost) {
   }
 
   const handle = post.author.handle
+  const postPath = `/members/p/${post.id}`
+  // Design: "No Share, no Send, no Copy link. Report goes to hosts, not to the author."
+  const goToPost: SheetAction[] = pathname === postPath ? [] : [{ label: 'Go to post', onSelect: () => navigate(postPath) }]
   const actions: SheetAction[] = post.is_own
-    ? [
-        { label: 'Edit', onSelect: () => setDialog('edit') },
-        { label: 'Delete', onSelect: () => setDialog('delete'), danger: true },
-      ]
+    ? [{ label: 'Delete', onSelect: () => setDialog('delete'), danger: true }, { label: 'Edit', onSelect: () => setDialog('edit') }, ...goToPost]
     : [
-        { label: 'Report', onSelect: () => setDialog('report'), danger: true },
+        { label: 'Report to hosts', onSelect: () => setDialog('report'), danger: true },
+        { label: 'Hide this post', onSelect: () => void run(() => members.hide(post.id), 'Hidden from your feed') },
         { label: `Mute ${handle}`, onSelect: () => void run(() => members.relate(handle, 'mute'), `${handle} is muted`) },
-        { label: `Block ${handle}`, onSelect: () => setDialog('block'), danger: true },
+        { label: `Block ${handle}`, onSelect: () => setDialog('block') },
+        { label: post.saved_by_me ? 'Remove from saved' : 'Save', onSelect: () => void toggleSave() },
+        ...goToPost,
       ]
 
   const dialogs = (

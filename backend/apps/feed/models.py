@@ -418,6 +418,24 @@ class SavedPost(models.Model):
         return f"Saved post #{self.pk}"
 
 
+class HiddenPost(models.Model):
+    """A post one member chose not to see in their feed again. Private to that member: the
+    author is never told, and nobody else can see or count it."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feed_hidden"
+    )
+    post = models.ForeignKey(FeedPost, on_delete=models.CASCADE, related_name="hides")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "post"], name="hide_once")]
+
+    def __str__(self):
+        # Neutral on purpose: hiding is never displayed to anyone else.
+        return f"Hidden post #{self.pk}"
+
+
 class Announcement(models.Model):
     """A short staff notice shown as a story in the member app. Text only, no images."""
 

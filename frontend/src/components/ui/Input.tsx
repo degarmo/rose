@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes } from 'react'
+import { cn } from '@/lib/cn'
 import { fieldClasses } from './fieldStyles'
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -6,5 +7,5 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ invalid, className, ...rest }: InputProps) {
-  return <input aria-invalid={invalid || undefined} className={fieldClasses(invalid, className)} {...rest} />
+  return <input aria-invalid={invalid || undefined} className={fieldClasses(invalid, cn('h-12', className))} {...rest} />
 }

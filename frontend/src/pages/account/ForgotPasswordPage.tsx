@@ -3,7 +3,8 @@ import { Link } from 'react-router'
 import { Button, FormField, Input } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
-import { AccountShell } from './AccountShell'
+import { SentPanel } from '../SentPanel'
+import { AccountShell, FORM_ALERT } from './AccountShell'
 import { emailError } from './validation'
 
 export function ForgotPasswordPage() {
@@ -36,19 +37,17 @@ export function ForgotPasswordPage() {
       title="Reset your password"
       lede={sent ? undefined : 'Enter the email you signed up with and we will send a reset link.'}
       footer={
-        <Link to="/account/login" className="text-accent underline underline-offset-4">
+        <Link to="/account/login" className="font-semibold text-link hover:text-primary-hover">
           Back to log in
         </Link>
       }
     >
       {sent ? (
-        <p role="status" className="leading-relaxed text-fg-muted">
-          If that email has an account, a reset link is on its way. It works for two hours.
-        </p>
+        <SentPanel>If that email has an account, a reset link is on its way. It works for two hours.</SentPanel>
       ) : (
         <form noValidate onSubmit={submit} className="flex flex-col gap-5" aria-label="Reset your password">
           {formError && (
-            <p role="alert" className="rounded-xl border border-danger/50 p-3 text-sm text-danger">
+            <p role="alert" className={FORM_ALERT}>
               {formError}
             </p>
           )}
@@ -57,7 +56,7 @@ export function ForgotPasswordPage() {
               <Input {...field} name="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             )}
           </FormField>
-          <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
+          <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting} className="self-start">
             {submitting ? 'Sending' : 'Send reset link'}
           </Button>
         </form>

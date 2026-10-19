@@ -1,18 +1,18 @@
-import { KeyRound, UserPlus } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { useLocation } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
-import { ButtonLink, Card } from '@/components/ui'
+import { ButtonLink } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
 interface PaywallPanelProps {
   title: string
-  /** One sentence on what membership adds here, e.g. "Members-only classes come with membership." */
+  /** One sentence on what membership adds here, e.g. "The full description is in the member area." */
   benefit: string
   /** Tier names that unlock this, when the server lists them. */
   tiers?: string[]
-  /** "card" stands alone; "inline" sits inside another card. */
-  variant?: 'card' | 'inline'
-  headingLevel?: 'h2' | 'h3'
+  /** `sm` sits inside a card (13px text, 36px buttons); `lg` stands on a page. */
+  size?: 'sm' | 'lg'
+  headingLevel?: 'h2' | 'h3' | 'h4'
   className?: string
 }
 
@@ -23,71 +23,55 @@ function tierSentence(tiers: string[]) {
 }
 
 /**
- * The one way the site says "this comes with membership". Anonymous visitors
- * get log in and create account; signed-in people without a membership get
- * "Become a member"; people with a membership get a link to their account.
+ * The one way the site says "this comes with membership" (design system: "Paywall"): a
+ * blush panel with an oxblood lock. Visitors get Join and Log in; signed-in people without
+ * a membership get Join; people with one get a link to their account.
  */
-export function PaywallPanel({ title, benefit, tiers = [], variant = 'card', headingLevel = 'h2', className }: PaywallPanelProps) {
+export function PaywallPanel({ title, benefit, tiers = [], size = 'sm', headingLevel = 'h3', className }: PaywallPanelProps) {
   const auth = useAuth()
   const { pathname, search } = useLocation()
   const next = encodeURIComponent(`${pathname}${search}`)
   const Heading = headingLevel
   const includes = tierSentence(tiers)
+  const buttonSize = size === 'lg' ? 'md' : 'sm'
 
   let actions
   if (auth.status === 'loading') {
-    actions = <p className="text-sm text-fg-muted">Checking your account</p>
-  } else if (!auth.user) {
+    actions = <p className="text-fg-muted-tint">Checking your account</p>
+  } else if (auth.user?.has_membership) {
     actions = (
-      <>
-        <ButtonLink to={`/account/login?next=${next}`} size="lg">
-          Log in
-        </ButtonLink>
-        <ButtonLink to={`/account/register?next=${encodeURIComponent('/join')}`} size="lg" variant="ghost">
-          <UserPlus aria-hidden="true" className="size-4" />
-          Create an account
-        </ButtonLink>
-      </>
-    )
-  } else if (auth.user.has_membership) {
-    actions = (
-      <ButtonLink to="/account#membership" size="lg" variant="ghost">
+      <ButtonLink to="/account#membership" size={buttonSize} variant="secondary">
         See my membership
       </ButtonLink>
     )
   } else {
     actions = (
-      <ButtonLink to="/join" size="lg">
-        Become a member
-      </ButtonLink>
+      <>
+        <ButtonLink to="/join" size={buttonSize}>
+          Join
+        </ButtonLink>
+        {!auth.user && (
+          <ButtonLink to={`/account/login?next=${next}`} size={buttonSize} variant="secondary">
+            Log in
+          </ButtonLink>
+        )}
+      </>
     )
   }
 
-  const content = (
-    <>
-      <Heading className="flex items-center gap-3 font-display text-2xl text-fg">
-        <KeyRound aria-hidden="true" className="size-5 shrink-0 text-highlight" />
-        {title}
-      </Heading>
-      <p className="mt-2 text-fg-muted">{benefit}</p>
-      {includes && <p className="mt-1 text-sm text-fg-subtle">{includes}</p>}
-      {auth.user?.has_membership && (
-        <p className="mt-1 text-sm text-fg-subtle">Your current membership does not include this, or is not active right now.</p>
-      )}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">{actions}</div>
-    </>
-  )
-
-  if (variant === 'inline') {
-    return (
-      <div data-testid="paywall" className={cn('flex flex-col', className)}>
-        {content}
-      </div>
-    )
-  }
   return (
-    <Card as="article" data-testid="paywall" className={cn('p-6 sm:p-8', className)}>
-      {content}
-    </Card>
+    <div
+      data-testid="paywall"
+      className={cn('flex flex-col items-start rounded-field bg-blush', size === 'lg' ? 'gap-2 p-6 sm:p-8' : 'gap-1.5 p-4 sm:gap-2 sm:p-5', className)}
+    >
+      <Lock aria-hidden="true" strokeWidth={1.6} className="size-[22px] text-wordmark" />
+      <Heading className={cn('text-fg', size === 'lg' ? 'text-2xl' : 'font-sans text-sm font-semibold')}>{title}</Heading>
+      <p className={cn('text-fg-muted-tint', size === 'sm' && 'text-[0.8125rem]')}>{benefit}</p>
+      {includes && <p className="text-[0.8125rem] text-fg-muted-tint">{includes}</p>}
+      {auth.user?.has_membership && (
+        <p className="text-[0.8125rem] text-fg-muted-tint">Your current membership does not include this, or is not active right now.</p>
+      )}
+      <div className="mt-1 flex flex-wrap gap-2">{actions}</div>
+    </div>
   )
 }

@@ -4,7 +4,7 @@ const DISPLAY_NAME_PATTERN = /^[A-Za-z0-9_.-]{3,30}$/
 
 export function emailError(value: string): string | undefined {
   if (!value.trim()) return 'Enter your email address.'
-  if (!EMAIL_PATTERN.test(value.trim())) return 'That email address does not look quite right.'
+  if (!EMAIL_PATTERN.test(value.trim())) return 'Enter a full email address, like name@example.com.'
   return undefined
 }
 

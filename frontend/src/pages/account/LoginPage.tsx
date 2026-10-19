@@ -5,7 +5,7 @@ import { Button, FormField, Input } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
 import { safeNextPath } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
-import { AccountShell } from './AccountShell'
+import { AccountShell, FORM_ALERT } from './AccountShell'
 import { emailError } from './validation'
 
 export function LoginPage() {
@@ -45,7 +45,7 @@ export function LoginPage() {
       footer={
         <>
           New here?{' '}
-          <Link to={`/account/register${query}`} className="text-accent underline underline-offset-4">
+          <Link to={`/account/register${query}`} className="font-semibold text-link hover:text-primary-hover">
             Create an account
           </Link>
         </>
@@ -53,7 +53,7 @@ export function LoginPage() {
     >
       <form noValidate onSubmit={submit} className="flex flex-col gap-5" aria-label="Log in">
         {formError && (
-          <p role="alert" className="rounded-xl border border-danger/50 p-3 text-sm text-danger">
+          <p role="alert" className={FORM_ALERT}>
             {formError}
           </p>
         )}
@@ -74,10 +74,10 @@ export function LoginPage() {
             />
           )}
         </FormField>
-        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
+        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting} className="self-start">
           {submitting ? 'Signing in' : 'Log in'}
         </Button>
-        <Link to="/account/forgot" className="text-center text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline">
+        <Link to="/account/forgot" className="self-start text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline">
           Forgot your password?
         </Link>
       </form>

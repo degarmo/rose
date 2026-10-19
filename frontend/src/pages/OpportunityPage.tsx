@@ -1,15 +1,19 @@
-import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react'
 import { useParams } from 'react-router'
 import { DetailItem } from '@/components/content/DetailItem'
 import { ErrorState, HeroLoading } from '@/components/content/States'
 import { PaywallPanel } from '@/components/membership/PaywallPanel'
-import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
+import { ButtonLink, Card, Chip, GUTTER, ImageFrame } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
+import { cn } from '@/lib/cn'
 import { formatEventDate, paragraphs } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { NotFoundPage } from './NotFoundPage'
 
+/**
+ * A class or workshop, laid out like Event detail: a full-width picture, the title, When /
+ * Where and the description, with the sign-up (or the members' paywall) on the right.
+ */
 export function OpportunityPage() {
   const { slug = '' } = useParams()
   const state = useAsync(() => api.opportunity(slug), slug)
@@ -20,85 +24,89 @@ export function OpportunityPage() {
     return <NotFoundPage />
   }
 
+  const locked = Boolean(opportunity && (opportunity.locked || opportunity.body === null))
+  const cta = opportunity?.cta_label && opportunity.cta_url ? { label: opportunity.cta_label, to: opportunity.cta_url } : null
+
   return (
     <article>
-      <div className="relative isolate flex min-h-[55svh] items-end overflow-hidden pb-12 pt-32">
-        <ImageFrame
-          remote={opportunity?.hero_image}
-          alt=""
-          fill
-          placeholder="candle"
-          priority
-          reveal={false}
-          className="-z-20"
-        />
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/85 to-canvas/40" />
-        <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
-          <ButtonLink to="/education" variant="link">
-            <ArrowLeft aria-hidden="true" className="size-4" />
-            All opportunities
-          </ButtonLink>
-          {state.status === 'loading' && <HeroLoading label="Loading details" />}
-          {opportunity && (
-            <>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Badge tone="brass">{opportunity.level_label}</Badge>
-                <Badge>{opportunity.category_label}</Badge>
-                {opportunity.members_only && <Badge tone="rose">Members</Badge>}
-              </div>
-              <h1 className="mt-6 text-5xl leading-[1.05] text-fg sm:text-6xl">{opportunity.title}</h1>
-              <p className="mt-6 text-lg leading-relaxed text-fg-muted sm:text-xl">{opportunity.summary}</p>
-            </>
-          )}
-        </div>
-      </div>
+      <ImageFrame
+        remote={opportunity?.hero_image}
+        alt=""
+        placeholder="warm"
+        priority
+        className="lg:aspect-auto lg:h-[420px]"
+      />
 
       {/* Room for the details while they load, so the footer does not jump. */}
-      <Section width="narrow" spacing="tight" className={state.status === 'loading' ? 'min-h-[60svh]' : undefined}>
-        {state.status === 'error' && <ErrorState title="This page did not load" onRetry={state.retry} />}
+      <div
+        className={cn(
+          'mx-auto grid max-w-[1440px] gap-6 pb-12 pt-7 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-20 lg:pb-20 lg:pt-14',
+          GUTTER,
+          state.status === 'loading' && 'min-h-[60svh]',
+        )}
+      >
+        {state.status === 'loading' && <HeroLoading label="Loading details" />}
+        {state.status === 'error' && (
+          <ErrorState title="This page did not load" onRetry={state.retry} className="lg:col-span-2" />
+        )}
         {opportunity && (
           <>
-            {(opportunity.starts_at || opportunity.location_label) && (
-              <dl className="grid gap-4 border-y border-border py-6 sm:grid-cols-2">
-                {opportunity.starts_at && (
-                  <DetailItem icon={CalendarDays} label="When">
-                    <time dateTime={opportunity.starts_at}>{formatEventDate(opportunity.starts_at)}</time>
-                  </DetailItem>
-                )}
-                {opportunity.location_label && (
-                  <DetailItem icon={MapPin} label="Where">
-                    {opportunity.location_label}
-                  </DetailItem>
-                )}
-              </dl>
-            )}
-            {opportunity.locked || opportunity.body === null ? (
-              <PaywallPanel
-                className="mt-10"
-                title="For members"
-                benefit={opportunity.paywall?.benefit ?? 'Members-only classes come with membership.'}
-                tiers={opportunity.paywall?.tiers}
-              />
-            ) : (
-              <div className="mt-10 space-y-6 text-lg leading-relaxed text-fg-muted">
-                {paragraphs(opportunity.body).map((paragraph, index) => (
-                  <p key={index}>{paragraph}</p>
-                ))}
+            <div className="flex min-w-0 flex-col gap-4 lg:gap-6">
+              <div className="flex flex-wrap items-center gap-3 text-[0.8125rem] text-fg-muted">
+                <Chip>{opportunity.category_label}</Chip>
+                <span>{opportunity.level_label}</span>
+                {opportunity.members_only && <span>Members only</span>}
               </div>
-            )}
-            <div className="mt-12 flex flex-col gap-3 sm:flex-row">
-              {opportunity.cta_label && opportunity.cta_url && (
-                <ButtonLink to={opportunity.cta_url} size="lg">
-                  {opportunity.cta_label}
-                </ButtonLink>
+              <h1 className="text-[2.25rem] font-light leading-[1.05] text-fg lg:text-h1">{opportunity.title}</h1>
+              {(opportunity.starts_at || opportunity.location_label) && (
+                <dl className="grid gap-1 border-y border-border py-4 text-sm leading-[1.6] lg:grid-cols-3 lg:gap-6 lg:py-6">
+                  {opportunity.starts_at && (
+                    <DetailItem label="When">
+                      <time dateTime={opportunity.starts_at}>{formatEventDate(opportunity.starts_at)}</time>
+                    </DetailItem>
+                  )}
+                  {opportunity.location_label && <DetailItem label="Where">{opportunity.location_label}</DetailItem>}
+                </dl>
               )}
-              <ButtonLink to="/visit" size="lg" variant="ghost">
-                Plan your first visit
-              </ButtonLink>
+              <div className="flex max-w-[640px] flex-col gap-4 leading-relaxed lg:text-[1.0625rem]">
+                {opportunity.summary && <p className="text-fg">{opportunity.summary}</p>}
+                {!locked &&
+                  opportunity.body &&
+                  paragraphs(opportunity.body).map((paragraph, index) => (
+                    <p key={index} className="text-fg-muted">
+                      {paragraph}
+                    </p>
+                  ))}
+              </div>
             </div>
+            <aside className="flex flex-col gap-4 lg:sticky lg:top-28 lg:self-start">
+              {locked ? (
+                <PaywallPanel
+                  size="lg"
+                  headingLevel="h2"
+                  title="For members"
+                  benefit={opportunity.paywall?.benefit || 'The full description, readings and sign-up are in the member area.'}
+                  tiers={opportunity.paywall?.tiers}
+                />
+              ) : (
+                <Card shape="panel" className="gap-4 p-5 sm:gap-5 sm:p-7">
+                  <h2 className="text-[1.375rem] text-fg sm:text-2xl">Take part</h2>
+                  {cta && (
+                    <ButtonLink to={cta.to} size="lg" className="w-full">
+                      {cta.label}
+                    </ButtonLink>
+                  )}
+                  {cta?.to !== '/visit' && (
+                    <ButtonLink to="/visit" size="lg" variant="outline" className="w-full">
+                      Plan your first visit
+                    </ButtonLink>
+                  )}
+                </Card>
+              )}
+            </aside>
           </>
         )}
-      </Section>
+      </div>
     </article>
   )
 }

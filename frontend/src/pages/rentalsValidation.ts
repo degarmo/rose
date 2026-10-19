@@ -75,7 +75,7 @@ export function validateRentalField(field: RentalField, values: RentalInquiryPay
     case 'contact_email': {
       const value = values.contact_email.trim()
       if (!value) return 'We need an email address to reply.'
-      if (!EMAIL_PATTERN.test(value)) return 'That email address does not look quite right.'
+      if (!EMAIL_PATTERN.test(value)) return 'Enter a full email address, like name@example.com.'
       return undefined
     }
     case 'contact_phone': {

@@ -31,9 +31,9 @@ describe('StoriesTray', () => {
     renderInApp(<StoriesTray />)
     const unseen = await screen.findByRole('button', { name: 'This week, new' })
     const seen = screen.getByRole('button', { name: 'News, seen' })
-    expect(unseen.querySelector('.bg-primary')).not.toBeNull()
-    expect(seen.querySelector('.bg-border')).not.toBeNull()
-    expect(seen.querySelector('.bg-primary')).toBeNull()
+    expect(unseen.querySelector('.border-primary')).not.toBeNull()
+    expect(seen.querySelector('.border-border')).not.toBeNull()
+    expect(seen.querySelector('.border-primary')).toBeNull()
   })
 
   it('opens full screen, marks what is shown as seen, and moves with the arrow keys', async () => {

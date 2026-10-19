@@ -1,11 +1,11 @@
-import { MailCheck } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Button, FormField, Input } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
 import { safeNextPath } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
-import { AccountShell } from './AccountShell'
+import { SENT_ACTION, SentPanel } from '../SentPanel'
+import { AccountShell, FORM_ALERT } from './AccountShell'
 import { displayNameError, emailError, firstError, passwordError } from './validation'
 
 type Field = 'email' | 'display_name' | 'password'
@@ -54,19 +54,16 @@ export function RegisterPage() {
   if (done) {
     return (
       <AccountShell title="Check your email">
-        <div role="status">
-          <MailCheck aria-hidden="true" className="size-8 text-highlight" />
-          <p className="mt-4 leading-relaxed text-fg-muted">
-            We sent a link to <span className="text-fg">{values.email.trim()}</span>. Open it within three days to
-            confirm your address, then log in.
-          </p>
-          <Link
-            to={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
-            className="mt-8 inline-block text-accent underline underline-offset-4"
-          >
-            Go to log in
-          </Link>
-        </div>
+        <SentPanel
+          actions={
+            <Link to={`/account/login${next ? `?next=${encodeURIComponent(next)}` : ''}`} className={SENT_ACTION}>
+              Go to log in
+            </Link>
+          }
+        >
+          We sent a link to <span className="text-fg">{values.email.trim()}</span>. Open it within three days to confirm your
+          address, then log in.
+        </SentPanel>
       </AccountShell>
     )
   }
@@ -87,7 +84,7 @@ export function RegisterPage() {
       footer={
         <>
           Already have one?{' '}
-          <Link to="/account/login" className="text-accent underline underline-offset-4">
+          <Link to="/account/login" className="font-semibold text-link hover:text-primary-hover">
             Log in
           </Link>
         </>
@@ -95,7 +92,7 @@ export function RegisterPage() {
     >
       <form noValidate onSubmit={submit} className="flex flex-col gap-5" aria-label="Create an account">
         {formError && (
-          <p role="alert" className="rounded-xl border border-danger/50 p-3 text-sm text-danger">
+          <p role="alert" className={FORM_ALERT}>
             {formError}
           </p>
         )}
@@ -113,7 +110,7 @@ export function RegisterPage() {
         <FormField label="Password" hint="At least 12 characters." error={errors.password} required>
           {(props) => <Input {...props} name="password" type="password" autoComplete="new-password" {...field('password')} />}
         </FormField>
-        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
+        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting} className="self-start">
           {submitting ? 'Creating account' : 'Create account'}
         </Button>
       </form>

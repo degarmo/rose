@@ -34,7 +34,7 @@ def test_like_count_only_for_author(member_client, make_post):
 
 def test_like_notifications_are_grouped_and_nameless(member_client, make_post):
     author_client, author = member_client()
-    post = make_post(author)
+    post = make_post(author, images=1)
     for _ in range(3):
         client, fan = member_client()
         client.post(post_url(post, "like/"))
@@ -42,6 +42,9 @@ def test_like_notifications_are_grouped_and_nameless(member_client, make_post):
     results = author_client.get("/api/members/notifications/").json()["results"]
     assert results[0]["text"] == "3 people liked your post"
     assert fan.display_name not in str(results)
+    assert results[0]["actor"] is None
+    # The author's own picture, through the access-checked media view.
+    assert results[0]["thumbnail"] == f"/api/members/media/{post.images.first().public_id}/"
     assert author_client.get("/api/members/me/").json()["unread_notifications"] == 1
     author_client.post("/api/members/notifications/read/")
     assert author_client.get("/api/members/me/").json()["unread_notifications"] == 0
@@ -58,6 +61,7 @@ def test_comments_and_comment_notifications(member_client, make_post):
     assert "&lt;b&gt;" in response.json()["body_html"]
     note = author_client.get("/api/members/notifications/").json()["results"][0]
     assert note["text"] == "kind_words commented on your post"
+    assert note["actor"]["handle"] == "kind_words"
 
     comments = author_client.get(post_url(post, "comments/")).json()
     assert comments[0]["can_delete"] is True

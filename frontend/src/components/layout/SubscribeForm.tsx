@@ -1,8 +1,6 @@
-import { CircleAlert, CircleCheck } from 'lucide-react'
 import { useId, useState, type FormEvent } from 'react'
 import { api, ApiError } from '@/lib/api'
 import { Button } from '../ui'
-import { fieldClasses } from '../ui/fieldStyles'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -22,7 +20,7 @@ export function SubscribeForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!EMAIL_PATTERN.test(email.trim())) {
-      setState({ name: 'error', message: 'Enter a full email address.' })
+      setState({ name: 'error', message: 'Enter a full email address, like name@example.com.' })
       return
     }
     setState({ name: 'sending' })
@@ -41,12 +39,13 @@ export function SubscribeForm() {
     }
   }
 
+  const invalid = state.name === 'error'
   return (
-    <form noValidate onSubmit={submit} aria-label="Stay in touch" className="flex flex-col gap-3">
-      <label htmlFor={`${id}-email`} className="text-sm text-fg-muted">
-        Occasional news and the evenings ahead. Confirm from your inbox; leave in one click.
+    <form noValidate onSubmit={submit} aria-label="Stay in touch" className="relative flex flex-col gap-2">
+      <label htmlFor={`${id}-email`} className="font-semibold text-fg">
+        Occasional email, never more than monthly
       </label>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex gap-2">
         <input
           id={`${id}-email`}
           name="email"
@@ -56,15 +55,18 @@ export function SubscribeForm() {
           value={email}
           onChange={(event) => {
             setEmail(event.target.value)
-            if (state.name === 'error') setState({ name: 'idle' })
+            if (invalid) setState({ name: 'idle' })
           }}
-          aria-invalid={state.name === 'error' || undefined}
-          aria-describedby={state.name === 'sent' || state.name === 'error' ? statusId : undefined}
-          placeholder="you@example.org"
-          className={fieldClasses(state.name === 'error', 'min-w-0 flex-1')}
+          aria-invalid={invalid || undefined}
+          aria-describedby={state.name === 'sent' || invalid ? statusId : undefined}
+          placeholder="Email address"
+          className={
+            'h-11 min-w-0 flex-1 rounded-full border bg-canvas px-4 text-sm text-fg placeholder:text-fg-muted focus:outline-none lg:h-10 ' +
+            (invalid ? 'border-danger shadow-[inset_0_0_0_0.5px_var(--color-danger)]' : 'border-border focus:border-fg')
+          }
         />
-        <Button type="submit" disabled={state.name === 'sending'} aria-busy={state.name === 'sending'}>
-          {state.name === 'sending' ? 'Sending' : 'Subscribe'}
+        <Button type="submit" variant="dark" disabled={state.name === 'sending'} aria-busy={state.name === 'sending'} className="h-11 px-[18px] lg:h-10">
+          {state.name === 'sending' ? 'Sending' : 'Sign up'}
         </Button>
       </div>
       {/* Honeypot: hidden from people and assistive tech, tempting to bots. */}
@@ -74,16 +76,14 @@ export function SubscribeForm() {
           <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(event) => setWebsite(event.target.value)} />
         </label>
       </div>
-      <div aria-live="polite">
+      <div aria-live="polite" className="text-[0.8125rem]">
         {state.name === 'sent' && (
-          <p id={statusId} className="flex items-center gap-2 text-sm text-success">
-            <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+          <p id={statusId} className="text-fg-muted">
             {state.message}
           </p>
         )}
-        {state.name === 'error' && (
-          <p id={statusId} className="flex items-center gap-2 text-sm text-danger">
-            <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+        {invalid && (
+          <p id={statusId} className="text-danger">
             {state.message}
           </p>
         )}

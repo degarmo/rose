@@ -16,7 +16,7 @@ const prepare = useShotViewport
 
 /** Checks shared by every member app screen. */
 async function appChecks(page: Page, info: { project: { name: string } }) {
-  const background = await page.locator('.ig-app').first().evaluate((element) => getComputedStyle(element).backgroundColor)
+  const background = await page.locator('.member-app').first().evaluate((element) => getComputedStyle(element).backgroundColor)
   expect(background).toBe('rgb(255, 255, 255)')
   const navigation = page.getByRole('navigation', { name: 'Members' })
   await expect(navigation).toBeVisible()
@@ -84,7 +84,10 @@ test.describe('Member app screenshots', () => {
     await snap(page, 'member-own-profile', info)
 
     await page.goto(`/members/u/${other}`)
-    await expect(page.getByRole('button', { name: /^Follow(ing)?$/ })).toBeVisible()
+    // Follow, Mute, Report and Block sit behind "more", as drawn.
+    await page.getByRole('button', { name: 'Profile options' }).click()
+    await expect(page.getByRole('dialog', { name: 'Profile options' }).getByRole('button', { name: new RegExp(`^(Follow|Unfollow) ${other}$`) })).toBeVisible()
+    await page.keyboard.press('Escape')
     await expect(page.getByRole('link', { name: 'Saved' })).toHaveCount(0)
     await snap(page, 'member-other-profile', info)
 
@@ -125,7 +128,7 @@ test.describe('Member app screenshots', () => {
     await snap(page, 'member-notifications', info)
 
     await page.goto('/members/settings')
-    await expect(page.getByRole('radiogroup', { name: 'Appearance' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Appearance/ })).toBeVisible()
     await appChecks(page, info)
     await snap(page, 'member-settings', info)
   })
@@ -133,7 +136,7 @@ test.describe('Member app screenshots', () => {
   test('each create step', async ({ page }, info) => {
     await page.goto('/members/feed')
     await page.getByRole('button', { name: 'Create', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Create new post' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^(Create new post|New post)$/ })).toBeVisible()
     await snap(page, 'member-create-1-select', info)
     await page.locator('#composer-files').setInputFiles(PHOTO)
     await page.getByRole('button', { name: 'Next', exact: true }).click()
@@ -150,14 +153,23 @@ test.describe('Member app screenshots', () => {
     await page.getByLabel('Describe photo 1').fill('Gold stripes on red')
     await page.getByRole('textbox', { name: /^Caption/ }).fill('A quiet evening in.')
     await page.getByLabel(/Everyone identifiable in these photos agreed/).check()
-    await snap(page, 'member-create-3-details', info)
-    await page.getByRole('button', { name: 'Next', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeEnabled()
+    await snap(page, 'member-create-3-details', info)
+    await page.getByRole('button', { name: 'Share', exact: true }).click()
+    await expect(page.getByText('Your post has been shared.')).toBeVisible()
     await snap(page, 'member-create-4-share', info)
+    // Delete what was shared, so the fixtures stay as they were.
+    const { csrfToken } = (await (await page.request.get('/api/csrf/')).json()) as { csrfToken: string }
+    const handle = fixtures().showcase.viewer_handle
+    const own = await (await page.request.get(`/api/members/u/${handle}/posts/`)).json()
+    for (const post of (own.results ?? own).filter((item: { caption: string }) => item.caption === 'A quiet evening in.')) {
+      await page.request.delete(`/api/members/posts/${post.id}/`, { headers: { 'X-CSRFToken': csrfToken, Origin: new URL(page.url()).origin } })
+    }
   })
 
   test('home feed in dark appearance', async ({ page }, info) => {
     await page.goto('/members/settings')
+    await page.getByRole('button', { name: /^Appearance/ }).click()
     await page.getByRole('radio', { name: 'Dark' }).click()
     await expect(page.locator('html')).toHaveAttribute('data-appearance', 'dark')
     await page.goto('/members/feed')
@@ -165,6 +177,7 @@ test.describe('Member app screenshots', () => {
     await snap(page, 'member-home-feed-dark', info)
     // Back to light, so the next run starts from the default.
     await page.goto('/members/settings')
+    await page.getByRole('button', { name: /^Appearance/ }).click()
     await page.getByRole('radio', { name: 'Light' }).click()
     await expect(page.locator('html')).not.toHaveAttribute('data-appearance', 'dark')
   })
@@ -192,7 +205,7 @@ test.describe('Website screenshots (palette check)', () => {
     ]) {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-      await expect(page.locator('.ig-app')).toHaveCount(0)
+      await expect(page.locator('.member-app')).toHaveCount(0)
       expect(await page.locator('body').evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 255, 255)')
       await expect(page.getByRole('link', { name: /Leave/ }).first()).toBeVisible()
       await snap(page, name, info, true)

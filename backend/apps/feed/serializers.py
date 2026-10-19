@@ -277,11 +277,21 @@ def notification_payload(notification, viewer):
         text = f"{actor.display_name} commented on your post"
     else:
         text = notification.message
+    post = notification.post
+    thumbnail = None
+    if post is not None:
+        ready = [image for image in post.images.all() if image.image and not image.incoming]
+        thumbnail = FeedImageSerializer(ready[0]).data["url"] if ready else None
     return {
         "id": notification.pk,
         "kind": kind,
         "text": text,
-        "post_id": notification.post.public_id if notification.post else None,
+        "post_id": post.public_id if post else None,
+        # The recipient's own post; access is checked again when the picture is fetched.
+        "thumbnail": thumbnail,
+        # Comments name their author (the comment is shown to the recipient anyway);
+        # likes stay grouped and nameless.
+        "actor": member_card(notification.actor) if kind == Notification.Kind.COMMENT else None,
         "read": notification.read_at is not None,
         "posted": posted(notification.updated_at),
     }

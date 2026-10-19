@@ -32,7 +32,7 @@ export function ActionSheet({ open, onClose, actions, label }: { open: boolean; 
       }}
       className="m-0 h-dvh max-h-none w-screen max-w-none items-center justify-center bg-transparent p-4 open:flex"
     >
-      <div className="w-full max-w-[400px] overflow-hidden rounded-xl bg-surface-raised text-fg shadow-[var(--ui-shadow)]">
+      <div className="w-full max-w-[400px] overflow-hidden rounded-sheet bg-canvas text-fg shadow-sheet">
         <h2 id={titleId} className="sr-only">
           {label}
         </h2>

@@ -31,7 +31,7 @@ export function Copy({ copy, k, as: Tag = 'p', className, id, lines = 1 }: CopyP
     return (
       <RichTag
         id={id}
-        className={cn(prose ? RICH_TEXT : '[&_em]:text-accent', className)}
+        className={cn(prose ? RICH_TEXT : '[&_em]:text-link', className)}
         // Sanitised on the server (nh3) to a small allow-list of tags.
         dangerouslySetInnerHTML={{ __html: entry.value }}
       />
@@ -50,7 +50,7 @@ export function CopySkeleton({ lines = 1, className }: { lines?: number; classNa
       {Array.from({ length: lines }, (_, index) => (
         <span
           key={index}
-          className={cn('mb-2 block h-[1em] rounded bg-surface-raised', index === lines - 1 && lines > 1 ? 'w-2/3' : 'w-full')}
+          className={cn('mb-2 block h-[1em] rounded bg-surface', index === lines - 1 && lines > 1 ? 'w-2/3' : 'w-full')}
         />
       ))}
     </span>
@@ -59,24 +59,22 @@ export function CopySkeleton({ lines = 1, className }: { lines?: number; classNa
 
 interface CopyHeadingProps {
   copy: PageCopy
-  /** Reads `${prefix}.eyebrow`, `${prefix}.title` and `${prefix}.lede`. */
+  /** Reads `${prefix}.title` and `${prefix}.lede`. */
   prefix: string
   id?: string
-  as?: 'h1' | 'h2' | 'h3'
-  align?: 'start' | 'center'
+  /** A rose link at the end of the title row, like "All events". */
+  action?: { to: string; label: string }
   className?: string
 }
 
 /** A SectionHeading whose words come from the page's editable copy. */
-export function CopyHeading({ copy, prefix, id, as = 'h2', align, className }: CopyHeadingProps) {
+export function CopyHeading({ copy, prefix, id, action, className }: CopyHeadingProps) {
   const lede = copy.status === 'loading' || copy.entry(`${prefix}.lede`)
   return (
     <SectionHeading
       id={id}
-      as={as}
-      align={align}
+      action={action}
       className={className}
-      eyebrow={copy.text(`${prefix}.eyebrow`) || undefined}
       title={copy.status === 'loading' ? <CopySkeleton /> : <Copy copy={copy} k={`${prefix}.title`} as="span" />}
       lede={lede ? <Copy copy={copy} k={`${prefix}.lede`} as="div" lines={2} /> : undefined}
     />

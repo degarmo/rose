@@ -4,106 +4,157 @@
 @custom-variant dark (&:where([data-appearance='dark'], [data-appearance='dark'] *));
 
 /*
- * Design tokens. Primitives first, then semantic aliases that components use.
- * One light palette serves the website and the member app (prompt 07); a neutral
- * near-black version applies when Appearance is Dark (html[data-appearance='dark']).
- * The semantic colours read --ui-* variables, so one switch recolours everything.
- * Contrast (WCAG 2.1) is listed in docs/design-system.md.
+ * Design tokens from the Rose design system (docs/design/tokens.md). Colours are --ui-*
+ * variables so one switch recolours everything; the light set is below and the dark set
+ * applies when Appearance is Dark (html[data-appearance='dark']). Tailwind reads them
+ * through @theme, so `bg-surface` or `text-fg-muted` follow the appearance.
  */
 :root {
   --ui-canvas: #ffffff;
   --ui-surface: #fafafa;
-  --ui-raised: #ffffff;
-  --ui-sunken: #fafafa;
-  --ui-border: #dbdbdb;
-  --ui-border-strong: #8e8e8e;
+  --ui-blush: #faf7f8;
   --ui-fg: #262626;
   --ui-fg-muted: #737373;
-  --ui-primary: #e0245e;
-  --ui-primary-hover: #ce2156;
-  --ui-primary-deep: #fdf2f5;
-  --ui-accent: #ce2156;
-  --ui-danger: #c62a3a;
-  --ui-error-mark: #ed4956;
-  --ui-success: #1e7e34;
-  --ui-wordmark: #7b1e2e;
-  --ui-hover: #efefef;
-  --ui-overlay: rgb(0 0 0 / 0.65);
-  --ui-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  --ui-fg-muted-tint: #6b6b6b;
+  --ui-fg-faint: #a3a3a3;
+  --ui-border: #dbdbdb;
+  --ui-control: #f0f0f0;
+  --ui-field: #efefef;
+  --ui-dot: #dbdbdb;
+  --ui-link: #ce2156;
+  --ui-tint: #fdeef2;
+  --ui-tint-fg: #a3123f;
+  --ui-wordmark: #5a0f23;
+  --ui-tier-selected: #fffbfc;
+  --ui-danger: #c62828;
+  --ui-wait: #fff4de;
+  --ui-wait-fg: #7a4e00;
+  --ui-full-fg: #5a5a5a;
+  --ui-wash-rose-1: #f7eef1;
+  --ui-wash-rose-2: #fcf7f8;
+  --ui-wash-warm-1: #f3ede6;
+  --ui-wash-warm-2: #faf7f2;
   color-scheme: light;
 }
 
 :root[data-appearance='dark'] {
-  --ui-canvas: #0c0c0c;
-  --ui-surface: #161616;
-  --ui-raised: #1f1f1f;
-  --ui-sunken: #121212;
-  --ui-border: #363636;
-  --ui-border-strong: #8e8e8e;
-  --ui-fg: #f5f5f5;
-  --ui-fg-muted: #a8a8a8;
-  --ui-primary: #e0245e;
-  --ui-primary-hover: #ce2156;
-  --ui-primary-deep: #2a1219;
-  --ui-accent: #ff5c8a;
-  --ui-danger: #ff6b78;
-  --ui-error-mark: #ff6b78;
-  --ui-success: #5fd068;
-  --ui-wordmark: #d4848f;
-  --ui-hover: #262626;
-  --ui-overlay: rgb(0 0 0 / 0.8);
-  --ui-shadow: 0 4px 16px rgb(0 0 0 / 0.6);
+  --ui-canvas: #0a0a0a;
+  --ui-surface: #141414;
+  --ui-blush: #1a1416;
+  --ui-fg: #fafafa;
+  --ui-fg-muted: #a3a3a3;
+  --ui-fg-muted-tint: #a3a3a3;
+  --ui-fg-faint: #737373;
+  --ui-border: #262626;
+  --ui-control: #262626;
+  --ui-field: #262626;
+  --ui-dot: #404040;
+  --ui-link: #e0527d;
+  --ui-tint: #2a1218;
+  --ui-tint-fg: #f1a6bd;
+  --ui-wordmark: #f1d9df;
+  --ui-tier-selected: #1a1416;
+  --ui-danger: #f87171;
+  --ui-wait: #2b2210;
+  --ui-wait-fg: #f5c76b;
+  --ui-full-fg: #a3a3a3;
+  --ui-wash-rose-1: #1c1c1c;
+  --ui-wash-rose-2: #141414;
+  --ui-wash-warm-1: #1c1c1c;
+  --ui-wash-warm-2: #141414;
   color-scheme: dark;
 }
 
 @theme {
-  /* Fixed colours: dark scrims and controls drawn over photographs, in either appearance. */
-  --color-ink-950: #0d0a0b;
-  --color-cream-100: #f2e8da;
-  --color-oxblood-700: #7b1e2e;
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-transparent: transparent;
 
-  /* Semantic */
+  /* Neutrals */
   --color-canvas: var(--ui-canvas);
   --color-surface: var(--ui-surface);
-  --color-surface-raised: var(--ui-raised);
-  --color-surface-sunken: var(--ui-sunken);
-  --color-border: var(--ui-border);
-  --color-border-strong: var(--ui-border-strong);
+  --color-blush: var(--ui-blush);
   --color-fg: var(--ui-fg);
   --color-fg-muted: var(--ui-fg-muted);
-  --color-fg-subtle: var(--ui-fg-muted);
-  --color-primary: var(--ui-primary);
-  --color-primary-hover: var(--ui-primary-hover);
-  --color-primary-deep: var(--ui-primary-deep);
-  --color-on-primary: #ffffff;
-  --color-accent: var(--ui-accent);
-  --color-rose: var(--ui-accent);
-  --color-highlight: var(--ui-accent);
-  --color-danger: var(--ui-danger);
-  --color-error-mark: var(--ui-error-mark);
-  --color-success: var(--ui-success);
-  --color-wordmark: var(--ui-wordmark);
-  --color-hover: var(--ui-hover);
-  --color-knob: #ffffff;
+  --color-fg-muted-tint: var(--ui-fg-muted-tint);
+  --color-fg-faint: var(--ui-fg-faint);
+  --color-border: var(--ui-border);
+  --color-control: var(--ui-control);
+  --color-field: var(--ui-field);
+  --color-dot: var(--ui-dot);
 
+  /* Rose. The fill stays #CE2156 in dark too, where white on it still reads at 5.2:1. */
+  --color-primary: #ce2156;
+  --color-primary-hover: #a3123f;
+  --color-on-primary: #ffffff;
+  --color-link: var(--ui-link);
+  --color-tint: var(--ui-tint);
+  --color-tint-fg: var(--ui-tint-fg);
+  --color-wordmark: var(--ui-wordmark);
+  --color-oxblood: #5a0f23;
+  --color-on-oxblood: #f1d9df;
+  --color-tier-selected: var(--ui-tier-selected);
+
+  /* Status */
+  --color-danger: var(--ui-danger);
+  --color-wait: var(--ui-wait);
+  --color-wait-fg: var(--ui-wait-fg);
+  --color-full-fg: var(--ui-full-fg);
+
+  /* Photographs: placeholder washes, and fixed scrims and backdrops in either appearance. */
+  --color-wash-rose-1: var(--ui-wash-rose-1);
+  --color-wash-rose-2: var(--ui-wash-rose-2);
+  --color-wash-warm-1: var(--ui-wash-warm-1);
+  --color-wash-warm-2: var(--ui-wash-warm-2);
+  --color-story: #1a1a1a;
+  --color-scrim: rgb(0 0 0 / 0.65);
+
+  /* Type: Fraunces for headings, Manrope for the website, the system face in the app. */
   --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
   --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
-  /* The "Rose" wordmark, in Fraunces everywhere, including the member app. */
-  --font-wordmark: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --font-app: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Fraunces even inside the app, where font-display is the system face: the wordmark, the club's name. */
+  --font-serif: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+
+  --text-display: 4rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.01em;
+  --text-h1: 3.25rem;
+  --text-h1--line-height: 1.05;
+  --text-h2-lg: 2.75rem;
+  --text-h2-lg--line-height: 1.1;
+  --text-h2: 2rem;
+  --text-h2--line-height: 1.2;
+  --text-card-title: 1.375rem;
+  --text-card-title--line-height: 1.2;
+  --text-lead: 1.0625rem;
+  --text-lead--line-height: 1.6;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-label: 0.6875rem;
+  --text-label--letter-spacing: 0.06em;
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.125rem;
+  --text-app: 0.875rem;
+  --text-app--line-height: 1.125rem;
+
+  /* Shape */
+  --radius-app: 0.5rem;
+  --radius-field: 0.75rem;
+  --radius-sheet: 0.75rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.25rem;
+
+  --shadow-modal: 0 24px 64px rgb(0 0 0 / 0.3);
+  --shadow-sheet: 0 12px 40px rgb(0 0 0 / 0.18);
+  --shadow-panel: 4px 0 24px rgb(0 0 0 / 0.08);
+
   /* Member app widths: the right rail appears from 1160px, sidebar labels from 1264px. */
   --breakpoint-rail: 72.5rem;
   --breakpoint-wide: 79rem;
 
-  /* Corner shapes of the shared controls, so the member app can square them off. */
-  --radius-control: calc(infinity * 1px);
-  --radius-card: 1rem;
-  --radius-field: 0.75rem;
-
-  --ease-velvet: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --duration-slow: 900ms;
-  --duration-base: 300ms;
-
-  --animate-toast-in: toast-in 400ms var(--ease-velvet);
+  --animate-toast-in: toast-in 300ms ease-out;
 
   /* Member app motion: 150-200ms ease-out, story bars linear. */
   --animate-heart-burst: heart-burst 600ms ease-out forwards;
@@ -173,9 +224,9 @@
     background-color: var(--color-canvas);
     color: var(--color-fg);
     font-family: var(--font-sans);
+    font-size: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
     /* Manrope's standard ligatures turn "(c)" into a copyright sign. */
     font-variant-ligatures: no-common-ligatures;
     scroll-behavior: smooth;
@@ -184,6 +235,8 @@
   body {
     min-height: 100dvh;
     background-color: var(--color-canvas);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
   }
 
   ::selection {
@@ -192,8 +245,12 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-highlight);
-    outline-offset: 3px;
+    outline: 2px solid var(--color-link);
+    outline-offset: 2px;
+  }
+
+  a {
+    color: inherit;
   }
 
   h1,
@@ -204,7 +261,6 @@
     font-optical-sizing: auto;
     font-variant-ligatures: common-ligatures;
     font-weight: 400;
-    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 
@@ -213,8 +269,7 @@
   }
 
   dialog::backdrop {
-    background: var(--ui-overlay);
-    backdrop-filter: blur(6px);
+    background: var(--color-scrim);
   }
 
   .noscript {
@@ -224,159 +279,53 @@
 }
 
 /*
- * The member app (everything under /members, prompt 07): the shared colours, but the
- * system font at 14px, weights 400 and 600, 8px corners and 32px buttons. Fraunces is
- * kept for the "Rose" wordmark alone. Scoped to .ig-app so the website is untouched.
+ * The member app (everything under /members): the system face at 14/18, weights 400 and
+ * 600. Fraunces stays for the "Rose" wordmark alone.
  */
 @layer base {
-  .ig-app {
-    --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-sans: var(--font-display);
-    --radius-control: 0.5rem;
-    --radius-card: 0.5rem;
-    --radius-field: 0.5rem;
+  .member-app {
+    --font-display: var(--font-app);
+    --font-sans: var(--font-app);
 
     background-color: var(--color-canvas);
     color: var(--color-fg);
-    font-family: var(--font-sans);
-    font-size: 0.875rem;
-    line-height: 1.125rem;
+    font-family: var(--font-app);
+    font-size: var(--text-app);
+    line-height: var(--text-app--line-height);
     font-variant-ligatures: normal;
   }
 
-  .ig-app :where(h1, h2, h3, h4) {
+  .member-app :where(h1, h2, h3, h4) {
     font-weight: 600;
-    letter-spacing: 0;
   }
 
-  .ig-app :where(strong, b) {
+  .member-app :where(strong, b) {
     font-weight: 600;
   }
 }
 
 @layer components {
-  /* Scroll reveal. JS adds .is-visible; reduced motion shows content at once. */
-  .reveal {
-    opacity: 0;
-    transform: translateY(18px);
-    transition:
-      opacity var(--duration-slow) var(--ease-velvet),
-      transform var(--duration-slow) var(--ease-velvet);
+  /* The striped placeholder under every picture, until it loads (and where none exists). */
+  .wash-rose {
+    background: repeating-linear-gradient(
+      135deg,
+      var(--color-wash-rose-1) 0 12px,
+      var(--color-wash-rose-2) 12px 24px
+    );
   }
 
-  .reveal.is-visible {
-    opacity: 1;
-    transform: none;
-  }
-
-  .reveal-image {
-    clip-path: inset(6% 6% 6% 6%);
-    opacity: 0;
-    transition:
-      clip-path 1400ms var(--ease-velvet),
-      opacity 1400ms var(--ease-velvet);
-  }
-
-  .reveal-image.is-visible {
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
-  }
-
-  /*
-   * Placeholder textures, used until real imagery exists. Built from the palette
-   * variables, so they read as soft rose and neutral washes in light and in dark.
-   */
-  .texture-velvet {
-    background:
-      radial-gradient(120% 90% at 30% 20%, color-mix(in srgb, var(--ui-primary) 22%, transparent), transparent 60%),
-      radial-gradient(90% 80% at 80% 90%, color-mix(in srgb, var(--ui-wordmark) 22%, transparent), transparent 70%),
-      linear-gradient(160deg, var(--ui-primary-deep), var(--ui-surface) 70%);
-  }
-
-  .texture-candle {
-    background:
-      radial-gradient(40% 50% at 50% 62%, rgb(232 176 104 / 0.35), transparent 70%),
-      radial-gradient(70% 80% at 50% 70%, color-mix(in srgb, var(--ui-primary) 16%, transparent), transparent 75%),
-      linear-gradient(180deg, var(--ui-surface), var(--ui-primary-deep) 60%, var(--ui-surface));
-  }
-
-  .texture-silk {
-    background:
-      linear-gradient(115deg, transparent 20%, color-mix(in srgb, var(--ui-primary) 12%, transparent) 35%, transparent 50%),
-      linear-gradient(115deg, transparent 45%, color-mix(in srgb, var(--ui-primary) 8%, transparent) 60%, transparent 75%),
-      linear-gradient(160deg, var(--ui-primary-deep), var(--ui-surface) 55%, var(--ui-canvas));
-  }
-
-  .texture-leather {
-    background-color: var(--ui-surface);
-    background-image:
-      radial-gradient(color-mix(in srgb, var(--ui-fg) 6%, transparent) 1px, transparent 1.5px),
-      radial-gradient(color-mix(in srgb, var(--ui-fg) 4%, transparent) 1px, transparent 1.5px),
-      radial-gradient(80% 70% at 30% 30%, rgb(196 140 100 / 0.22), transparent 70%),
-      linear-gradient(150deg, var(--ui-primary-deep), var(--ui-surface));
-    background-size:
-      5px 5px,
-      7px 7px,
-      100% 100%,
-      100% 100%;
-    background-position:
-      0 0,
-      2px 3px,
-      0 0,
-      0 0;
-  }
-
-  .texture-shadow {
-    background:
-      radial-gradient(60% 90% at 70% 40%, color-mix(in srgb, var(--ui-primary) 8%, transparent), transparent 70%),
-      linear-gradient(100deg, var(--ui-canvas) 30%, var(--ui-surface) 55%, var(--ui-canvas) 80%);
-  }
-
-  .texture-architecture {
-    background:
-      radial-gradient(50% 70% at 50% 100%, color-mix(in srgb, var(--ui-primary) 12%, transparent), transparent 70%),
-      repeating-linear-gradient(
-        90deg,
-        transparent 0 46px,
-        color-mix(in srgb, var(--ui-fg) 6%, transparent) 46px 48px
-      ),
-      linear-gradient(180deg, var(--ui-surface), var(--ui-canvas));
-  }
-
-  .texture-rose {
-    background:
-      radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--ui-primary) 30%, transparent) 0 8%, transparent 9%),
-      repeating-radial-gradient(
-        circle at 50% 50%,
-        color-mix(in srgb, var(--ui-primary) 16%, transparent) 0 6px,
-        color-mix(in srgb, var(--ui-wordmark) 10%, transparent) 6px 12px
-      ),
-      radial-gradient(circle at 50% 50%, transparent 30%, var(--ui-canvas) 62%);
-  }
-
-  .grain::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.08;
-    background-image: radial-gradient(rgb(255 255 255 / 0.6) 0.5px, transparent 0.6px);
-    background-size: 3px 3px;
-    mix-blend-mode: overlay;
+  .wash-warm {
+    background: repeating-linear-gradient(
+      135deg,
+      var(--color-wash-warm-1) 0 12px,
+      var(--color-wash-warm-2) 12px 24px
+    );
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  .reveal,
-  .reveal-image {
-    opacity: 1;
-    transform: none;
-    clip-path: none;
-    transition: none;
   }
 
   *,

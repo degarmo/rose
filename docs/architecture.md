@@ -65,7 +65,7 @@ security and restores are in `docs/ops/`.
 | GET, POST | `/api/donations/options/`, `checkout/` | How to give; start an online gift (rate limited). Never anything about who has given. |
 | POST | `/api/newsletter/subscribe/`, `confirm/`, `unsubscribe/` | Double opt-in. Subscribing answers the same for every address. |
 | GET, POST | `/api/newsletter/unsubscribe/<token>/` | RFC 8058 one-click: POST unsubscribes without cookies or CSRF; GET only redirects to the page. |
-| GET, PATCH | `/api/account/session/` | Who is signed in (`user: null` if nobody); PATCH changes display name. The only endpoint that returns an email, and only the caller's own. |
+| GET, PATCH | `/api/account/session/` | Who is signed in (`user: null` if nobody); PATCH changes display name. The only endpoint that returns an email, and only the caller's own. `feed_access` says the member app opens for them; `feed_controls` says `/account` has feed controls for them, so the page asks for them only then. |
 | POST | `/api/account/register/`, `verify-email/`, `verify-email/resend/`, `login/`, `logout/`, `sign-out-everywhere/`, `password-reset/`, `password-reset/confirm/`, `password/`, `delete/` | Account actions. Every write is rate limited (docs/ops/security.md). |
 | GET | `/api/account/rsvps/` | The caller's own upcoming RSVPs. |
 | GET | `/api/events/` | Upcoming visible events; `?category=`, `?past=1`. |
@@ -80,6 +80,7 @@ security and restores are in `docs/ops/`.
 | GET | `/api/members/home/?tab=` | The app's home feed: member posts with the club's journal posts (as "Rose") interleaved by date. The cursor holds timestamps and public ids, never database ids. |
 | GET | `/api/members/saved/` | The caller's own saved posts. There is no way to see anyone else's. |
 | POST, DELETE | `/api/members/posts/<id>/save/` | Save or unsave (published posts the caller can see). |
+| POST, DELETE | `/api/members/posts/<id>/hide/` | Hide another member's post from the caller's own feed and Explore, or bring it back. Private: nobody is told, nothing reports it. |
 | GET | `/api/members/stories/` | Story circles (Tonight, This week, Journal, News) with the caller's seen state. The same for everyone apart from that state. |
 | POST | `/api/members/stories/seen/` | `{keys: [...]}`: mark story items seen (50 at most). |
 | GET | `/api/membership/tiers/`, `options/` | Tiers on offer; payment methods and the current agreement. Placeholders are never offered with DEBUG off. |
@@ -161,6 +162,8 @@ erDiagram
     User ||--o{ DataExport : requests
     User ||--o{ SavedPost : "saves (private)"
     SavedPost }o--|| FeedPost : bookmarks
+    User ||--o{ HiddenPost : "hides (private)"
+    HiddenPost }o--|| FeedPost : hides
     User ||--o{ StorySeen : "has opened"
     Announcement {
         string title
@@ -245,14 +248,13 @@ flowchart LR
   only when a superuser ticks the box, which is logged separately.
 - Every door desk action, export and signature reveal writes `core.AuditLog`.
 
-## Website and member app (prompt 07)
+## Website and member app (prompts 07 and 08)
 
 The frontend has two experiences that never mix:
 
 1. **The public website**: Home, About, Events, Education, Journal, Visit, Guests, FAQ,
    Rentals, Volunteer, Donate, Contact, Membership/Join, Privacy, the account and sign-in
-   pages and the age gate. It uses `components/layout/Layout` (header and footer). Its
-   layout and structure are those of prompts 01 to 06; prompt 07 changed only its colours.
+   pages and the age gate. It uses `components/layout/Layout` (header and footer).
 2. **The member app**: every route under `/members/*` (feed, explore, search,
    notifications, create, profiles, saved posts, post detail, settings, stories). It has its
    own shell (`components/members/app/AppShell`) and never renders the website header or
@@ -297,6 +299,11 @@ Boundary rules:
 
 **Prompt 4: paid membership.** Built; see "Membership and payments" above. A real
 processor is one adapter class (see `docs/payments.md`).
+
+**Prompt 8: the Rose design system.** Built. Every screen follows the designs in
+`docs/design/` (see `docs/design-system.md`, `docs/design/screen-map.md` and decisions 332
+onwards). Backend additions: `HiddenPost` and the hide endpoint, post thumbnails and the
+commenter's card in notifications, and `feed_controls` in the session payload.
 
 **Prompt 7: member app and lighter site.** Built; see "Website and member app" above,
 `docs/design-system.md` (Website and Member app) and decisions 285 onwards. Backend
@@ -448,6 +455,9 @@ Check every change against this list.
 - [ ] **No email for feed activity.** Notifications are in-app only; likes are grouped and
       nameless.
 - [ ] **No direct messages.**
+- [ ] **Hidden posts are private.** Hiding only removes a post from the hider's own feed and
+      Explore; the author is never told, nothing counts it, and it is exported and erased with
+      the hider's data.
 - [ ] **Saved posts are private.** Only the saver's own `saved_by_me` and
       `/api/members/saved/` mention them; they leave every list when a post is hidden or
       removed, and are exported and erased with the member's data.

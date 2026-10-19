@@ -1,11 +1,12 @@
-import { HandHeart, KeyRound, ShieldCheck, UsersRound, type LucideIcon } from 'lucide-react'
+import type { PageCopy } from '@/lib/pageContent'
+
+/** How many values the skeleton shows while the copy loads. */
+const VALUES_WHILE_LOADING = [1, 2, 3, 4]
 
 /**
- * Icons for the values, in order. The words are staff-editable copy on the
- * "values" page (values.1.title, values.1.short, values.1.long, ...).
+ * The values are staff-editable copy on the "values" page (values.1.title,
+ * values.1.short, values.1.long, ...). Returns the value numbers, in order.
  */
-export const VALUE_ICONS: LucideIcon[] = [KeyRound, UsersRound, ShieldCheck, HandHeart]
-
-export function valueIcon(index: number): LucideIcon {
-  return VALUE_ICONS[(index - 1) % VALUE_ICONS.length]
+export function valueNumbers(copy: PageCopy): number[] {
+  return copy.status === 'loading' ? VALUES_WHILE_LOADING : copy.items('values')
 }

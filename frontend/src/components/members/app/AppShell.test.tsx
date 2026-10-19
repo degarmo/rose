@@ -70,7 +70,7 @@ describe('AppShell', () => {
     api.me.mockResolvedValue(me)
     renderApp('/members/feed')
     expect(await screen.findByText('Feed content')).toBeInTheDocument()
-    expect(document.querySelector('.ig-app')).not.toBeNull()
+    expect(document.querySelector('.member-app')).not.toBeNull()
     expect(screen.getAllByRole('navigation', { name: 'Members', hidden: true }).length).toBeGreaterThan(0)
     // The website's header never appears inside the app.
     expect(screen.queryByRole('navigation', { name: 'Main', hidden: true })).not.toBeInTheDocument()
@@ -80,7 +80,7 @@ describe('AppShell', () => {
     api.me.mockRejectedValue(new ApiError(404, 'Not found'))
     renderApp('/members/feed')
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(/not on the map/i)
-    expect(document.querySelector('.ig-app')).toBeNull()
+    expect(document.querySelector('.member-app')).toBeNull()
     expect(screen.queryByRole('navigation', { name: 'Members', hidden: true })).not.toBeInTheDocument()
     expect(screen.queryByText('Feed content')).not.toBeInTheDocument()
     // In the website's frame, so the quick exit is there as on every other page.

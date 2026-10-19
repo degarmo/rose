@@ -11,9 +11,10 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
 type LoadState = 'loading' | 'idle' | 'error' | 'done'
 
+/** Every post as square tiles with rounded corners (design: Home, "From the Journal", as a grid). */
 export function JournalGrid({ posts, onOpen }: { posts: JournalPost[]; onOpen: (post: JournalPost) => void }) {
   return (
-    <ul className="grid grid-cols-3 gap-0.5 sm:gap-1 lg:gap-2">
+    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6 lg:gap-4">
       {posts.map((post) => (
         <li key={post.slug}>
           <JournalTile post={post} onOpen={onOpen} />
@@ -31,7 +32,7 @@ interface MorePosts {
 }
 
 export function JournalPage() {
-  useDocumentMeta({ title: 'Journal', description: 'Notes and pictures from life at the house.' })
+  useDocumentMeta({ title: 'Journal', description: 'Notes and pictures from life at the club.' })
   const copy = usePageContent('journal')
   const first = useAsync(() => api.journal(), 'journal-first')
   const [more, setMore] = useState<MorePosts>({ posts: [], cursor: undefined, status: 'idle' })
@@ -84,14 +85,14 @@ export function JournalPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="journal-hero.webp" placeholder="silk" />
-      <Section spacing="tight" width="default" aria-label="Journal posts">
+      <PageHero copy={copy} />
+      <Section spacing="none" aria-label="Journal posts" className="pb-10 pt-4 lg:pb-16 lg:pt-6">
         {posts.length > 0 && <JournalGrid posts={posts} onOpen={setOpen} />}
         <div ref={sentinel} className="mt-10 flex flex-col items-center gap-4" aria-live="polite">
           {loadState === 'loading' && <LoadingState label="Loading posts" />}
           {loadState === 'error' && <ErrorState title="Posts did not load" onRetry={retry} />}
           {loadState === 'idle' && cursor && (
-            <Button variant="ghost" onClick={() => void loadMore(cursor)}>
+            <Button variant="secondary" size="lg" onClick={() => void loadMore(cursor)}>
               Load more
             </Button>
           )}
@@ -99,7 +100,7 @@ export function JournalPage() {
             <EmptyState title="Nothing here yet" message="The first posts are on their way." />
           )}
           {loadState === 'done' && posts.length > 0 && (
-            <p className="text-sm text-fg-subtle">You are all caught up.</p>
+            <p className="text-sm text-fg-muted">You are all caught up.</p>
           )}
         </div>
       </Section>

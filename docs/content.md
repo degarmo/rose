@@ -22,7 +22,6 @@ notes: Anything the approver should know (conflicts, guesses, gaps).
 page: visit                             # the page this copy belongs to
 copy:
   hero:
-    eyebrow: Plan your visit
     title: Plain text keeps its line breaks.
     lede:
       rich: <p>Formatted text: paragraphs, lists, bold, italics and links.</p>
@@ -58,23 +57,23 @@ deletes anything, and if any file has a problem nothing at all is written.
 
 | Page | Keys |
 | --- | --- |
-| `home` | `hero.eyebrow/title/lede`, `who.*`, `week.*`, `education.*`, `journal.*`, `involved.*` and `involved.1..3.title/body`, `closing.title/lede` |
-| `values` | `values.1..4.title/short/long` (home strip and About) |
-| `about` | `hero.*`, `mission.*`, `nonprofit.title/body`, `volunteer.title/body`, `values.eyebrow/title`, `people.*` |
-| `staff` | `hero.*`, `team.*`, `roles.*` and `roles.N.title/body`, `cta.*` (profiles come from Staff profiles) |
-| `visit` | `hero.*`, `expect.*`, `steps.N.title/body`, `id.title/body`, `hours.title`, `directions.title`, `rules.*`, `faq.*` |
-| `faq` | `hero.*`, `cta.*` (questions come from FAQ items) |
-| `rules` | `hero.*`, `intro`, `rules.N.title/body`, `help.*` |
-| `guests` | `hero.*`, `who.*`, `expect/rules/id.title/body`, `price.*`, `steps` |
-| `join` | `hero.*`, `benefits.*` and `benefits.N.title/body` |
+| `home` | `hero.title/lede`, `who.title/lede`, `week.title`, `education.title`, `journal.title`, `involved.title` and `involved.1..3.title/body`, `closing.title/lede` |
+| `values` | `values.1..4.title/short/long` (home band and About) |
+| `about` | `hero.*`, `mission.title/lede`, `nonprofit.title/body`, `volunteer.title/body`, `values.title`, `people.*` |
+| `staff` | `hero.*`, `team.*`, `roles.*` and `roles.N.title/body`, `cta.title/lede` (profiles come from Staff profiles) |
+| `visit` | `hero.*`, `expect.title`, `steps.N.title/body`, `id.title/body`, `hours.title`, `directions.title`, `faq.title` |
+| `faq` | `hero.*`, `cta.title/lede` (questions come from FAQ items) |
+| `rules` | `hero.*`, `intro`, `rules.N.title/body`, `help.title/lede` |
+| `guests` | `hero.*`, `who.*`, `id.title/body`, `price.*`, `steps` |
+| `join` | `hero.title/lede`, `note`, `benefits.*` and `benefits.N.title/body` |
 | `events`, `education`, `journal` | `hero.*` |
-| `contact` | `hero.*`, `concern`, `aside.title/note` |
+| `contact` | `hero.title/lede`, `concern` |
 | `privacy` | `hero.*`, `blocks.N.title/body` |
 | `rentals` | `hero.*`, `spaces.*`, `uses.title` and `uses.N`, `included.title` and `included.N`, `form.*` |
 | `volunteer` | `hero.*`, `why.*`, `roles.*` and `roles.N.title/body`, `form.*` |
 | `donate` | `hero.*`, `funds.*` and `funds.N.title/body`, `ways.*`, `ways.door/check/online.title/body`, `form.*` |
 
-A `*` group is `eyebrow`, `title` and `lede`.
+A `*` group is `title` and `lede`. Older files may still hold `eyebrow` keys; the redesigned pages (prompt 08) no longer show them.
 
 ## Images
 

@@ -1,4 +1,3 @@
-import { ArrowLeft, BookOpen, CalendarDays, Clock, MapPin } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { DetailItem } from '@/components/content/DetailItem'
@@ -6,14 +5,18 @@ import { RICH_TEXT } from '@/components/content/richText'
 import { RSVPPanel } from '@/components/content/RSVPPanel'
 import { ErrorState, HeroLoading } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
-import { Badge, ButtonLink, ImageFrame, Section } from '@/components/ui'
+import { Chip, GUTTER, ImageFrame } from '@/components/ui'
 import { api, ApiError, type EventDetail, type RSVPState } from '@/lib/api'
 import { cn } from '@/lib/cn'
-import { formatLongDate, formatTimeRange } from '@/lib/format'
+import { formatShortDate, formatTimeRange } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { NotFoundPage } from './NotFoundPage'
 
+/**
+ * Event detail (design: "Event detail"): a full-width picture, then the title, the When /
+ * Where rules and the description beside the RSVP panel.
+ */
 export function EventPage() {
   const { slug = '' } = useParams()
   const auth = useAuth()
@@ -31,64 +34,57 @@ export function EventPage() {
 
   return (
     <article>
-      <div className="relative isolate flex min-h-[50svh] items-end overflow-hidden pb-12 pt-32">
-        <ImageFrame remote={event?.hero_image} alt="" fill placeholder="candle" priority reveal={false} className="-z-20" />
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/85 to-canvas/40" />
-        <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
-          <ButtonLink to="/events" variant="link">
-            <ArrowLeft aria-hidden="true" className="size-4" />
-            All events
-          </ButtonLink>
-          {state.status === 'loading' && <HeroLoading label="Loading event" />}
-          {event && (
-            <>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <Badge tone="brass">{event.category_label}</Badge>
-                {event.audience === 'members' && <Badge>Members only</Badge>}
-              </div>
-              <h1 className="mt-6 max-w-3xl text-5xl leading-[1.05] text-fg sm:text-6xl">{event.title}</h1>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-fg-muted sm:text-xl">{event.summary}</p>
-            </>
-          )}
-        </div>
-      </div>
+      <ImageFrame
+        remote={event?.hero_image}
+        alt=""
+        placeholder="warm"
+        priority
+        className="lg:aspect-auto lg:h-[420px]"
+      />
 
       {/* Room for the details while they load, so the footer does not jump. */}
-      <Section spacing="tight" className={state.status === 'loading' ? 'min-h-[60svh]' : undefined}>
-        {state.status === 'error' && <ErrorState title="This event did not load" onRetry={state.retry} />}
+      <div
+        className={cn(
+          'mx-auto grid max-w-[1440px] gap-6 pb-12 pt-7 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-20 lg:pb-20 lg:pt-14',
+          GUTTER,
+          state.status === 'loading' && 'min-h-[60svh]',
+        )}
+      >
+        {state.status === 'loading' && <HeroLoading label="Loading event" />}
+        {state.status === 'error' && (
+          <ErrorState title="This event did not load" onRetry={state.retry} className="lg:col-span-2" />
+        )}
         {event && (
-          <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
-            <div>
-              <dl className="grid gap-5 border-y border-border py-6 sm:grid-cols-3">
-                <DetailItem icon={CalendarDays} label="Date">
-                  <time dateTime={event.starts_at}>{formatLongDate(event.starts_at)}</time>
+          <>
+            <div className="flex min-w-0 flex-col gap-4 lg:gap-6">
+              <div className="flex flex-wrap items-center gap-3 text-[0.8125rem] text-fg-muted">
+                <Chip>{event.category_label}</Chip>
+              </div>
+              <h1 className="text-[2.25rem] font-light leading-[1.05] text-fg lg:text-h1">{event.title}</h1>
+              <dl className="grid gap-1 border-y border-border py-4 text-sm leading-[1.6] lg:grid-cols-3 lg:gap-6 lg:py-6">
+                <DetailItem label="When">
+                  <time dateTime={event.starts_at}>
+                    {formatShortDate(event.starts_at)} · {formatTimeRange(event.starts_at, event.ends_at)}
+                  </time>
                 </DetailItem>
-                <DetailItem icon={Clock} label="Time">
-                  {formatTimeRange(event.starts_at, event.ends_at)}
-                </DetailItem>
-                {event.location_label && (
-                  <DetailItem icon={MapPin} label="Where">
-                    {event.location_label}
-                  </DetailItem>
-                )}
+                {event.location_label && <DetailItem label="Where">{event.location_label}</DetailItem>}
               </dl>
-              <div
-                className={cn('mt-10 text-lg', RICH_TEXT)}
-                // Sanitised on the server with a small allow-list of tags.
-                dangerouslySetInnerHTML={{ __html: event.body }}
-              />
+              {event.body ? (
+                <div
+                  className={cn('max-w-[640px] lg:text-[1.0625rem]', RICH_TEXT, '[&>p:first-child]:text-fg')}
+                  // Sanitised on the server with a small allow-list of tags.
+                  dangerouslySetInnerHTML={{ __html: event.body }}
+                />
+              ) : (
+                event.summary && <p className="max-w-[640px] text-fg lg:text-[1.0625rem]">{event.summary}</p>
+              )}
               {event.opportunity && (
                 <Link
                   to={`/education/${event.opportunity.slug}`}
-                  className="mt-10 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-border-strong"
+                  className="mt-2 flex max-w-[640px] flex-col gap-1 rounded-card border border-border p-5 transition-colors hover:border-fg-muted"
                 >
-                  <BookOpen aria-hidden="true" className="size-6 shrink-0 text-highlight" strokeWidth={1.5} />
-                  <span>
-                    <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">
-                      Tonight&rsquo;s class
-                    </span>
-                    <span className="mt-1 block font-display text-xl text-fg">{event.opportunity.title}</span>
-                  </span>
+                  <span className="text-[0.8125rem] text-fg-muted">Tonight&rsquo;s class</span>
+                  <span className="font-display text-xl leading-[1.2] text-fg lg:text-card-title">{event.opportunity.title}</span>
                 </Link>
               )}
             </div>
@@ -99,9 +95,9 @@ export function EventPage() {
                 onChange={(rsvp) => setRsvpOverride({ slug: event.slug, rsvp })}
               />
             </aside>
-          </div>
+          </>
         )}
-      </Section>
+      </div>
     </article>
   )
 }

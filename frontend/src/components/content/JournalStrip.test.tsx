@@ -35,11 +35,11 @@ describe('JournalStrip', () => {
     expect(list.querySelector('img')).toHaveAttribute('src', '/media/journal/1.webp')
   })
 
-  it('keeps a visible placeholder under each picture while it loads', async () => {
+  it('keeps the striped wash under each picture while it loads', async () => {
     journal.mockResolvedValue({ posts: [post(1)], nextCursor: null })
     renderWithProviders(<JournalStrip />)
     const tile = await screen.findByRole('button', { name: 'Open post: Club note 1' })
-    expect(tile.querySelector('[class*="texture-"]')).not.toBeNull()
+    expect(tile.querySelector('[class*="wash-"]')).not.toBeNull()
     expect(tile.querySelector('img')).not.toBeNull()
   })
 

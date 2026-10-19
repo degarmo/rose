@@ -134,5 +134,6 @@ export function priceLabel(tier: Tier) {
   const price = formatMoney(tier.price_cents, tier.currency)
   if (tier.interval === 'month') return `${price} a month`
   if (tier.interval === 'year') return `${price} a year`
-  return `${price} for ${tier.duration_days ?? 30} days`
+  const days = tier.duration_days ?? 30
+  return `${price} for ${days} ${days === 1 ? 'day' : 'days'}`
 }

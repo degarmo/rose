@@ -22,15 +22,16 @@ test.describe('Membership', () => {
     await member.getByRole('button', { name: 'Log in' }).click()
 
     // Choose, read and sign the agreement, pay at the door.
-    await member.getByRole('button', { name: 'Choose Monthly' }).click()
+    // Desktop has a button per tier card; phones pick from a list, then "Continue with …".
+    await member.getByRole('button', { name: /^(Choose|Continue with) Monthly$/ }).filter({ visible: true }).click()
     const agreement = member.getByRole('region', { name: 'Agreement text' })
     await agreement.evaluate((element) => element.scrollTo(0, element.scrollHeight))
-    await expect(member.getByText('You have reached the end.')).toBeVisible()
-    await member.getByLabel('I have read and agree').check()
-    await member.getByLabel(/Your full name/).fill('Jordan Testperson')
-    await member.getByRole('button', { name: 'Sign and continue' }).click()
+    await expect(member.getByText('You have reached the end.')).toBeAttached()
+    await member.getByLabel('I have read the agreement and I agree to it.').check()
+    await member.getByLabel(/Type your full name to sign/).fill('Jordan Testperson')
+    await member.getByRole('button', { name: 'Agree and continue' }).click()
     await member.getByRole('button', { name: 'Get my reference code' }).click()
-    await expect(member.getByRole('heading', { name: 'You are almost a member' })).toBeVisible()
+    await expect(member.getByText("You're in")).toBeVisible()
     const code = (await member.getByAltText(/QR code for/).getAttribute('alt'))!.replace('QR code for ', '')
     expect(code).toMatch(/^[2-9A-HJKMNP-Z]{3}-[2-9A-HJKMNP-Z]{3}$/)
 

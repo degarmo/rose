@@ -1,16 +1,16 @@
-import { CircleAlert, CircleCheck } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { Copy, CopyHeading } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
-import { Reveal } from '@/components/content/Reveal'
 import { ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
-import { Button, Card, FormField, Input, Section, Textarea, useToast } from '@/components/ui'
+import { Button, Card, CheckboxBox, FormField, Input, Section, Textarea, useToast } from '@/components/ui'
 import { api, ApiError, type Choice, type FieldErrors, type VolunteerPayload } from '@/lib/api'
+import { cn } from '@/lib/cn'
 import { usePageContent } from '@/lib/pageContent'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { SentPanel } from './SentPanel'
 import { validateVolunteer, VOLUNTEER_FIELDS as FIELDS } from './volunteerValidation'
 
 const EMPTY: VolunteerPayload = {
@@ -39,35 +39,31 @@ function CheckboxGroup({
 }) {
   const errorId = `${name}-error`
   return (
-    <fieldset aria-describedby={error ? errorId : undefined} className="flex flex-col gap-3">
-      <legend className="mb-2 text-sm font-medium text-fg">{legend}</legend>
+    <fieldset aria-describedby={error ? errorId : undefined} className="flex flex-col gap-1.5">
+      <legend className="mb-1.5 text-sm font-semibold text-fg">{legend}</legend>
       <div className="grid gap-2 sm:grid-cols-2">
         {choices.map((choice) => (
           <label
             key={choice.value}
-            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-4 text-sm text-fg hover:border-border-strong"
+            className={cn(
+              'flex min-h-12 cursor-pointer items-center gap-3 rounded-field border px-4 py-2 text-sm text-fg transition-colors',
+              selected.includes(choice.value) ? 'border-primary bg-tier-selected' : error ? 'border-danger' : 'border-border hover:border-fg-muted',
+            )}
           >
-            <input
-              type="checkbox"
+            <CheckboxBox
               name={name}
               value={choice.value}
               checked={selected.includes(choice.value)}
               onChange={(event) =>
-                onChange(
-                  event.target.checked
-                    ? [...selected, choice.value]
-                    : selected.filter((value) => value !== choice.value),
-                )
+                onChange(event.target.checked ? [...selected, choice.value] : selected.filter((value) => value !== choice.value))
               }
-              className="size-4 accent-[var(--color-primary)]"
             />
             {choice.label}
           </label>
         ))}
       </div>
       {error && (
-        <p id={errorId} className="flex items-center gap-2 text-sm text-danger">
-          <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+        <p id={errorId} className="text-[0.8125rem] text-danger">
           {error}
         </p>
       )}
@@ -90,7 +86,6 @@ function VolunteerForm() {
   const [sent, setSent] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const successRef = useRef<HTMLHeadingElement>(null)
-
 
   if (options.status === 'loading') return <LoadingState label="Loading the form" />
   if (options.status === 'error') return <ErrorState title="The form did not load" onRetry={options.retry} />
@@ -132,21 +127,15 @@ function VolunteerForm() {
 
   if (sent) {
     return (
-      <div className="py-6" role="status">
-        <CircleCheck aria-hidden="true" className="size-10 text-success" strokeWidth={1.5} />
-        <h2 ref={successRef} tabIndex={-1} className="mt-6 text-4xl text-fg focus:outline-none">
-          Thank you for offering to help.
-        </h2>
-        <p className="mt-4 max-w-lg leading-relaxed text-fg-muted">
-          A volunteer coordinator will reply by email to talk about what might suit you.
-        </p>
-      </div>
+      <SentPanel headingRef={successRef} title="Thank you for offering to help.">
+        A volunteer coordinator will reply to {values.contact_email.trim()} to talk about what might suit you.
+      </SentPanel>
     )
   }
 
   return (
-    <form ref={formRef} noValidate onSubmit={submit} className="flex flex-col gap-6" aria-label="Volunteer form">
-      <div className="grid gap-6 sm:grid-cols-2">
+    <form ref={formRef} noValidate onSubmit={submit} className="flex flex-col gap-5" aria-label="Volunteer form">
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
         <FormField label="Name or display name" error={errors.contact_name} required>
           {(field) => (
             <Input
@@ -220,21 +209,22 @@ function VolunteerForm() {
         </label>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-fg-subtle">
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
+          {submitting ? 'Sending' : 'Send'}
+        </Button>
+        <p className="text-[0.8125rem] text-fg-muted">
           Only our volunteer coordinators see this.{' '}
           <Link to="/privacy" className="underline underline-offset-4 hover:text-fg">
             Privacy
           </Link>
         </p>
-        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
-          {submitting ? 'Sending' : 'Send'}
-        </Button>
       </div>
     </form>
   )
 }
 
+/** Volunteer (no design: roles as site cards, the form laid out like Contact). */
 export function VolunteerPage() {
   useDocumentMeta({
     title: 'Volunteer',
@@ -246,7 +236,7 @@ export function VolunteerPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="about-hero.webp" placeholder="candle" />
+      <PageHero copy={copy} image="about-hero.webp" placeholder="rose" />
 
       <Section width="narrow" aria-labelledby="why">
         <CopyHeading copy={copy} prefix="why" id="why" />
@@ -254,28 +244,28 @@ export function VolunteerPage() {
 
       <Section tone="surface" aria-labelledby="roles">
         <CopyHeading copy={copy} prefix="roles" id="roles" />
-        <ul className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {roles.map((n, index) => (
-            <Reveal as="li" key={n} delay={(index % 3) as 0 | 1 | 2}>
-              <Card className="h-full p-8">
-                <Copy copy={copy} k={`roles.${n}.title`} as="h3" className="text-2xl text-fg" />
-                <Copy copy={copy} k={`roles.${n}.body`} lines={3} className="mt-3 leading-relaxed text-fg-muted" />
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:mt-10 lg:grid-cols-3 lg:gap-6">
+          {roles.map((n) => (
+            <li key={n}>
+              <Card className="h-full p-5 lg:p-6">
+                <Copy copy={copy} k={`roles.${n}.title`} as="h3" className="text-xl text-fg lg:text-card-title" />
+                <Copy copy={copy} k={`roles.${n}.body`} lines={3} className="mt-2 text-sm text-fg-muted" />
               </Card>
-            </Reveal>
+            </li>
           ))}
         </ul>
       </Section>
 
       <Section aria-labelledby="offer">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-24">
           <CopyHeading copy={copy} prefix="form" id="offer" />
-          <Card className="p-6 sm:p-10">
+          <div className="w-full lg:max-w-[520px]">
             {auth.status === 'loading' ? (
               <LoadingState label="Loading the form" />
             ) : (
               <VolunteerForm key={auth.user?.display_name ?? 'signed-out'} />
             )}
-          </Card>
+          </div>
         </div>
       </Section>
     </>

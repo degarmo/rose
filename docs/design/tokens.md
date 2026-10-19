@@ -35,8 +35,9 @@ Contrast ratios are WCAG 2.1 ratios, measured on the background named.
 | `link` | `#CE2156` | `#E0527D` | Text links ("All events", "See roles →", "Edit", "Clear all", "Post", "Next", "Done", "Required"), the date name over event cards, the step number "01" on Visit. Dark `#E0527D` is DS "Rose (dark), links on dark", 5.4:1 on `#0A0A0A`. |
 | `tint` | `#FDEEF2` | `#2A1218` | "Open" badge, App right-rail date tiles, today in the month calendar. |
 | `tint-fg` | `#A3123F` | `#F1A6BD` | Text on `tint`: 6.9:1 (light), 9.1:1 (dark). |
-| `wordmark` | `#5A0F23` | `#F1D9DF` | The "Rose" wordmark only (Site header and footer, App sidebar and top bar, age gate), the paywall and photo-ID icons, the values band background (Site home). |
-| `on-wordmark` | `#F1D9DF` | `#F1D9DF` | Text under the values heading on the oxblood band (10.3:1). |
+| `wordmark` | `#5A0F23` | `#F1D9DF` | The "Rose" wordmark only (Site header and footer, App sidebar and top bar, age gate), and the paywall and photo-ID icons. |
+| `oxblood` | `#5A0F23` | `#5A0F23` | Fixed oxblood: the values band (Site home) and the club's "R" avatar in the app. |
+| `on-oxblood` | `#F1D9DF` | `#F1D9DF` | Text on `oxblood` (10.3:1). |
 | `tier-selected` | `#FFFBFC` | `#1A1416` | Site Join step 1: the highlighted tier card. |
 
 ### Status
@@ -44,26 +45,27 @@ Contrast ratios are WCAG 2.1 ratios, measured on the background named.
 | Token | Light | Dark | Used in |
 | --- | --- | --- | --- |
 | `danger` | `#C62828` | `#F87171` | Field error border (1.5px) and message (13px), "Report to hosts", "Leave and erase". 5.6:1 on white; 7.2:1 on `#0A0A0A`. |
-| `status-open` | `tint` / `tint-fg` | same | Badge "Open", "Open · 14 spots". |
-| `status-wait` | `#FFF4DE` / `#7A4E00` | `#2B2210` / `#F5C76B` | Badge "Waitlist", "Waitlist · 6 ahead" (6.6:1). |
-| `status-full` | `control` / `#5A5A5A` | `control` / `#A3A3A3` | Badge "Full" (6.1:1). |
-| `status-members` | `fg` / `canvas` | same | Badge "Members only" (inverted). |
-| `status-going` | `primary` / white | same | Badge "Going", "Going · party of 2". |
+| Open (`Badge tone="open"`) | `tint` / `tint-fg` | same | Badge "Open". The design's "· 14 spots" is not shown (decision 349). |
+| `wait` / `wait-fg` | `#FFF4DE` / `#7A4E00` | `#2B2210` / `#F5C76B` | Badge "Waitlist" (6.6:1). |
+| `control` / `full-fg` | `#F0F0F0` / `#5A5A5A` | `#262626` / `#A3A3A3` | Badge "Full" (6.1:1). |
+| Members (`Badge tone="members"`) | `fg` / `canvas` | same | Badge "Members only" (inverted). |
+| Going (`Badge tone="going"`) | `primary` / white | same | Badge "Going", "Going · party of 2". |
 
 ### Photographs, placeholders and overlays
 
 | Token | Value | Used in |
 | --- | --- | --- |
-| `wash-rose` | `#F7EEF1` → `#FCF7F8` (dark `#1C1C1C` → `#141414`) | The striped image placeholder in every post, tile and hero. The app draws real photographs; the stripe stays only as the loading background under them. |
-| `wash-warm` | `#F3EDE6` → `#FAF7F2` | Education and event placeholders. Same rule. |
-| `overlay` | `rgba(0,0,0,.65)` | App post modal backdrop. |
-| `overlay-create` | `rgba(0,0,0,.5)` | App Create modal backdrop. |
+| `wash-rose` (class; colours `wash-rose-1/2`) | `#F7EEF1` → `#FCF7F8` (dark `#1C1C1C` → `#141414`) | The striped image placeholder in every post, tile and hero. The app draws real photographs; the stripe stays only as the loading background under them. |
+| `wash-warm` (class; colours `wash-warm-1/2`) | `#F3EDE6` → `#FAF7F2` (dark as above) | Education and event placeholders. Same rule. |
+| `scrim` | `rgba(0,0,0,.65)` | Dialog backdrops (post modal, Create, sheets). |
 | `story` | `#1A1A1A` | App story viewer backdrop (desktop). Text on stories is white. |
-| `scrim` | `rgba(255,255,255,.9)` | Redaction tool buttons over a photo. |
 
 ## Type
 
-Two families, both self-hosted from `@fontsource-variable` (no Google Fonts request):
+Tokens: `font-display` (Fraunces on the site; the system face inside the app),
+`font-sans` (Manrope), `font-app` (system UI) and `font-serif` (Fraunces everywhere, for the
+wordmark and the club's name in the app). Two families, both self-hosted from
+`@fontsource-variable` (no Google Fonts request):
 **Fraunces** (variable, `opsz` 9–144, weights 300–500 used, italic for the signature field)
 and **Manrope** (variable, weights 400–700 used). The member app uses the system UI stack
 (`system-ui, -apple-system, 'Segoe UI', sans-serif`) at weights 400 and 600, with Fraunces for
@@ -86,7 +88,7 @@ the wordmark alone.
 | `text-label` | 11, caps, .06em | Manrope 600 | Category and level chips, "Most members" tag. 12 caps .06em for the date name and "You're in". 13 caps .08em for section labels in the designs. |
 | `text-wordmark` | 28 (header), 22 (footer), 36 / 32 (age gate), 26 (phone header) | Fraunces 400, `wordmark` | "Rose". |
 
-### Member app (`.app`)
+### Member app (`.member-app`)
 
 | Token | Size / line | Weight | Used in |
 | --- | --- | --- | --- |

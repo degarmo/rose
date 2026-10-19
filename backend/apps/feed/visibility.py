@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from apps.accounts.models import Profile, User, feed_visible_q
 
-from .models import Block, FeedComment, FeedLike, FeedPost, Mute
+from .models import Block, FeedComment, FeedLike, FeedPost, HiddenPost, Mute
 
 
 def block_pair_ids(user):
@@ -37,8 +37,12 @@ def visible_posts(viewer):
 
 
 def feed_posts(viewer, tab="everyone"):
-    """The scrolling feed: visible posts minus muted members, newest first."""
-    posts = visible_posts(viewer).exclude(author_id__in=muted_ids(viewer))
+    """The scrolling feed: visible posts minus muted members and posts the viewer hid."""
+    posts = (
+        visible_posts(viewer)
+        .exclude(author_id__in=muted_ids(viewer))
+        .exclude(pk__in=HiddenPost.objects.filter(user=viewer).values("post_id"))
+    )
     if tab == "following":
         from .models import Follow
 

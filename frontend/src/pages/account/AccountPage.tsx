@@ -1,12 +1,13 @@
 import { CalendarDays, EyeOff, LogOut, MailWarning, MonitorSmartphone, Trash2 } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
-import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
+import { ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { ConfirmDialog } from '@/components/members/ConfirmDialog'
 import { Badge, Button, Card, FormField, Input, Modal, Section, useToast } from '@/components/ui'
 import { api, ApiError, type Appearance } from '@/lib/api'
 import { chooseAppearance } from '@/lib/appearance'
+import { cn } from '@/lib/cn'
 import { formatEventDate } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -14,13 +15,14 @@ import { FeedSection } from './FeedSection'
 import { MembershipCard } from './MembershipCard'
 import { displayNameError, passwordError } from './validation'
 
+/** One account section: a site card with a Fraunces title. */
 function Panel({ title, children, id }: { title: string; children: ReactNode; id: string }) {
   return (
-    <Card as="article" aria-labelledby={id} className="p-6 sm:p-8">
-      <h2 id={id} className="text-3xl text-fg">
+    <Card as="article" aria-labelledby={id} className="scroll-mt-28 p-5 sm:p-8">
+      <h2 id={id} className="text-[1.375rem] leading-[1.2] text-fg lg:text-[1.625rem]">
         {title}
       </h2>
-      <div className="mt-6">{children}</div>
+      <div className="mt-5">{children}</div>
     </Card>
   )
 }
@@ -55,7 +57,7 @@ function DisplayNameForm({ current }: { current: string }) {
           {(field) => <Input {...field} name="display_name" value={value} onChange={(e) => setValue(e.target.value)} />}
         </FormField>
       </div>
-      <Button type="submit" variant="ghost" className="sm:mt-[3.4rem]" disabled={submitting || value.trim() === current} aria-busy={submitting}>
+      <Button type="submit" variant="secondary" size="lg" className="sm:mt-[1.6875rem]" disabled={submitting || value.trim() === current} aria-busy={submitting}>
         {submitting ? 'Saving' : 'Save'}
       </Button>
     </form>
@@ -78,11 +80,21 @@ function AppearanceChoice({ current }: { current: Appearance }) {
 
   return (
     <div>
-      <div role="radiogroup" aria-label="Appearance" className="flex flex-wrap gap-3">
+      <div role="radiogroup" aria-label="Appearance" className="inline-flex rounded-full border border-border p-[3px] text-sm font-semibold">
         {(['light', 'dark'] as const).map((value) => (
-          <Button key={value} role="radio" aria-checked={current === value} variant={current === value ? 'primary' : 'ghost'} onClick={() => void choose(value)}>
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={current === value}
+            onClick={() => void choose(value)}
+            className={cn(
+              'inline-flex h-[34px] items-center rounded-full px-[18px] transition-colors duration-150',
+              current === value ? 'bg-fg text-canvas' : 'text-fg-muted hover:text-fg',
+            )}
+          >
             {value === 'light' ? 'Light' : 'Dark'}
-          </Button>
+          </button>
         ))}
       </div>
       <p className="mt-3 text-sm text-fg-muted">Light is the default. Your choice follows you to every device you sign in on.</p>
@@ -129,7 +141,7 @@ function PasswordForm() {
           <Input {...field} name="new_password" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
         )}
       </FormField>
-      <Button type="submit" variant="ghost" className="self-start" disabled={submitting} aria-busy={submitting}>
+      <Button type="submit" variant="secondary" size="lg" className="self-start" disabled={submitting} aria-busy={submitting}>
         {submitting ? 'Saving' : 'Change password'}
       </Button>
     </form>
@@ -141,26 +153,32 @@ function UpcomingRSVPs() {
   if (state.status === 'loading') return <LoadingState label="Loading your RSVPs" />
   if (state.status === 'error') return <ErrorState title="Your RSVPs did not load" onRetry={state.retry} />
   if (state.data.length === 0) {
-    return <EmptyState title="No plans yet" message="Find an evening on the events page." />
+    return (
+      <p className="text-fg-muted">
+        No plans yet. Find an evening on the{' '}
+        <Link to="/events" className="font-semibold text-link hover:text-primary-hover">
+          events page
+        </Link>
+        .
+      </p>
+    )
   }
   return (
     <ul className="divide-y divide-border">
       {state.data.map((item) => (
-        <li key={item.event.slug} className="flex flex-wrap items-center justify-between gap-3 py-4">
+        <li key={item.event.slug} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0">
           <div>
-            <Link to={`/events/${item.event.slug}`} className="font-display text-xl text-fg hover:text-accent">
+            <Link to={`/events/${item.event.slug}`} className="font-display text-xl text-fg hover:text-link">
               {item.event.title}
             </Link>
             <p className="mt-1 flex items-center gap-2 text-sm text-fg-muted">
-              <CalendarDays aria-hidden="true" className="size-4 text-highlight" />
+              <CalendarDays aria-hidden="true" className="size-4 text-link" />
               <time dateTime={item.event.starts_at}>{formatEventDate(item.event.starts_at)}</time>
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {item.party_size > 1 && <Badge>Party of {item.party_size}</Badge>}
-            <Badge tone={item.status === 'going' ? 'brass' : 'rose'}>
-              {item.status === 'going' ? 'Going' : 'On the waitlist'}
-            </Badge>
+            {item.party_size > 1 && <Badge tone="full">Party of {item.party_size}</Badge>}
+            <Badge tone={item.status === 'going' ? 'going' : 'wait'}>{item.status === 'going' ? 'Going' : 'On the waitlist'}</Badge>
           </div>
         </li>
       ))}
@@ -188,10 +206,10 @@ function SignOutEverywhere() {
 
   return (
     <>
-      <p className="leading-relaxed text-fg-muted">
+      <p className="text-fg-muted">
         Lost a phone, or signed in on a shared computer? This signs you out on every device, including this one.
       </p>
-      <Button variant="ghost" className="mt-6" onClick={() => setOpen(true)}>
+      <Button variant="secondary" size="lg" className="mt-5" onClick={() => setOpen(true)}>
         <MonitorSmartphone aria-hidden="true" className="size-4" />
         Sign out everywhere
       </Button>
@@ -234,12 +252,12 @@ function DeleteAccount() {
 
   return (
     <>
-      <p className="leading-relaxed text-fg-muted">
+      <p className="text-fg-muted">
         Deleting your account removes your profile and every RSVP straight away. Any message you sent us is kept
         without your name, email or phone number. An open membership is cancelled, and payment records are kept for
         our accounts with nothing that identifies you. This cannot be undone.
       </p>
-      <Button variant="ghost" className="mt-6 border-danger/60 text-danger hover:bg-primary-deep" onClick={() => setOpen(true)}>
+      <Button variant="secondary" size="lg" className="mt-5 border-danger text-danger hover:border-danger" onClick={() => setOpen(true)}>
         <Trash2 aria-hidden="true" className="size-4" />
         Delete my account
       </Button>
@@ -249,7 +267,7 @@ function DeleteAccount() {
         title="Delete your account?"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
+            <Button variant="secondary" onClick={() => setOpen(false)}>
               Keep my account
             </Button>
             <Button onClick={confirm} disabled={submitting} aria-busy={submitting}>
@@ -297,15 +315,15 @@ function VerifyBanner() {
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-highlight/40 bg-canvas p-5 sm:flex-row sm:items-center">
-      <MailWarning aria-hidden="true" className="size-6 shrink-0 text-highlight" />
-      <p className="flex-1 text-sm text-fg-muted">Confirm your email to RSVP. Check your inbox for our link.</p>
+    <div className="flex flex-col gap-4 rounded-card bg-blush p-5 sm:flex-row sm:items-center">
+      <MailWarning aria-hidden="true" className="size-6 shrink-0 text-link" />
+      <p className="flex-1 text-sm text-fg-muted-tint">Confirm your email to RSVP. Check your inbox for our link.</p>
       {sent ? (
-        <p role="status" className="text-sm text-success">
+        <p role="status" className="text-sm text-link">
           A new link is on its way.
         </p>
       ) : (
-        <Button variant="ghost" onClick={resend} disabled={sending} aria-busy={sending}>
+        <Button variant="secondary" onClick={resend} disabled={sending} aria-busy={sending}>
           {sending ? 'Sending' : 'Send a new link'}
         </Button>
       )}
@@ -321,7 +339,7 @@ export function AccountPage() {
 
   if (auth.status === 'loading') {
     return (
-      <Section className="pt-32">
+      <Section width="narrow">
         <LoadingState label="Loading your account" />
       </Section>
     )
@@ -331,14 +349,14 @@ export function AccountPage() {
   const user = auth.user
 
   return (
-    <Section className="pt-32" width="narrow">
+    <Section width="narrow" spacing="none" className="pb-16 pt-7 lg:pb-24 lg:pt-16">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-highlight">My account</p>
-          <h1 className="mt-3 text-5xl text-fg">{user.display_name}</h1>
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.06em] text-link">My account</p>
+          <h1 className="text-[2.25rem] font-light leading-[1.05] text-fg lg:text-h1">{user.display_name}</h1>
         </div>
         <Button
-          variant="ghost"
+          variant="secondary"
           onClick={async () => {
             setLeaving(true)
             await auth.logout()
@@ -350,7 +368,7 @@ export function AccountPage() {
         </Button>
       </header>
 
-      <div className="mt-10 flex flex-col gap-6">
+      <div className="mt-8 flex flex-col gap-4 lg:mt-10 lg:gap-6">
         {!user.email_verified && <VerifyBanner />}
         <MembershipCard />
         <Panel id="rsvps" title="Upcoming plans">
@@ -359,10 +377,10 @@ export function AccountPage() {
         <FeedSection />
         <Panel id="profile" title="Profile">
           <DisplayNameForm key={user.display_name} current={user.display_name} />
-          <div className="mt-8 border-t border-border pt-6">
-            <p className="text-sm font-medium text-fg">Email</p>
+          <div className="mt-6 border-t border-border pt-5">
+            <p className="text-sm font-semibold text-fg">Email</p>
             <p className="mt-1 text-fg-muted">{user.email}</p>
-            <p className="mt-2 flex items-center gap-2 text-xs text-fg-subtle">
+            <p className="mt-2 flex items-center gap-2 text-xs text-fg-muted">
               <EyeOff aria-hidden="true" className="size-3.5" />
               Only you can see this.
             </p>

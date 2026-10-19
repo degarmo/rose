@@ -58,13 +58,15 @@ test.describe('Member app polish', () => {
 
     const story = stories.getByRole('button').first()
     const circle = await story.locator('span').first().boundingBox()
-    expect(circle!.width).toBe(info.project.name === 'phone' ? 64 : 66)
+    // 64px at every width (design: story circles).
+    expect(circle!.width).toBe(64)
     // The button ends at the bottom of its visible label.
     const label = await story.boundingBox()
     const tabs = await page.getByRole('tablist', { name: 'Feed' }).boundingBox()
     const gap = tabs!.y - (label!.y + label!.height)
     expect(gap).toBeGreaterThanOrEqual(6)
-    expect(gap).toBeLessThanOrEqual(12)
+    // Design: 12px on phones; 8px under the tray plus the column's 12px gap from 768px.
+    expect(gap).toBeLessThanOrEqual(info.project.name === 'phone' ? 12 : 20)
 
     const light = await brightness(page, 'article img[src*="/api/members/media/"]')
     expect(light.length).toBeGreaterThan(0)
@@ -75,15 +77,15 @@ test.describe('Member app polish', () => {
   test('own profile header', async ({ page }, info) => {
     const me = fixtures().showcase.viewer_handle
     await page.goto(`/members/u/${me}`)
-    const name = page.getByRole('heading', { level: 1, name: me })
-    await expect(name).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: me })).toBeVisible()
     if (info.project.name === 'phone') {
-      const header = page.locator('header').filter({ has: name })
+      // The handle is the top bar's title; the profile header holds the rest.
+      const header = page.locator('header').filter({ has: page.getByText(/^posts?$/) })
       const avatar = (await header.locator('span.rounded-full').first().boundingBox())!
       const stats = (await header.getByText(/^posts?$/).locator('..').boundingBox())!
-      const heading = (await name.boundingBox())!
+      const heading = (await header.getByRole('region', { name: 'About' }).getByText(me, { exact: true }).boundingBox())!
       const edit = (await page.getByRole('button', { name: 'Edit profile' }).boundingBox())!
-      const settings = (await page.getByRole('link', { name: 'Settings' }).boundingBox())!
+      const settings = (await page.getByRole('link', { name: 'Settings', exact: true }).last().boundingBox())!
       expect(avatar.width).toBe(77)
       // Posts count to the right of the avatar, centred on it.
       expect(stats.x).toBeGreaterThan(avatar.x + avatar.width)
@@ -101,7 +103,7 @@ test.describe('Member app polish', () => {
 
   test("another member's profile", async ({ page }, info) => {
     await page.goto(`/members/u/${fixtures().showcase.other_handle}`)
-    await expect(page.getByRole('button', { name: /^Follow(ing)?$/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Profile options' })).toBeVisible()
     await snap(page, 'member-other-profile', info)
   })
 

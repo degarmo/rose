@@ -91,9 +91,11 @@ describe('RSVPPanel', () => {
     apiMock.rsvp.mockResolvedValue({ rsvp: going })
     const { onChange } = renderPanel(makeEvent())
     const form = screen.getByRole('form', { name: 'RSVP' })
-    await userEvent.selectOptions(within(form).getByLabelText('Party size'), '2')
+    await userEvent.click(within(form).getByRole('button', { name: 'One more' }))
+    expect(within(form).getByRole('button', { name: 'One more' })).toBeDisabled()
+    await userEvent.click(within(form).getByRole('button', { name: 'Add a note for the hosts' }))
     await userEvent.type(within(form).getByLabelText(/Note to hosts/), '  Hi ')
-    await userEvent.click(within(form).getByRole('button', { name: 'RSVP' }))
+    await userEvent.click(within(form).getByRole('button', { name: 'RSVP for 2' }))
     expect(apiMock.rsvp).toHaveBeenCalledWith('friday-social', 2, 'Hi')
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(going))
     expect(await screen.findByText('You are on the list')).toBeInTheDocument()
@@ -124,14 +126,14 @@ describe('RSVPPanel', () => {
 
   it('hides the single party option when the event allows only one person', () => {
     renderPanel(makeEvent({ max_party_size: 1 }))
-    expect(screen.queryByLabelText('Party size')).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Party size' })).not.toBeInTheDocument()
   })
 
   it.each([
-    ['full', 'This evening is full'],
-    ['closed', 'RSVPs are closed'],
-    ['unavailable', 'RSVPs are closed'],
-    ['not_open_yet', 'RSVPs open soon'],
+    ['full', /waitlist is closed/],
+    ['closed', /RSVPs for this evening are closed/],
+    ['unavailable', /RSVPs for this evening are closed/],
+    ['not_open_yet', /RSVPs open soon/],
   ] as const)('shows the %s state without a form', (state, text) => {
     renderPanel(makeEvent({ state, can_rsvp: false, reason: state === 'full' ? 'ok' : 'closed' }))
     expect(screen.getByText(text)).toBeInTheDocument()
@@ -140,21 +142,21 @@ describe('RSVPPanel', () => {
 
   it('offers membership to signed-in non-members on a members-only evening', () => {
     renderPanel(makeEvent({ state: 'members_only', can_rsvp: false, reason: 'members_only' }, { audience: 'members' }))
-    expect(screen.getByRole('heading', { name: 'For members' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Become a member' })).toHaveAttribute('href', '/join')
+    expect(screen.getByText('Members only')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Join to RSVP' })).toHaveAttribute('href', '/join')
+    expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument()
     expect(screen.queryByRole('form', { name: 'RSVP' })).not.toBeInTheDocument()
   })
 
   it('asks anonymous visitors to log in or register on a members-only evening', () => {
     renderPanel(makeEvent({ state: 'members_only', can_rsvp: false, reason: 'members_only' }, { audience: 'members' }), null)
-    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/account/login?next=%2F')
-    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute('href', '/account/register?next=%2Fjoin')
-    expect(screen.queryByRole('link', { name: 'Become a member' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/account/login?next=%2Fevents%2Ffriday-social')
+    expect(screen.getByRole('link', { name: 'Join to RSVP' })).toHaveAttribute('href', '/join')
   })
 
   it('shows going with calendar download that defaults to discreet', async () => {
     renderPanel(makeEvent({ state: 'going', mine: { status: 'going', party_size: 1, note_to_hosts: '' } }))
-    expect(screen.getByText('You are going')).toBeInTheDocument()
+    expect(screen.getByText(/You are going/)).toBeInTheDocument()
     const link = screen.getByRole('link', { name: 'Add to calendar' })
     expect(link).toHaveAttribute('href', '/api/events/friday-social/calendar.ics')
     await userEvent.click(screen.getByLabelText(/Include the event name and address/))
@@ -167,6 +169,7 @@ describe('RSVPPanel', () => {
     const { onChange } = renderPanel(
       makeEvent({ state: 'going', mine: { status: 'going', party_size: 1, note_to_hosts: '' } }),
     )
+    await userEvent.click(screen.getByRole('button', { name: 'Change or cancel' }))
     await userEvent.click(screen.getByRole('button', { name: 'Cancel my RSVP' }))
     expect(apiMock.cancelRSVP).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: 'Yes, cancel' }))
@@ -176,7 +179,7 @@ describe('RSVPPanel', () => {
 
   it('shows the waitlisted state without a calendar link', () => {
     renderPanel(makeEvent({ state: 'waitlisted', mine: { status: 'waitlist', party_size: 1, note_to_hosts: '' } }))
-    expect(screen.getByText('You are on the waitlist')).toBeInTheDocument()
+    expect(screen.getByText(/You are on the waitlist/)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Add to calendar' })).not.toBeInTheDocument()
   })
 
@@ -187,6 +190,7 @@ describe('RSVPPanel', () => {
 
   it('validates the note length inline', () => {
     renderPanel(makeEvent())
+    fireEvent.click(screen.getByRole('button', { name: 'Add a note for the hosts' }))
     const note = screen.getByLabelText(/Note to hosts/)
     expect(note).toHaveAttribute('maxLength', '280')
     fireEvent.change(note, { target: { value: 'x'.repeat(10) } })

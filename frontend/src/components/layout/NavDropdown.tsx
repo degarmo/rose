@@ -92,19 +92,18 @@ export function NavDropdown({ group }: { group: NavGroup }) {
         onClick={() => setOpenOn(open ? null : pathname)}
         onKeyDown={onButtonKey}
         className={cn(
-          'relative inline-flex min-h-11 items-center gap-1 px-2.5 text-sm tracking-wide transition-colors duration-300',
-          active || open ? 'text-fg' : 'text-fg-muted hover:text-fg',
+          'inline-flex min-h-10 items-center gap-1 text-sm font-medium transition-colors duration-150',
+          active ? 'text-link' : 'text-fg hover:text-link',
         )}
       >
         {group.label}
-        <ChevronDown aria-hidden="true" className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
-        {active && <span aria-hidden="true" className="absolute inset-x-2.5 bottom-2 h-px bg-highlight" />}
+        <ChevronDown aria-hidden="true" strokeWidth={2} className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
         <ul
           id={listId}
           onKeyDown={onListKey}
-          className="absolute left-0 top-full mt-2 min-w-52 overflow-hidden rounded-xl border border-border-strong bg-surface-raised py-1 shadow-2xl shadow-black/50"
+          className="absolute -left-4 top-full mt-2 min-w-52 overflow-hidden rounded-sheet border border-border bg-canvas py-1 shadow-sheet"
         >
           {group.items.map((item) => (
             <li key={item.to}>
@@ -113,8 +112,8 @@ export function NavDropdown({ group }: { group: NavGroup }) {
                 onClick={() => setOpenOn(null)}
                 className={({ isActive }) =>
                   cn(
-                    'flex min-h-11 items-center px-4 text-sm hover:bg-primary-deep focus-visible:bg-primary-deep focus-visible:outline-none',
-                    isActive ? 'text-accent' : 'text-fg',
+                    'flex min-h-11 items-center px-4 text-sm font-medium hover:bg-surface focus-visible:bg-surface focus-visible:outline-none',
+                    isActive ? 'text-link' : 'text-fg',
                   )
                 }
               >

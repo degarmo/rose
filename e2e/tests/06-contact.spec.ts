@@ -1,7 +1,7 @@
 import { confirmAge, expect, test } from './support'
 
 async function fillContact(page: import('@playwright/test').Page, n: number) {
-  await page.getByLabel('Name or display name').fill(`Test visitor ${n}`)
+  await page.getByLabel('Name', { exact: true }).fill(`Test visitor ${n}`)
   await page.getByLabel('Email').fill(`visitor${n}@example.org`)
   await page.getByLabel('Topic').selectOption('general')
   await page.getByLabel('Message').fill('A question about visiting for the first time. Thank you!')
@@ -14,14 +14,15 @@ test.describe('Contact @smoke', () => {
     for (let n = 1; n <= 3; n++) {
       await page.goto('/contact')
       await fillContact(page, n)
-      await page.getByRole('button', { name: 'Send message' }).click()
-      await expect(page.getByRole('heading', { name: 'Thank you. Your message is with us.' })).toBeVisible()
+      await page.getByRole('button', { name: 'Send', exact: true }).click()
+      await expect(page.getByRole('heading', { name: `Thanks, Test visitor ${n}. We got it.` })).toBeVisible()
+      await expect(page.getByText(`A volunteer will reply to visitor${n}@example.org`)).toBeVisible()
     }
     await page.goto('/contact')
     await fillContact(page, 4)
-    await page.getByRole('button', { name: 'Send message' }).click()
+    await page.getByRole('button', { name: 'Send', exact: true }).click()
     await expect(page.getByText('Too many messages')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Thank you. Your message is with us.' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: /We got it/ })).toHaveCount(0)
   })
 
   test('the bot trap field is out of sight and out of reach', async ({ page, baseURL }) => {

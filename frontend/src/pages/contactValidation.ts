@@ -31,7 +31,7 @@ export function validateField(field: ContactField, values: ContactPayload): stri
       return undefined
     case 'email':
       if (!value) return 'We need an email address to reply.'
-      if (!EMAIL_PATTERN.test(value)) return 'That email address does not look quite right.'
+      if (!EMAIL_PATTERN.test(value)) return 'Enter a full email address, like name@example.com.'
       return undefined
     case 'phone':
       if (value && !PHONE_PATTERN.test(value)) return 'Enter a valid phone number, or leave it blank.'

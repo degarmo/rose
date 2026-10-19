@@ -1,13 +1,13 @@
-import { BadgeCheck, CircleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router'
 import { LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
-import { ReferenceCode } from '@/components/membership/ReferenceCode'
-import { Button, ButtonLink, Card, Section, useToast } from '@/components/ui'
+import { Button, ButtonLink, useToast } from '@/components/ui'
 import { goTo, membershipApi, type MembershipPayload } from '@/lib/membershipApi'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
-import { WhatToBring } from './JoinConfirmation'
+import { DoorWelcome } from './JoinConfirmation'
+import { JOIN_FRAME } from './joinParts'
+import { JoinProgress, JoinSteps } from './JoinSteps'
 
 const POLL_MS = 2000
 const GIVE_UP_AFTER = 30
@@ -67,7 +67,13 @@ export function ConfirmingPage() {
     }
   }, [signedIn, outcome, polls, ref, refreshSession])
 
-  if (auth.status === 'loading') return <Section className="pt-32"><LoadingState label="Loading" /></Section>
+  if (auth.status === 'loading') {
+    return (
+      <div className={JOIN_FRAME}>
+        <LoadingState label="Loading" />
+      </div>
+    )
+  }
   if (!auth.user) return <Navigate to={`/account/login?next=${encodeURIComponent(`/join/confirming?ref=${ref}`)}`} replace />
 
   async function retry() {
@@ -83,80 +89,61 @@ export function ConfirmingPage() {
   }
 
   const membership = payload?.membership
+  const confirmed = (outcome === 'active' || outcome === 'awaiting_id') && membership
 
   return (
-    <Section className="pt-32" width="narrow">
-      <Card as="article" aria-live="polite" className="p-6 sm:p-8">
-        {outcome === 'waiting' && (
-          <>
-            <h1 className="text-4xl text-fg">Confirming your payment&hellip;</h1>
-            <p className="mt-3 text-fg-muted">This usually takes a few seconds. Please keep this page open.</p>
-            <LoadingState label="Waiting for confirmation" />
-          </>
+    <>
+      <JoinSteps current={confirmed ? 3 : 2} />
+      <div className={JOIN_FRAME} aria-live="polite">
+        {confirmed ? (
+          <DoorWelcome
+            membership={membership}
+            label={outcome === 'active' ? "You're in" : 'Payment received'}
+            lead={
+              outcome === 'active'
+                ? `Your ${membership.tier.name.toLowerCase()} membership is active. Show this code at the door.`
+                : 'One last step: staff check a photo ID once, at your first visit, and your membership starts then.'
+            }
+            secondary={{ to: '/events', label: 'Find an evening' }}
+            bring={outcome === 'awaiting_id'}
+          />
+        ) : (
+          <article className="mx-auto flex max-w-[560px] flex-col gap-3 lg:gap-4 lg:py-12">
+            <JoinProgress current={2} caption="Payment" />
+            {outcome === 'failed' ? (
+              <>
+                <h1 className="text-[2rem] font-light leading-[1.05] text-fg lg:text-h2-lg">Payment did not go through</h1>
+                <p className="text-fg-muted lg:text-lead">Nothing was charged. You can try again, or pay in person on your first visit instead.</p>
+                <div className="mt-2 flex flex-col gap-2.5 sm:flex-row sm:gap-3">
+                  <Button size="lg" onClick={() => void retry()} disabled={retrying} aria-busy={retrying}>
+                    {retrying ? 'Opening checkout' : 'Try again'}
+                  </Button>
+                  <ButtonLink to="/account#membership" size="lg" variant="secondary">
+                    Pay in person instead
+                  </ButtonLink>
+                </div>
+              </>
+            ) : outcome === 'slow' ? (
+              <>
+                <h1 className="text-[2rem] font-light leading-[1.05] text-fg lg:text-h2-lg">Still confirming</h1>
+                <p className="text-fg-muted lg:text-lead">
+                  This is taking longer than usual. If your payment went through, your account page will show it within a
+                  few minutes. You have not been charged twice by waiting.
+                </p>
+                <ButtonLink to="/account#membership" size="lg" className="mt-2 self-start">
+                  Go to my account
+                </ButtonLink>
+              </>
+            ) : (
+              <>
+                <h1 className="text-[2rem] font-light leading-[1.05] text-fg lg:text-h2-lg">Confirming your payment&hellip;</h1>
+                <p className="text-fg-muted lg:text-lead">This usually takes a few seconds. Please keep this page open.</p>
+                <LoadingState label="Waiting for confirmation" />
+              </>
+            )}
+          </article>
         )}
-        {outcome === 'slow' && (
-          <>
-            <h1 className="text-4xl text-fg">Still confirming</h1>
-            <p className="mt-3 text-fg-muted">
-              This is taking longer than usual. If your payment went through, your account page will show it within a
-              few minutes. You have not been charged twice by waiting.
-            </p>
-            <ButtonLink to="/account#membership" size="lg" className="mt-6 self-start">
-              Go to my account
-            </ButtonLink>
-          </>
-        )}
-        {outcome === 'active' && membership && (
-          <>
-            <h1 className="flex items-center gap-3 text-4xl text-fg">
-              <BadgeCheck aria-hidden="true" className="size-8 text-success" />
-              Welcome in
-            </h1>
-            <p className="mt-3 text-fg-muted">Your {membership.tier.name.toLowerCase()} membership is active.</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink to="/account#membership" size="lg">
-                See my membership
-              </ButtonLink>
-              <ButtonLink to="/events" size="lg" variant="ghost">
-                Find an evening
-              </ButtonLink>
-            </div>
-          </>
-        )}
-        {outcome === 'awaiting_id' && membership && (
-          <>
-            <h1 className="flex items-center gap-3 text-4xl text-fg">
-              <BadgeCheck aria-hidden="true" className="size-8 text-success" />
-              Payment received
-            </h1>
-            <p className="mt-3 text-fg-muted">
-              One last step: staff check a photo ID once, at your first visit, and your membership starts then.
-            </p>
-            <ReferenceCode code={membership.reference_code} className="mt-8" />
-            <h2 className="mt-10 text-xl text-fg">What to bring</h2>
-            <div className="mt-4">
-              <WhatToBring membership={membership} />
-            </div>
-          </>
-        )}
-        {outcome === 'failed' && (
-          <>
-            <h1 className="flex items-center gap-3 text-4xl text-fg">
-              <CircleAlert aria-hidden="true" className="size-8 text-danger" />
-              Payment did not go through
-            </h1>
-            <p className="mt-3 text-fg-muted">Nothing was charged. You can try again, or pay in person on your first visit instead.</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" onClick={() => void retry()} disabled={retrying} aria-busy={retrying}>
-                {retrying ? 'Opening checkout' : 'Try again'}
-              </Button>
-              <ButtonLink to="/account#membership" size="lg" variant="ghost">
-                Pay in person instead
-              </ButtonLink>
-            </div>
-          </>
-        )}
-      </Card>
-    </Section>
+      </div>
+    </>
   )
 }

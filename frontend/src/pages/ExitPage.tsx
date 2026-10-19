@@ -10,9 +10,9 @@ export function ExitPage() {
   }, [])
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-white px-6 font-sans text-neutral-700">
+    <main className="flex min-h-dvh items-center justify-center bg-white px-6 font-sans text-black/70">
       <div className="max-w-sm text-center">
-        <h1 className="font-sans text-xl font-medium text-neutral-900">This page is not available.</h1>
+        <h1 className="font-sans text-xl font-medium text-black">This page is not available.</h1>
         <p className="mt-3 text-sm leading-relaxed">You can close this tab.</p>
       </div>
     </main>

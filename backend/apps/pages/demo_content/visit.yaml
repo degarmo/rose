@@ -4,33 +4,33 @@ page: visit
 copy:
   hero:
     eyebrow: Plan your visit
-    title: Your first evening, without surprises.
-    lede: Here is everything that happens between your first message and the moment you feel at home.
+    title: Plan your visit
+    lede: Here is what a first evening looks like, start to finish, so there are no surprises.
   expect:
     eyebrow: What to expect
-    title: Three easy steps.
+    title: What to expect
   steps:
     1:
-      title: Say hello first
-      body: Send us a short note through the contact form. We will reply with the next orientation date and the street address.
+      title: Arrive and check in
+      body: A host greets you, checks your ID and walks you through the house rules. Five minutes, no rush.
     2:
-      title: Arrive for orientation
-      body: A host meets you at the door, checks your ID and walks you through our community agreements in a relaxed, seated conversation.
+      title: Settle in
+      body: Tea and water are free. Classes start on time; social nights have no schedule.
     3:
-      title: Stay as long as you like
-      body: Join the class that follows, have a drink at the bar, or head home. There is no pressure to do anything more than look around.
+      title: Leave when you like
+      body: Stay ten minutes or the whole evening. A host is always near the door.
   id:
-    title: Bring a valid photo ID
-    body: Everyone must be 18 or older, every time, with no exceptions. Please bring a current, government-issued photo ID such as a driver’s license, state ID or passport. We check it at the door and hand it straight back. We never photograph, scan or copy it.
+    title: Photo ID is required, every visit
+    body: A government photo ID showing you are 18 or older. We look, we don't scan or copy. The name on your ID does not need to match the name you use with us.
   hours:
     title: Hours
   directions:
-    title: Getting here
+    title: Directions
   rules:
     eyebrow: House rules
     title: A few agreements everyone keeps.
     lede: Consent before contact, no photos, look after one another. The full list is short and worth reading before you come.
   faq:
     eyebrow: Questions
-    title: Things people often ask
+    title: Questions we get
     lede: Parking, what to wear, what to bring. The FAQ covers the usual first-visit questions.

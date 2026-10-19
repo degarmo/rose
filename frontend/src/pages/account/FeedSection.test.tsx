@@ -75,7 +75,7 @@ describe('FeedSection', () => {
     renderWithProviders(<FeedSection />, { user: controls })
     expect(await screen.findByRole('heading', { name: 'Member community' })).toBeInTheDocument()
     expect(screen.getByText(/comes with membership/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Become a member' })).toHaveAttribute('href', '/join')
+    expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute('href', '/join')
     expect(screen.queryByRole('button', { name: 'Export my data' })).not.toBeInTheDocument()
   })
 

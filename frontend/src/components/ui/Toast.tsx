@@ -12,8 +12,8 @@ const DISMISS_AFTER_MS = 7000
 
 const icons = { info: Info, success: CircleCheck, error: CircleAlert }
 const accents: Record<ToastTone, string> = {
-  info: 'text-highlight',
-  success: 'text-success',
+  info: 'text-link',
+  success: 'text-link',
   error: 'text-danger',
 }
 
@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           return (
             <div
               key={toast.id}
-              className="pointer-events-auto flex w-full max-w-sm animate-toast-in items-start gap-3 rounded-2xl border border-border-strong bg-surface-raised p-4 shadow-2xl shadow-black/50"
+              className="pointer-events-auto flex w-full max-w-sm animate-toast-in items-start gap-3 rounded-sheet border border-border bg-canvas p-4 shadow-sheet"
             >
               <Icon aria-hidden="true" className={cn('mt-0.5 size-5 shrink-0', accents[toast.tone])} />
               <div className="flex-1">

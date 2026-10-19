@@ -85,9 +85,11 @@ def paginated_posts(view, request, queryset):
 
 
 def visible_notifications(user):
-    rows = Notification.objects.filter(recipient=user).select_related(
-        "post", "comment", "actor", "actor__profile"
-    )[:NOTIFICATION_LIMIT]
+    rows = (
+        Notification.objects.filter(recipient=user)
+        .select_related("post", "comment", "actor", "actor__profile")
+        .prefetch_related("post__images")[:NOTIFICATION_LIMIT]
+    )
     return [payload for row in rows if (payload := notification_payload(row, user))]
 
 
@@ -232,6 +234,18 @@ class PostSaveView(FeedAPIView):
         services.unsave_post(request.user, public_id)
         post = get_object_or_404(visible_posts(request.user), public_id=public_id)
         return Response(serialize_posts(request, [post])[0])
+
+
+class PostHideView(FeedAPIView):
+    """Hide (POST) or bring back (DELETE) another member's post in your own feed."""
+
+    def post(self, request, public_id):
+        services.hide_post(request.user, public_id)
+        return Response({"ok": True})
+
+    def delete(self, request, public_id):
+        services.unhide_post(request.user, public_id)
+        return Response({"ok": True})
 
 
 class StoriesView(FeedAPIView):

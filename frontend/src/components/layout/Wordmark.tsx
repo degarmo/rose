@@ -1,15 +1,11 @@
 import { Link } from 'react-router'
+import { cn } from '@/lib/cn'
 
-export function Wordmark({ onNavigate }: { onNavigate?: () => void }) {
+/** "Rose" in Fraunces, oxblood: the only use of that colour (design system: "Oxblood"). */
+export function Wordmark({ onNavigate, className }: { onNavigate?: () => void; className?: string }) {
   return (
-    <Link to="/" onClick={onNavigate} className="group inline-flex min-h-11 items-center gap-3">
-      <span
-        aria-hidden="true"
-        className="inline-flex size-9 items-center justify-center rounded-full border border-highlight/60 font-display text-lg text-wordmark transition-colors duration-500 group-hover:border-highlight"
-      >
-        R
-      </span>
-      <span className="font-display text-2xl tracking-wide text-wordmark">Rose</span>
+    <Link to="/" onClick={onNavigate} className={cn('inline-flex min-h-10 items-center font-display text-[1.625rem] leading-none text-wordmark xl:text-[1.75rem]', className)}>
+      Rose
     </Link>
   )
 }

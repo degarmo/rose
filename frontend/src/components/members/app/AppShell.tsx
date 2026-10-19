@@ -9,10 +9,11 @@ import { firstMe, members, type FeedPost, type Me } from '@/lib/membersApi'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { MembersContext } from '../membersContext'
 import { CreatePost } from './CreatePost'
-import { Sidebar, TabBar, TopBar, type Panel } from './Nav'
+import { Sidebar, TabBar, type Panel } from './Nav'
 import { NotificationsContent } from './NotificationsContent'
 import { PostDetail } from './PostDetail'
 import { LeaveIcon } from './primitives'
+import { ICON } from './ui'
 import { SearchContent } from './SearchContent'
 import { MEDIA, useMediaQuery } from './useMediaQuery'
 
@@ -52,9 +53,9 @@ function SidePanel({ panel, onClose }: { panel: Exclude<Panel, null>; onClose: (
     <aside
       ref={ref}
       aria-label={title}
-      className="fixed inset-y-0 left-[72px] z-30 hidden w-[397px] animate-panel-in flex-col rounded-r-2xl border-r border-border bg-canvas py-2 shadow-[var(--ui-shadow)] md:flex"
+      className="fixed inset-y-0 left-[72px] z-30 hidden w-[397px] animate-panel-in flex-col rounded-r-card border-r border-border bg-canvas shadow-panel md:flex"
     >
-      <h2 className="px-6 pb-9 pt-5 text-2xl font-semibold text-fg">{title}</h2>
+      <h2 className={panel === 'search' ? 'px-6 pt-6 text-2xl font-semibold text-fg' : 'px-6 pb-4 pt-6 text-2xl font-semibold text-fg'}>{title}</h2>
       {panel === 'search' ? (
         <SearchContent onNavigate={onClose} autoFocus />
       ) : (
@@ -66,7 +67,10 @@ function SidePanel({ panel, onClose }: { panel: Exclude<Panel, null>; onClose: (
   )
 }
 
-/** Desktop and tablet post view over the current page: Esc or a click outside closes, arrows step. */
+/**
+ * Post detail over the current page on tablets and desktops (design: "Post detail · desktop
+ * modal"): Esc or a click outside closes, the arrows step through the list.
+ */
 function PostModal({ id, ids, onClose, onStep }: { id: string; ids: string[]; onClose: () => void; onStep: (id: string) => void }) {
   const ref = useRef<HTMLDialogElement>(null)
   const index = ids.indexOf(id)
@@ -75,13 +79,18 @@ function PostModal({ id, ids, onClose, onStep }: { id: string; ids: string[]; on
 
   useEffect(() => {
     const dialog = ref.current
-    if (dialog && !dialog.open) dialog.showModal()
+    if (dialog && !dialog.open) {
+      dialog.showModal()
+      // Start on the dialog itself rather than ringing the first control (the quick exit).
+      dialog.focus()
+    }
   }, [])
 
   return (
     <dialog
       ref={ref}
       aria-label="Post"
+      tabIndex={-1}
       onClose={onClose}
       onClick={(event) => {
         if (event.target === ref.current) onClose()
@@ -97,12 +106,12 @@ function PostModal({ id, ids, onClose, onStep }: { id: string; ids: string[]; on
           onStep(previous)
         }
       }}
-      className="m-0 h-dvh max-h-none w-screen max-w-none items-center justify-center bg-transparent px-16 py-6 open:flex"
+      className="m-0 h-dvh max-h-none w-screen max-w-none items-center justify-center bg-transparent px-12 py-6 outline-none open:flex"
     >
       <div className="fixed right-4 top-4 flex items-center gap-1 text-white">
         <LeaveIcon />
         <button type="button" onClick={onClose} className="inline-flex size-10 items-center justify-center">
-          <X aria-hidden="true" className="size-7" />
+          <X aria-hidden="true" className="size-6" strokeWidth={ICON.stroke} />
           <span className="sr-only">Close</span>
         </button>
       </div>
@@ -126,9 +135,7 @@ function PostModal({ id, ids, onClose, onStep }: { id: string; ids: string[]; on
           <span className="sr-only">Next post</span>
         </button>
       )}
-      <div className="h-[min(90dvh,900px)] w-full max-w-[1200px]">
-        <PostDetail key={id} id={id} layout="modal" notFound={<p className="bg-canvas p-8 text-fg">This post is no longer available.</p>} />
-      </div>
+      <PostDetail key={id} id={id} layout="modal" notFound={<p className="rounded-[4px] bg-canvas p-8 text-fg">This post is no longer available.</p>} />
     </dialog>
   )
 }
@@ -233,7 +240,7 @@ export function AppShell() {
         ) : (
           <LoadingState label="Loading" />
         )}
-        <QuickExit />
+        <QuickExit variant="floating" />
       </div>
     )
   }
@@ -252,16 +259,21 @@ export function AppShell() {
 
   return (
     <MembersContext.Provider value={value}>
-      <div className="ig-app min-h-dvh pb-[calc(50px+env(safe-area-inset-bottom))] pt-11 md:pb-0 md:pl-[72px] md:pt-0 wide:pl-[245px]">
+      <div className="member-app min-h-dvh pb-[calc(50px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[72px] wide:pl-[245px]">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"
         >
           Skip to content
         </a>
-        <TopBar me={value.me} />
         <Sidebar me={value.me} panel={panel} onPanel={setPanel} onCreate={() => setComposerOpen(true)} />
-        {panel && <SidePanel panel={panel} onClose={() => setPanel(null)} />}
+        {panel && (
+          <>
+            {/* The page behind an open Search or Notifications panel fades, as the design draws it. */}
+            <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-20 hidden bg-canvas/50 md:block" />
+            <SidePanel panel={panel} onClose={() => setPanel(null)} />
+          </>
+        )}
         <main id="main" className="min-w-0">
           <Outlet />
         </main>
@@ -269,6 +281,7 @@ export function AppShell() {
         <CreatePost
           open={composerOpen}
           fullScreen={!tablet}
+          author={value.me}
           onClose={() => setComposerOpen(false)}
           onPosted={() => setPostsVersion((n) => n + 1)}
         />
