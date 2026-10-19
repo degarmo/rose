@@ -54,6 +54,20 @@ TIERS = [
         "grants_feed_access": False,
         "sort_order": 30,
     },
+    {
+        "slug": "guest-night",
+        "name": "Guest night pass",
+        "description": "Placeholder price for development. One evening, paid at the door.",
+        "benefits": ["One open evening", "A host to show you around"],
+        "price_cents": 1500,
+        "interval": Tier.Interval.ONCE,
+        "duration_days": 1,
+        "grants_feed_access": False,
+        "grants_members_events": False,
+        "grants_members_education": False,
+        "is_guest_pass": True,
+        "sort_order": 40,
+    },
 ]
 
 AGREEMENT_BODY = (
@@ -115,6 +129,8 @@ DEMO_MEMBERS = [
     ("member.expired@example.org", "demo_expired", "30-day-pass", "expired"),
     ("member.cancelled@example.org", "demo_cancelled", "monthly", "cancelled"),
     ("member.suspended@example.org", "demo_suspended", "annual", "suspended"),
+    ("guest.first@example.org", "demo_guest", "guest-night", "pending"),
+    ("guest.returning@example.org", "demo_guest_returning", "guest-night", "guest_visits"),
 ]
 
 
@@ -220,6 +236,12 @@ def _build(user, tier, kind, staff, now):
         _pay(m, staff, tier.price_cents, Payment.Method.CASH, now - days(50))
         m.start_new_period(now - days(50))
         m.end(Membership.Status.CANCELLED, now - days(20))
+    elif kind == "guest_visits":
+        # A returning guest: three past evenings on the same pass, closed after each night.
+        for days_ago in (75, 40, 9):
+            _pay(m, staff, tier.price_cents, Payment.Method.CASH, now - days(days_ago))
+        m.start_new_period(now - days(9))
+        m.end(Membership.Status.EXPIRED, now - days(8))
     elif kind == "suspended":
         _pay(m, staff, tier.price_cents, Payment.Method.CARD_IN_PERSON, now - days(100))
         m.start_new_period(now - days(100))

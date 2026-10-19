@@ -16,6 +16,8 @@ PUBLIC_ROBOTS = (
     "Disallow: /media\n"
     "Disallow: /exit\n"
     "Disallow: /dev\n"
+    "Disallow: /subscribe\n"
+    "Disallow: /unsubscribe\n"
     "Disallow: /events/cancel\n"
 )
 CLOSED_ROBOTS = "User-agent: *\nDisallow: /\n"

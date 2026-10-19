@@ -1,0 +1,29 @@
+status: placeholder - development only
+source_url: []
+page: volunteer
+copy:
+  hero:
+    eyebrow: Volunteer
+    title: Give an evening. Gain a community.
+    lede: Every host, teacher and fixer here is a volunteer. There is a place for you, whatever your skills.
+  why:
+    eyebrow: Why volunteer
+    title: The house runs on its people.
+    lede:
+      rich: <p>Placeholder copy for development. Volunteers meet people quickly, learn how the house works from the inside, and keep it open for everyone.</p>
+  roles:
+    eyebrow: The roles
+    title: Where you could help.
+    1:
+      title: Door and hosting
+      body: Welcome people, check IDs and keep the floor friendly.
+    2:
+      title: Teaching
+      body: Lead or assist a class in the education program.
+    3:
+      title: Setup, cleanup and maintenance
+      body: Keep the space ready, clean and in good repair.
+  form:
+    eyebrow: Offer your time
+    title: Tell us what you would enjoy.
+    lede: A volunteer coordinator will get back to you by email.

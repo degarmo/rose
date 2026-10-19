@@ -39,3 +39,10 @@
 .summary-revenue td, .summary-revenue th { text-align: right; }
 .summary-revenue th:first-child { text-align: left; }
 .summary-export label { display: block; margin: 0.5rem 0; }
+.desk-donation { margin: 1.25rem 0; }
+.desk-donation > summary { display: inline-flex; align-items: center; list-style: none; }
+.desk-donation > summary::-webkit-details-marker { display: none; }
+.desk-donation .desk-form { margin-top: 0.75rem; max-width: 32rem; }
+.desk-convert summary { cursor: pointer; }
+.desk-convert summary h3 { display: inline; }
+.desk-convert img { background: #fff; padding: 0.5rem; border-radius: 6px; align-self: flex-start; }

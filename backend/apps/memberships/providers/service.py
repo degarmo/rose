@@ -4,12 +4,17 @@ This is the only code that changes membership state because of a payment
 provider. Every event is stored in WebhookEvent first; an event id seen before
 is never applied twice. Events may arrive in any order: each one finds its
 membership by our reference code (or the subscription) and does only its part.
+
+One-time payments that are not memberships (donations) carry a `purpose`
+instead. They are stored and deduplicated here in exactly the same way, then
+handed to the handler registered for the purpose's prefix.
 """
 
 import logging
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.utils.module_loading import import_string
 
 from ..models import Membership, Payment, WebhookEvent, has_id_check
 from .base import (
@@ -21,6 +26,18 @@ from .base import (
 )
 
 logger = logging.getLogger(__name__)
+
+# purpose prefix -> callable(provider_key, event) that applies the event.
+PURPOSE_HANDLERS = {
+    "donation": "apps.donations.services.apply_provider_event",
+}
+
+
+def _apply_purpose(provider_key, event):
+    prefix = event.purpose.partition(":")[0]
+    if prefix not in PURPOSE_HANDLERS:
+        raise LookupError(f"No handler for payment purpose {prefix!r}")
+    import_string(PURPOSE_HANDLERS[prefix])(provider_key, event)
 
 
 def _find_membership(event):
@@ -63,6 +80,9 @@ def activate_or_extend(membership):
 
 
 def _apply(provider_key, event):
+    if event.purpose:
+        _apply_purpose(provider_key, event)
+        return
     membership = _find_membership(event)
     if membership is None:
         raise LookupError(f"No membership for event {event.event_id}")

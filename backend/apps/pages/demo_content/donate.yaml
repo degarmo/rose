@@ -1,0 +1,41 @@
+status: placeholder - development only
+source_url: []
+page: donate
+copy:
+  hero:
+    eyebrow: Donate
+    title: Keep the doors open.
+    lede: Gifts pay for the space and everything that keeps it safe and welcoming.
+  funds:
+    eyebrow: Where it goes
+    title: What your gift pays for.
+    1:
+      title: Rent
+      body: The single biggest cost of keeping the house.
+    2:
+      title: Safety supplies
+      body: First aid, cleaning and everything hosts need on hand.
+    3:
+      title: Repairs
+      body: Furniture, fixtures and the building's small emergencies.
+    4:
+      title: Food and drink
+      body: Water, soft drinks and snacks on open nights.
+    5:
+      title: Outreach
+      body: Help for community members facing hard times.
+  ways:
+    eyebrow: Ways to give
+    title: In person, by check or online.
+    door:
+      title: At the door
+      body: Cash or card on any open night. Ask a host for a receipt.
+    check:
+      title: By check
+      body: Mail a check to the address below.
+    online:
+      title: Online
+      body: A secure checkout page; card details never touch this site.
+  form:
+    eyebrow: Give online
+    title: Choose an amount.

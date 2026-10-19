@@ -36,6 +36,14 @@
     </table>
   </section>
 
+  <section class="module">
+    <h2>Guest visits, last 12 months</h2>
+    <table class="summary-revenue">
+      <thead><tr><th>Month</th><th>Visits</th></tr></thead>
+      <tbody>{% for row in guest_rows %}<tr><th>{{ row.month }}</th><td>{{ row.visits }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+
   <section class="module summary-export">
     <h2>Export</h2>
     <form method="post" action="{% url 'admin:memberships_export' %}">

@@ -32,7 +32,7 @@ SENSITIVE_PATHS = re.compile(
     r"(/(?:api/)?(?:account|members|membership|payments|join|dev)\b[^\s?\"']*)\?[^\s\"']*"
 )
 MEMBER_HANDLE = re.compile(r"(/(?:api/)?members/u/)[^/\s?\"']+")
-TOKEN_PATH = re.compile(r"(/(?:api/)?payments/sandbox/)[^/\s?\"']+")
+TOKEN_PATH = re.compile(r"(/(?:api/)?(?:payments/sandbox|newsletter/unsubscribe)/)[^/\s?\"']+")
 
 
 def scrub_text(text, extra_values=()):

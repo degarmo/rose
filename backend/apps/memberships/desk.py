@@ -46,6 +46,11 @@ def _ensure_id(staff, membership, id_checked):
     IdCheck.objects.create(membership=membership, checked_by=staff, verified_18_plus=True)
 
 
+def _refuse_guest_pass(membership):
+    if membership.tier.is_guest_pass:
+        raise DeskError("This is a guest pass. Use Guest visit.")
+
+
 def _ensure_no_other_open(membership):
     others = (
         Membership.objects.non_terminal().filter(user=membership.user).exclude(pk=membership.pk)
@@ -57,6 +62,7 @@ def _ensure_no_other_open(membership):
 @transaction.atomic
 def record_payment_and_activate(staff, membership, method, amount_cents, note="", id_checked=False):
     membership = _lock(membership)
+    _refuse_guest_pass(membership)
     if method not in IN_PERSON_METHODS:
         raise DeskError("Choose cash or card.")
     if membership.status not in (
@@ -85,6 +91,44 @@ def record_payment_and_activate(staff, membership, method, amount_cents, note=""
 
 
 @transaction.atomic
+def guest_visit(staff, membership, method, amount_cents, note="", id_checked=False):
+    """One guest night: check ID if none is on file, take payment, open for one day.
+
+    A returning guest's earlier pass (expired) is opened again, so they keep
+    their account, their reference code and their ID check.
+    """
+    membership = _lock(membership)
+    if not membership.tier.is_guest_pass:
+        raise DeskError("This is not a guest pass. Use Record payment and activate.")
+    if method not in IN_PERSON_METHODS:
+        raise DeskError("Choose cash or card.")
+    if membership.status not in (
+        Membership.Status.PENDING_PAYMENT,
+        Membership.Status.EXPIRED,
+        Membership.Status.CANCELLED,
+    ):
+        raise DeskError("This guest pass is already open for tonight.")
+    if membership.user is None:
+        raise DeskError("This guest pass belongs to a deleted account.")
+    _ensure_no_other_open(membership)
+    _ensure_id(staff, membership, id_checked)
+    Payment.objects.create(
+        membership=membership,
+        amount_cents=amount_cents,
+        method=method,
+        recorded_by=staff,
+        note=note,
+    )
+    membership.start_new_period()
+    membership.status = Membership.Status.ACTIVE
+    membership.source = Membership.Source.MANUAL
+    membership.cancel_at_period_end = False
+    membership.save()
+    _log(staff, "guest_visit", membership, note)
+    return membership
+
+
+@transaction.atomic
 def activate_paid_online(staff, membership, id_checked=False):
     """An online payment arrived before anyone saw an ID. Check it, then start the period."""
     membership = _lock(membership)
@@ -106,6 +150,7 @@ def activate_paid_online(staff, membership, id_checked=False):
 def renew(staff, membership, method, amount_cents, note=""):
     """Extend from the later of today or the current period end."""
     membership = _lock(membership)
+    _refuse_guest_pass(membership)
     if method not in IN_PERSON_METHODS:
         raise DeskError("Choose cash or card.")
     if membership.status not in (
@@ -145,6 +190,7 @@ def comp(staff, membership, reason, id_checked=False):
     if not reason.strip():
         raise DeskError("Give a reason for the complimentary membership.")
     membership = _lock(membership)
+    _refuse_guest_pass(membership)
     if membership.status in (
         Membership.Status.ACTIVE,
         Membership.Status.GRACE,

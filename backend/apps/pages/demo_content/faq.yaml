@@ -1,0 +1,12 @@
+status: placeholder - development only
+source_url: []
+page: faq
+copy:
+  hero:
+    eyebrow: FAQ
+    title: Things people often ask.
+    lede: The usual first-visit questions, answered plainly.
+  cta:
+    eyebrow: Still wondering?
+    title: Ask us anything.
+    lede: A real person reads every message, usually within a few days.

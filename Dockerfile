@@ -41,6 +41,8 @@ RUN pip install -r requirements.txt
 COPY --chown=app:app backend/ ./
 COPY --from=frontend --chown=app:app /srv/frontend/dist /srv/frontend/dist
 COPY docs/image-manifest.json /srv/docs/image-manifest.json
+# Served to staff at /<admin>/staff-guide/.
+COPY docs/staff-guide.md /srv/docs/staff-guide.md
 # Pre-compressed copies (gzip and Brotli) that WhiteNoise serves to browsers that accept them.
 RUN python -m whitenoise.compress /srv/frontend/dist
 
@@ -50,6 +52,7 @@ RUN DJANGO_SECRET_KEY=build-only DATABASE_URL=sqlite:////tmp/build.sqlite3 \
     python manage.py collectstatic --noinput
 
 USER app
-ENV IMAGE_MANIFEST_PATH=/srv/docs/image-manifest.json
+ENV IMAGE_MANIFEST_PATH=/srv/docs/image-manifest.json \
+    STAFF_GUIDE_PATH=/srv/docs/staff-guide.md
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--config", "gunicorn.conf.py"]

@@ -45,6 +45,9 @@ env = environ.Env(
     MEMBERSHIP_GRACE_DAYS=(int, 7),
     MEMBERSHIP_PENDING_EXPIRY_DAYS=(int, 30),
     MERCHANT_DISPLAY_NAME=(str, "Rose"),
+    RENTAL_RETENTION_DAYS=(int, 90),
+    VOLUNTEER_RETENTION_DAYS=(int, 365),
+    NEWSLETTER_SUPPRESS_AFTER_DAYS=(int, 30),
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
     EMAIL_PROVIDER=(str, "console"),
     EMAIL_SENDER_NAME=(str, "Rose"),
@@ -98,6 +101,10 @@ INSTALLED_APPS = [
     "apps.journal",
     "apps.feed",
     "apps.memberships",
+    "apps.rentals",
+    "apps.volunteers",
+    "apps.donations",
+    "apps.newsletter",
 ]
 
 MIDDLEWARE = [
@@ -105,6 +112,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "apps.core.middleware.StagingGateMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "apps.pages.middleware.OldSiteRedirectMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -364,6 +372,29 @@ MEMBERSHIP_REMINDER_DAYS = (14, 3)
 MERCHANT_DISPLAY_NAME = env("MERCHANT_DISPLAY_NAME")
 PAYMENT_WEBHOOK_RATE_LIMIT = "120/m"
 
+# --- Rentals, volunteers, giving and the email list --------------------------
+# Declined and cancelled rental inquiries keep only type, date and status after this.
+RENTAL_RETENTION_DAYS = env("RENTAL_RETENTION_DAYS")
+# Signups that went nowhere (new or inactive, untouched) are deleted after this.
+VOLUNTEER_RETENTION_DAYS = env("VOLUNTEER_RETENTION_DAYS")
+DONATION_MINIMUM_CENTS = 500
+DONATION_MAXIMUM_CENTS = 1_000_000
+DONATION_PRESETS_CENTS = [2500, 5000, 10000, 25000]
+# Unfinished online gifts are forgotten after this; unsent acknowledgement emails after the next.
+DONATION_CHECKOUT_RETENTION_DAYS = 7
+DONATION_ACK_EMAIL_RETENTION_DAYS = 30
+# Unsubscribed addresses become a hash-only suppression record after this.
+NEWSLETTER_SUPPRESS_AFTER_DAYS = env("NEWSLETTER_SUPPRESS_AFTER_DAYS")
+NEWSLETTER_PENDING_DAYS = 7
+NEWSLETTER_BATCH_SIZE = 100
+
+# --- Site content -------------------------------------------------------------
+# Drafted copy (YAML) for load_site_content. Kept out of git; see docs/content.md.
+SITE_CONTENT_DIR = Path(env.str("SITE_CONTENT_DIR", default=str(REPO_DIR / "content")))
+STAFF_GUIDE_PATH = Path(
+    env.str("STAFF_GUIDE_PATH", default=str(REPO_DIR / "docs" / "staff-guide.md"))
+)
+
 # --- Backups --------------------------------------------------------------
 # Nightly pg_dump, encrypted on the server with an age public key (the private
 # key is never here), uploaded to the private bucket under backups/.
@@ -405,6 +436,26 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.memberships.tasks.run_lifecycle",
         "schedule": crontab(hour=6, minute=0),
     },
+    "send-scheduled-newsletters": {
+        "task": "apps.newsletter.tasks.send_scheduled_newsletters",
+        "schedule": 5 * 60,
+    },
+    "purge-email-list": {
+        "task": "apps.newsletter.tasks.purge_subscribers",
+        "schedule": crontab(hour=5, minute=15),
+    },
+    "purge-rental-contacts": {
+        "task": "apps.rentals.tasks.purge_closed_inquiries",
+        "schedule": crontab(hour=5, minute=30),
+    },
+    "purge-volunteer-signups": {
+        "task": "apps.volunteers.tasks.purge_old_signups",
+        "schedule": crontab(hour=5, minute=45),
+    },
+    "purge-donation-contacts": {
+        "task": "apps.donations.tasks.purge_donation_contacts",
+        "schedule": crontab(hour=6, minute=15),
+    },
     "nightly-backup": {
         "task": "apps.core.tasks.nightly_backup",
         "schedule": crontab(hour=3, minute=15),
@@ -425,6 +476,11 @@ WRITE_RATE_LIMIT = "120/h"
 ACCOUNT_WRITE_RATE_LIMIT = "30/h"
 TOKEN_RATE_LIMIT = "30/h"
 ADMIN_LOGIN_RATE_LIMIT_IP = "20/h"
+RENTAL_INQUIRY_RATE_LIMIT = "5/h"
+VOLUNTEER_RATE_LIMIT = "5/h"
+DONATION_RATE_LIMIT = "10/h"
+NEWSLETTER_RATE_LIMIT_IP = "10/h"
+NEWSLETTER_RATE_LIMIT_EMAIL = "3/h"
 TRUSTED_PROXY_COUNT = env("DJANGO_TRUSTED_PROXY_COUNT")
 RATELIMIT_USE_CACHE = "default"
 

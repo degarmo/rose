@@ -1,0 +1,39 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+  <a href="{% url 'admin:rentals_rentalinquiry_changelist' %}">Rental inquiries</a> &rsaquo; Pipeline
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="pipeline">
+  <p class="help">Open inquiries by status, soonest date first. A warning means the requested time overlaps a published event or another booking's private hold.</p>
+  <div class="pipeline-columns">
+    {% for column in columns %}
+    <section class="pipeline-column" aria-labelledby="col-{{ forloop.counter }}">
+      <h2 id="col-{{ forloop.counter }}">{{ column.label }} <span class="pipeline-count">{{ column.rows|length }}</span></h2>
+      {% for row in column.rows %}
+      <article class="pipeline-card{% if row.conflicts %} has-conflict{% endif %}">
+        <h3><a href="{{ row.url }}">{{ row.inquiry.get_type_display }}</a></h3>
+        <p>{{ row.inquiry.preferred_date|date:"D M j, Y" }}{% if row.inquiry.start_time %}, {{ row.inquiry.start_time|time:"g:i A" }}{% endif %}{% if row.inquiry.duration_hours %} for {{ row.inquiry.duration_hours }} h{% endif %}</p>
+        {% if row.inquiry.party_size %}<p>{{ row.inquiry.party_size }} {{ row.inquiry.party_size|pluralize:"person,people" }}</p>{% endif %}
+        {% if row.inquiry.hold_id %}<p class="pipeline-hold">Held on the calendar</p>{% endif %}
+        {% if row.conflicts %}
+        <p class="pipeline-warning"><strong>Clash:</strong>
+          {% for event in row.conflicts %}{% if event.is_private_hold %}another private booking{% else %}{{ event.title }}{% endif %} ({{ event.starts_at|date:"M j, g:i A" }}){% if not forloop.last %}; {% endif %}{% endfor %}
+        </p>
+        {% endif %}
+      </article>
+      {% empty %}
+      <p class="pipeline-empty">None</p>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

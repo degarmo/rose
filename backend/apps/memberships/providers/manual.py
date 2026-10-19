@@ -15,6 +15,11 @@ class ManualProvider(PaymentProvider):
     def create_checkout(self, membership, success_url, cancel_url) -> CheckoutSession:
         raise ProviderError("In-person payments have no online checkout.")
 
+    def create_one_time_checkout(
+        self, amount_cents, purpose, success_url, cancel_url
+    ) -> CheckoutSession:
+        raise ProviderError("In-person payments have no online checkout.")
+
     def parse_webhook(self, request):
         raise WebhookVerificationError("In-person payments do not send webhooks.")
 

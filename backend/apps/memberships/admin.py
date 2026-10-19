@@ -13,7 +13,10 @@ from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
+from apps.core.admin_auth import qr_data_uri
+from apps.core.email import site_link
 from apps.core.models import AuditLog, audit
+from apps.donations.services import DonationError, record_desk_donation
 
 from . import desk
 from .models import (
@@ -28,6 +31,11 @@ from .models import (
 )
 
 DESK_PERMISSION = "memberships.change_membership"
+DONATION_DESK_METHODS = [
+    ("cash", "Cash"),
+    ("card_in_person", "Card in person"),
+    ("check", "Check"),
+]
 REPORT_PERMISSION = "memberships.view_membership"
 
 
@@ -63,6 +71,7 @@ class TierForm(forms.ModelForm):
             "grants_feed_access",
             "grants_members_events",
             "grants_members_education",
+            "is_guest_pass",
             "is_active",
             "sort_order",
         ]
@@ -83,8 +92,16 @@ class TierForm(forms.ModelForm):
 @admin.register(Tier)
 class TierAdmin(admin.ModelAdmin):
     form = TierForm
-    list_display = ("name", "price", "interval", "is_active", "is_placeholder", "sort_order")
-    list_filter = ("is_active", "interval")
+    list_display = (
+        "name",
+        "price",
+        "interval",
+        "is_guest_pass",
+        "is_active",
+        "is_placeholder",
+        "sort_order",
+    )
+    list_filter = ("is_active", "interval", "is_guest_pass")
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("is_placeholder",)
 
@@ -288,6 +305,7 @@ class MembershipAdmin(admin.ModelAdmin):
             results.append(
                 {
                     "membership": membership,
+                    "is_guest_pass": membership.tier.is_guest_pass,
                     "id_checked": has_id_check(membership.user) if membership.user else False,
                     "payments": list(membership.payments.all()[:5]),
                     "default_amount": f"{membership.tier.price_cents / 100:.2f}",
@@ -301,6 +319,13 @@ class MembershipAdmin(admin.ModelAdmin):
             "query": query,
             "results": results,
             "searched": bool(query.strip()),
+            # "Convert to member": the guest scans this and joins on their own phone,
+            # signed in to their own account, so their signature stays theirs.
+            "join_url": site_link("/join"),
+            "join_qr": qr_data_uri(site_link("/join"))
+            if any(r["is_guest_pass"] for r in results)
+            else None,
+            "donation_methods": DONATION_DESK_METHODS,
         }
         # The camera policy for this page is set by PrivacyHeadersMiddleware.
         return TemplateResponse(request, "admin/memberships/door_desk.html", context)
@@ -310,6 +335,23 @@ class MembershipAdmin(admin.ModelAdmin):
         data = request.POST
         action = data.get("action")
         try:
+            if action == "record_donation":
+                amount = cents(data.get("amount"))
+                if not amount:
+                    raise desk.DeskError("Enter an amount.")
+                try:
+                    donation = record_desk_donation(
+                        request.user,
+                        amount,
+                        data.get("method", ""),
+                        donor_display=data.get("donor_display", ""),
+                        acknowledgement_email=data.get("acknowledgement_email", ""),
+                        note=data.get("note", ""),
+                    )
+                except DonationError as exc:
+                    raise desk.DeskError(str(exc)) from exc
+                self.message_user(request, f"Donation of {donation.amount_display} recorded.")
+                return None
             if action == "refund":
                 payment = get_object_or_404(Payment, pk=data.get("payment"))
                 amount = cents(data.get("amount"))
@@ -335,6 +377,19 @@ class MembershipAdmin(admin.ModelAdmin):
                     id_checked,
                 )
                 self.message_user(request, f"{membership.reference_code} is active.")
+            elif action == "guest_visit":
+                amount = cents(data.get("amount"))
+                if amount is None:
+                    raise desk.DeskError("Enter an amount.")
+                desk.guest_visit(
+                    request.user,
+                    membership,
+                    data.get("method"),
+                    amount,
+                    data.get("note", ""),
+                    id_checked,
+                )
+                self.message_user(request, f"{membership.reference_code} is in for tonight.")
             elif action == "activate_paid":
                 desk.activate_paid_online(request.user, membership, id_checked)
                 self.message_user(request, f"{membership.reference_code} is active.")
@@ -375,18 +430,19 @@ class MembershipAdmin(admin.ModelAdmin):
             raise PermissionDenied
         now = timezone.localtime()
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        by_status = dict(Membership.objects.values_list("status").annotate(n=Count("id")))
+        memberships = Membership.objects.exclude(tier__is_guest_pass=True)
+        by_status = dict(memberships.values_list("status").annotate(n=Count("id")))
         by_tier = list(
-            Membership.objects.filter(status__in=Membership.ENTITLED)
+            Membership.objects.filter(status__in=Membership.ENTITLED, tier__is_guest_pass=False)
             .values("tier__name")
             .annotate(n=Count("id"))
             .order_by("tier__name")
         )
         first_payments = {}
         new_this_month = renewed_this_month = 0
-        for payment in Payment.objects.filter(status=Payment.Status.SUCCEEDED).order_by(
-            "created_at"
-        ):
+        for payment in Payment.objects.filter(
+            status=Payment.Status.SUCCEEDED, membership__tier__is_guest_pass=False
+        ).order_by("created_at"):
             is_first = payment.membership_id not in first_payments
             first_payments.setdefault(payment.membership_id, payment.created_at)
             if payment.created_at >= month_start:
@@ -394,9 +450,11 @@ class MembershipAdmin(admin.ModelAdmin):
                     new_this_month += 1
                 else:
                     renewed_this_month += 1
-        expired_this_month = Membership.objects.filter(
-            status=Membership.Status.EXPIRED, ended_at__gte=month_start
-        ).count()
+        expired_this_month = (
+            Membership.objects.filter(status=Membership.Status.EXPIRED, ended_at__gte=month_start)
+            .exclude(tier__is_guest_pass=True)
+            .count()
+        )
 
         months = []
         cursor = month_start
@@ -405,6 +463,13 @@ class MembershipAdmin(admin.ModelAdmin):
             cursor = (cursor - timedelta(days=1)).replace(day=1)
         revenue = defaultdict(lambda: defaultdict(int))
         oldest = months[-1]
+        guest_visits = defaultdict(int)
+        for created_at in Payment.objects.filter(
+            created_at__gte=oldest,
+            status=Payment.Status.SUCCEEDED,
+            membership__tier__is_guest_pass=True,
+        ).values_list("created_at", flat=True):
+            guest_visits[timezone.localtime(created_at).strftime("%Y-%m")] += 1
         for payment in Payment.objects.filter(
             created_at__gte=oldest, status__in=[Payment.Status.SUCCEEDED, Payment.Status.REFUNDED]
         ):
@@ -433,6 +498,10 @@ class MembershipAdmin(admin.ModelAdmin):
             "expired_this_month": expired_this_month,
             "method_labels": [Payment.Method(m).label for m in methods],
             "revenue_rows": revenue_rows,
+            "guest_rows": [
+                {"month": month.strftime("%b %Y"), "visits": guest_visits[month.strftime("%Y-%m")]}
+                for month in months
+            ],
             "can_include_email": request.user.is_superuser,
         }
         return TemplateResponse(request, "admin/memberships/summary.html", context)

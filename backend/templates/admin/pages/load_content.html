@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+  <a href="{% url 'admin:pages_pagecontent_changelist' %}">Page copy</a> &rsaquo; Load site content
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="tool-page">
+  <p>Upload the copy files from <code>/content</code>. Loading updates page copy, site settings, FAQs, staff profiles, tier prices and redirects by their keys and never deletes anything. Run it once without "Write the changes" to see what would change.</p>
+  {% if error %}<p class="tool-warning">{{ error }}</p>{% endif %}
+  {% if report %}
+  <div class="tool-note">
+    <p><strong>{% if committed %}Loaded:{% else %}Dry run, nothing written:{% endif %}</strong></p>
+    <ul>{% for line in report %}<li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data" class="tool-form">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit" class="button default">Load</button>
+  </form>
+</div>
+{% endblock %}

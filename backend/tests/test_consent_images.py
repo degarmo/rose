@@ -73,10 +73,19 @@ def test_public_uploads_get_variants_and_sizes(settings, tmp_path):
 def test_every_image_model_uses_the_pattern():
     from apps.accounts.models import Profile
     from apps.feed.models import FeedImage
+    from apps.pages.models import StaffProfile
 
-    assert set(consent_image_models()) == {Opportunity, Event, PostImage, Profile, FeedImage}
+    assert set(consent_image_models()) == {
+        Opportunity,
+        Event,
+        PostImage,
+        Profile,
+        FeedImage,
+        StaffProfile,
+    }
     # Member uploads are private and reviewed in moderation, not on the public review page.
-    assert set(consent_image_models(include_private=False)) == {Opportunity, Event, PostImage}
+    public = {Opportunity, Event, PostImage, StaffProfile}
+    assert set(consent_image_models(include_private=False)) == public
     for model in consent_image_models():
         assert issubclass(model, ConsentImageMixin)
     assert consent_image_field_names(PostImage) == ["image"]

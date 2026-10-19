@@ -54,6 +54,7 @@ def test_site_settings_endpoint(api_client):
         "directions_text": "Near the train",
         "contact_email": "hello@example.org",
         "quick_exit_url": "https://weather.example",
+        "nonprofit_status_text": "",
         "social_links": [{"label": "Newsletter", "url": "https://news.example"}],
     }
 

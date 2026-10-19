@@ -20,10 +20,14 @@ from django.utils import timezone
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from apps.accounts.models import User
+from apps.donations.models import AcknowledgementTemplate
 from apps.events.models import Event
 from apps.feed import services as feed_services
 from apps.feed.models import Guidelines
 from apps.memberships.models import MembershipAgreement, Tier
+from apps.pages.management.commands.seed_demo import DEMO_CONTENT_DIR
+from apps.pages.models import SiteSettings
+from apps.pages.site_content import load, read_files
 
 PASSWORD = "e2e-only-password-0123"
 # 20 bytes, so the authenticator secret below is fixed and known to the tests.
@@ -62,6 +66,35 @@ class Command(BaseCommand):
                 "benefits": ["Members-only nights", "The member community"],
                 "price_cents": 2500,
                 "interval": Tier.Interval.MONTH,
+            },
+        )
+        Tier.objects.update_or_create(
+            slug="e2e-guest",
+            defaults={
+                "name": "Guest night pass",
+                "description": "One evening, paid at the door.",
+                "price_cents": 1500,
+                "interval": Tier.Interval.ONCE,
+                "duration_days": 1,
+                "grants_feed_access": False,
+                "grants_members_events": False,
+                "grants_members_education": False,
+                "is_guest_pass": True,
+                "sort_order": 90,
+            },
+        )
+        # The pages' words: the same placeholder copy development uses.
+        load(read_files(DEMO_CONTENT_DIR), commit=True)
+        site = SiteSettings.load()
+        site.nonprofit_status_text = "A volunteer-run 501(c)(3) nonprofit."
+        site.check_payable_to = "Test Organisation"
+        site.mailing_address = "PO Box 0000\nChicago, IL 60600"
+        site.save()
+        AcknowledgementTemplate.objects.update_or_create(
+            pk=1,
+            defaults={
+                "subject": "Thank you for your gift",
+                "body": "Dear {donor_name}, thank you for {amount} on {date} ({reference}).",
             },
         )
         if not MembershipAgreement.objects.filter(published_at__isnull=False).exists():

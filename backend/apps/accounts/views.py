@@ -12,6 +12,8 @@ from apps.core.ratelimit import is_over_limit
 from apps.events.services import release_places_held_by
 from apps.feed.services import erase_feed_data
 from apps.memberships.account import close_for_deleted_account
+from apps.rentals.services import forget_account as forget_rental_contact
+from apps.volunteers.models import forget_account as forget_volunteer
 
 from . import lockout, tasks
 from .models import User
@@ -240,6 +242,9 @@ class DeleteAccountView(CsrfProtectedAPIView):
             # Stops online renewals; payment records stay, detached from the person.
             close_for_deleted_account(user)
             anonymize_messages_from(email)
+            # Volunteer offers go; rental inquiries keep only type, date and status.
+            forget_volunteer(user)
+            forget_rental_contact(user)
             # Cascades to the profile and every RSVP.
             user.delete()
         logout(request)

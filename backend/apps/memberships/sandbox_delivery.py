@@ -11,11 +11,11 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import RequestFactory
 from django.urls import resolve, reverse
 
-from .providers.sandbox import sign
+from .providers.sandbox import sandbox_allowed, sign
 
 
 def deliver(payload):
-    if not settings.DEBUG or "sandbox" not in settings.PAYMENT_PROVIDERS:
+    if not sandbox_allowed() or "sandbox" not in settings.PAYMENT_PROVIDERS:
         raise ImproperlyConfigured("Sandbox webhooks are for development only.")
     body = json.dumps(payload).encode()
     path = reverse("payments-webhook", kwargs={"provider_key": "sandbox"})

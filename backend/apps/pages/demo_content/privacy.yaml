@@ -1,0 +1,56 @@
+status: placeholder - development only
+source_url: []
+page: privacy
+copy:
+  hero:
+    eyebrow: Privacy
+    title: Your privacy is the point.
+    lede: Discretion is the reason this community works. Here is exactly what we keep, in plain language.
+  blocks:
+    1:
+      title: What we collect
+      body:
+        rich: >-
+          <ul>
+          <li><strong>When you contact us:</strong> the name you give, your email address, a phone number if you choose to add one, the topic, and your message. We use these only to reply to you.</li>
+          <li><strong>The age confirmation:</strong> a single cookie on your device that remembers you confirmed you are 18 or older. It expires after 12 hours.</li>
+          <li><strong>If you create an account:</strong> your email address, the display name you choose and your password, which we store only in scrambled form. You can change your display name and password, or delete the account, at any time from your account page.</li>
+          <li><strong>When you RSVP:</strong> which evening, your party size and any note you leave for our hosts.</li>
+          <li><strong>Rental requests and volunteer offers:</strong> the contact details and answers you give us, read only by the volunteers who handle them.</li>
+          <li><strong>Security cookies:</strong> a random token that stops other websites from sending forms in your name, and, while you are signed in, a session cookie. Neither contains anything about you.</li>
+          </ul>
+          <p>We do not store your IP address with your message. We do not use analytics, advertising pixels, social media widgets or any other third-party tracking, and our fonts are served from our own site.</p>
+    2:
+      title: What is never public
+      body:
+        rich: >-
+          <p>Members are known on this site only by a display name they choose. Your legal name, email address and phone number are kept private and are never shown to the public or to other members.</p>
+          <p>Photos and recordings are not allowed in the house. Any image uploaded has its hidden location and camera data removed automatically, and is renamed so the original filename is not kept. We never show an image of an identifiable person unless that person has given their consent.</p>
+          <p>When a message arrives, our team gets an email that says only that a message is waiting. What you wrote stays in our private system and is never copied into email.</p>
+    3:
+      title: Who can see your RSVPs
+      body:
+        rich: >-
+          <p>Nobody but our hosts. Other guests, members and visitors never see who is coming, not even people going to the same evening. Some events show a total number of people attending, never names.</p>
+          <p>We delete RSVPs 30 days after each event, keeping only how many people came. Calendar files you download just say “Rose - Evening” with no address unless you choose to include the details.</p>
+    4:
+      title: Gifts and the email list
+      body:
+        rich: >-
+          <p>Gifts are recorded as Anonymous unless you choose to show your display name, and no list of donors is ever published. An email for an acknowledgement is forgotten once it is sent.</p>
+          <p>The email list is double opt-in and kept apart from accounts. Every email has a one-click unsubscribe link, and we never track whether you open or click anything. Thirty days after you leave, only a scrambled marker of your address remains, so you are never added back by mistake.</p>
+    5:
+      title: Social features are opt-in
+      body:
+        rich: >-
+          <p>Member social features are <strong>off by default</strong>, and your profile starts out private. Nothing you do becomes visible to other members unless you turn it on.</p>
+    6:
+      title: Asking us to delete your information
+      body:
+        rich: >-
+          <p>You can delete your account yourself from your account page. That removes your profile, every RSVP and any volunteer offer, and strips your name, email and phone number from messages and rental requests you sent us. You can also ask us to delete anything else we hold about you through the <a href="/contact">contact form</a>. We will confirm once it is done.</p>
+    7:
+      title: Email from us
+      body:
+        rich: >-
+          <p>Any email we send comes from a plain sender name and uses a neutral subject line such as “Your plans for Friday”, so nothing in your inbox gives away who it is from or what it is about.</p>

@@ -61,4 +61,9 @@ def test_beat_schedule_runs_purge_and_reminders(settings):
         "apps.feed.tasks.purge_old_watermarks",
         "apps.contact.tasks.purge_old_messages",
         "apps.core.tasks.nightly_backup",
+        "apps.newsletter.tasks.send_scheduled_newsletters",
+        "apps.newsletter.tasks.purge_subscribers",
+        "apps.rentals.tasks.purge_closed_inquiries",
+        "apps.volunteers.tasks.purge_old_signups",
+        "apps.donations.tasks.purge_donation_contacts",
     }

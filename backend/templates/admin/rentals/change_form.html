@@ -1,0 +1,32 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
+
+{% block object-tools-items %}
+{% if original and not original.contact_purged_at %}
+<li><a href="{% url 'admin:rentals_confirm' original.pk %}">Mark confirmed</a></li>
+{% endif %}
+<li><a href="{% url 'admin:rentals_pipeline' %}">Pipeline view</a></li>
+{{ block.super }}
+{% endblock %}
+
+{# Outside the main change form: forms cannot be nested. #}
+{% block object-tools %}
+{{ block.super }}
+{% if original and not original.contact_purged_at %}
+<form method="post" action="{% url 'admin:rentals_status' original.pk %}" class="tool-inline-form">
+  {% csrf_token %}
+  <label for="status-select">Move to</label>
+  <select id="status-select" name="status">
+    {% for value, label in status_choices %}<option value="{{ value }}"{% if value == original.status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <label for="status-reason" class="visually-hidden">Note for the log</label>
+  <input id="status-reason" name="reason" maxlength="300" placeholder="Note for the log (optional)">
+  <button type="submit" class="button">Change status</button>
+  <p class="help">Status changes are recorded in the audit log. Confirming opens a page where you can hold the date on the calendar.</p>
+</form>
+{% elif original %}
+<p class="tool-note">Past its retention period: only the type, date and status are kept.</p>
+{% endif %}
+{% endblock %}

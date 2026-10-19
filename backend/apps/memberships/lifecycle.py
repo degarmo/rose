@@ -18,6 +18,7 @@ def run(now=None):
         "to_expired": 0,
         "to_cancelled": 0,
         "pending_expired": 0,
+        "guest_passes_ended": 0,
         "reminders": 0,
     }
 
@@ -28,6 +29,14 @@ def run(now=None):
         membership.end(Membership.Status.EXPIRED, now)
         membership.save(update_fields=["status", "ended_at", "auto_renew", "updated_at"])
         counts["pending_expired"] += 1
+
+    # A guest night simply ends: no grace period and no email.
+    for membership in Membership.objects.filter(
+        status=Membership.Status.ACTIVE, current_period_end__lte=now, tier__is_guest_pass=True
+    ):
+        membership.end(Membership.Status.EXPIRED, now)
+        membership.save(update_fields=["status", "ended_at", "auto_renew", "updated_at"])
+        counts["guest_passes_ended"] += 1
 
     for membership in Membership.objects.filter(
         status=Membership.Status.ACTIVE, current_period_end__lte=now
@@ -59,6 +68,7 @@ def run(now=None):
         auto_renew=False,
         current_period_end__gt=now,
         current_period_end__lte=now + timedelta(days=first),
+        tier__is_guest_pass=False,
     ).select_related("user")
     for membership in upcoming:
         days_left = membership.current_period_end - now

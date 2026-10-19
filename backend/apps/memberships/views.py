@@ -17,7 +17,7 @@ from .access import entitlements
 from .models import Payment
 from .providers import registry
 from .providers.base import WebhookVerificationError
-from .providers.sandbox import SandboxProvider
+from .providers.sandbox import SandboxProvider, sandbox_allowed
 from .providers.service import handle_events
 from .serializers import (
     AgreementSerializer,
@@ -181,7 +181,7 @@ class SandboxCheckoutView(CsrfProtectedAPIView):
     """The fake hosted checkout's backend. Only exists when the sandbox is enabled."""
 
     def initial(self, request, *args, **kwargs):
-        if not settings.DEBUG or registry.get("sandbox") is None:
+        if not sandbox_allowed() or registry.get("sandbox") is None:
             raise Http404
         super().initial(request, *args, **kwargs)
 
@@ -189,10 +189,12 @@ class SandboxCheckoutView(CsrfProtectedAPIView):
         session = SandboxProvider.read_session(token)
         if session is None:
             raise Http404
+        purpose = session.get("purpose")
         return Response(
             {
                 "amount_cents": session["amount"],
-                "reference": session["membership"],
+                "reference": purpose.partition(":")[2] if purpose else session["membership"],
+                "description": purpose.partition(":")[0].title() if purpose else "Membership",
                 "interval": session["interval"],
             }
         )

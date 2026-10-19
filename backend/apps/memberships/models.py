@@ -49,6 +49,11 @@ class Tier(models.Model):
     grants_feed_access = models.BooleanField(default=True)
     grants_members_events = models.BooleanField(default=True)
     grants_members_education = models.BooleanField(default=True)
+    is_guest_pass = models.BooleanField(
+        default=False,
+        help_text="A one-night guest pass: a one-time pass lasting 1 day with no online "
+        "access. Paid at the door, offered on the Guests page rather than with memberships.",
+    )
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
     is_placeholder = models.BooleanField(
@@ -67,6 +72,22 @@ class Tier(models.Model):
         super().clean()
         if self.interval == self.Interval.ONCE and not self.duration_days:
             raise ValidationError({"duration_days": "Set how many days a one-time pass lasts."})
+        if self.is_guest_pass:
+            if self.interval != self.Interval.ONCE or self.duration_days != 1:
+                raise ValidationError(
+                    {"is_guest_pass": "A guest pass is a one-time pass lasting 1 day."}
+                )
+            if (
+                self.grants_feed_access
+                or self.grants_members_events
+                or (self.grants_members_education)
+            ):
+                raise ValidationError(
+                    {
+                        "is_guest_pass": "A guest pass grants no member community, members-only "
+                        "events or members-only classes. Untick those three."
+                    }
+                )
         if not isinstance(self.benefits, list) or not all(
             isinstance(b, str) for b in self.benefits
         ):

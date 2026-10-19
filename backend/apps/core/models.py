@@ -23,6 +23,11 @@ class AuditLog(models.Model):
         PRIVATE_DATA = "private_data", "Private data viewed"
         SECURITY = "security", "Staff security"
         OPERATIONS = "operations", "Operations"
+        RENTALS = "rentals", "Rentals"
+        DONATIONS = "donations", "Donations"
+        VOLUNTEERS = "volunteers", "Volunteers"
+        NEWSLETTER = "newsletter", "Email list"
+        CONTENT = "content", "Site content"
 
     category = models.CharField(max_length=20, choices=Category.choices, db_index=True)
     action = models.CharField(max_length=40)

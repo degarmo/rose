@@ -152,6 +152,7 @@ def test_sandbox_pay_activates_from_the_webhook(
     assert details == {
         "amount_cents": 2500,
         "reference": membership.reference_code,
+        "description": "Membership",
         "interval": "month",
     }
 

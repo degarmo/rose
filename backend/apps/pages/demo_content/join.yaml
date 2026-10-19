@@ -1,0 +1,23 @@
+status: placeholder - development only
+source_url: []
+page: join
+copy:
+  hero:
+    eyebrow: Membership
+    title: Become part of the house.
+    lede: Membership supports a volunteer-run nonprofit and opens members' evenings, members-only classes and the member community.
+  benefits:
+    eyebrow: What membership includes
+    title: More of what you love about the house.
+    1:
+      title: Members-only evenings
+      body: Seasonal gatherings, member nights and community meetings, with a say in how the house is run.
+    2:
+      title: Members-only classes
+      body: Smaller, deeper sessions and mentorship circles that build on the public education program.
+    3:
+      title: The member community
+      body: A private feed for members who choose to join it. Off unless you turn it on.
+    4:
+      title: Private by design
+      body: You are known by a display name you choose. Payment records are kept apart from everything else.

@@ -200,7 +200,7 @@ def _otpauth_url(device, user):
     )
 
 
-def _qr_data_uri(text):
+def qr_data_uri(text):
     image = qrcode.make(text, image_factory=qrcode.image.svg.SvgPathImage, box_size=8, border=2)
     buffer = BytesIO()
     image.save(buffer)
@@ -255,7 +255,7 @@ def otp_enrol(request, site):
         title="Set up two-step login",
         form=form,
         error=error,
-        qr=_qr_data_uri(url),
+        qr=qr_data_uri(url),
         secret=" ".join(secret[i : i + 4] for i in range(0, len(secret), 4)),
     )
     return TemplateResponse(request, "admin/otp_enrol.html", context)

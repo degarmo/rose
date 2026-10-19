@@ -1,0 +1,27 @@
+status: placeholder - development only
+source_url: []
+page: guests
+copy:
+  hero:
+    eyebrow: Guests
+    title: Come as a guest first.
+    lede: Not ready for membership? A guest pass opens one evening, with the same welcome members get.
+  who:
+    eyebrow: Who guests are
+    title: Curious adults trying an evening.
+    lede: Guests are adults who want to see the house before they join, or who come along with a friend. You need a free account, so your pass and ID check are there for next time.
+  expect:
+    title: What to expect
+    body: A host meets you at the door, shows you around and introduces you. Stay for as much of the evening as you like.
+  rules:
+    title: House rules
+    body: Consent first, no photos, and look after one another. Guests keep the same agreements as everyone else.
+  id:
+    title: Bring your ID
+    body: Everyone must be 18 or older. Bring a valid photo ID on every first visit; we check it and hand it straight back.
+  price:
+    eyebrow: The guest pass
+    title: One evening, paid at the door.
+    lede: Sign up below for a reference code, then pay when you arrive.
+  steps:
+    rich: <p>Create a free account, read and sign the agreement, then show your code at the door. Returning guests use the same account and code.</p>

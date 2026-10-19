@@ -27,6 +27,22 @@
 
   {% if searched and not results %}<p class="desk-empty">Nothing found for “{{ query }}”.</p>{% endif %}
 
+  <details class="desk-donation">
+    <summary class="desk-button">Record donation</summary>
+    <form method="post" class="desk-form">{% csrf_token %}
+      <input type="hidden" name="q" value="{{ query }}">
+      <h3>Record a donation</h3>
+      <div class="desk-row">
+        <label>Method <select name="method">{% for value, label in donation_methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+        <label>Amount <input name="amount" inputmode="decimal" required></label>
+      </div>
+      <label>Name to record <input name="donor_display" maxlength="60" placeholder="Anonymous"></label>
+      <label>Email for an acknowledgement (optional) <input name="acknowledgement_email" type="email" maxlength="254"></label>
+      <label>Note <input name="note" maxlength="300"></label>
+      <button name="action" value="record_donation" class="desk-button primary">Record donation</button>
+    </form>
+  </details>
+
   {% for r in results %}
   {% with m=r.membership %}
   <section class="desk-card status-{{ m.status }}">
@@ -35,7 +51,7 @@
         <p class="desk-code">{{ m.reference_code }}</p>
         <h2>{% if m.user %}{{ m.user.display_name }}{% else %}Deleted account{% endif %}</h2>
       </div>
-      <p class="desk-status">{{ m.get_status_display }}{% if m.paid_awaiting_id_check %} · paid online, needs ID check{% endif %}</p>
+      <p class="desk-status">{% if r.is_guest_pass %}Guest pass · {% endif %}{{ m.get_status_display }}{% if m.paid_awaiting_id_check %} · paid online, needs ID check{% endif %}</p>
     </header>
     <dl class="desk-facts">
       <div><dt>Tier</dt><dd>{{ m.tier.name }} ({{ r.default_amount }} {{ m.tier.currency }}, {{ m.tier.get_interval_display }})</dd></div>
@@ -54,6 +70,27 @@
     {% endif %}
 
     <div class="desk-actions">
+      {% if r.is_guest_pass %}
+      {% if m.status == "pending_payment" or m.status == "expired" or m.status == "cancelled" %}
+      <form method="post" class="desk-form">{% csrf_token %}
+        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <h3>Guest visit</h3>
+        <div class="desk-row">
+          <label>Method <select name="method"><option value="cash">Cash</option><option value="card_in_person">Card in person</option></select></label>
+          <label>Amount <input name="amount" inputmode="decimal" value="{{ r.default_amount }}"></label>
+        </div>
+        <label>Note <input name="note" maxlength="300"></label>
+        {% if not r.id_checked %}<label class="desk-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
+        <button name="action" value="guest_visit" class="desk-button primary">Record payment, in for tonight</button>
+      </form>
+      {% endif %}
+      <details class="desk-form desk-convert">
+        <summary><h3>Convert to member</h3></summary>
+        <p>Ask them to scan this on their own phone, signed in to the same account. They choose a membership and sign there; then search for them here and record the payment. Their ID check carries over.</p>
+        {% if join_qr %}<img src="{{ join_qr }}" alt="QR code for {{ join_url }}" width="180" height="180">{% endif %}
+        <p class="desk-code">{{ join_url }}</p>
+      </details>
+      {% else %}
       {% if m.paid_awaiting_id_check %}
       <form method="post" class="desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
@@ -116,6 +153,7 @@
         <label>Reason <input name="reason" maxlength="300" required></label>
         <button name="action" value="reinstate" class="desk-button primary">Reinstate</button>
       </form>
+      {% endif %}
       {% endif %}
     </div>
 

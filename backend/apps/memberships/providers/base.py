@@ -37,11 +37,14 @@ EVENT_TYPES = frozenset(
 @dataclass(frozen=True)
 class ProviderEvent:
     """A provider event, normalised. `membership_ref` is our reference code,
-    passed to the provider at checkout and echoed back in its events."""
+    passed to the provider at checkout and echoed back in its events.
+    `purpose` is set instead for one-time checkouts (for example
+    "donation:DON-7KQ29X"), and routes the event to whatever it pays for."""
 
     event_id: str
     type: str
     membership_ref: str | None = None
+    purpose: str | None = None
     customer_ref: str | None = None
     subscription_ref: str | None = None
     payment_ref: str | None = None
@@ -62,6 +65,18 @@ class PaymentProvider(ABC):
     @abstractmethod
     def create_checkout(self, membership, success_url, cancel_url) -> CheckoutSession:
         """Start a hosted checkout for the membership's tier price."""
+
+    @abstractmethod
+    def create_one_time_checkout(
+        self, amount_cents, purpose, success_url, cancel_url
+    ) -> CheckoutSession:
+        """Start a hosted checkout for a single payment that is not a membership.
+
+        `purpose` (for example "donation:DON-7KQ29X") goes to the processor as
+        metadata or client reference and must come back as `ProviderEvent.purpose`
+        on every event about this payment. The product name is a neutral word
+        taken from the purpose's prefix ("Donation"), never anything else.
+        """
 
     @abstractmethod
     def parse_webhook(self, request) -> list[ProviderEvent]:

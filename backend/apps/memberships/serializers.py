@@ -27,6 +27,7 @@ class TierSerializer(serializers.ModelSerializer):
             "grants_feed_access",
             "grants_members_events",
             "grants_members_education",
+            "is_guest_pass",
             "is_placeholder",
         ]
 

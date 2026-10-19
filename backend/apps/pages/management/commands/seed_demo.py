@@ -7,6 +7,7 @@ only when DEBUG is on.
 
 import secrets
 from datetime import datetime, time, timedelta
+from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -19,8 +20,13 @@ from apps.education.models import Opportunity
 from apps.events.models import RSVP, Event
 from apps.journal.models import Post, PostImage
 from apps.pages.models import FAQItem, SiteSettings
+from apps.pages.site_content import load, read_files
 
 from .demo_media import gradient_image
+
+# Placeholder page copy for development and tests: the words the pages show
+# until the club's own copy is loaded with load_site_content.
+DEMO_CONTENT_DIR = Path(__file__).resolve().parents[2] / "demo_content"
 
 SITE_SETTINGS = {
     "tagline": "A members' house for learning, connection and consent-first community.",
@@ -39,6 +45,11 @@ SITE_SETTINGS = {
     ),
     "contact_email": "hello@example.org",
     "quick_exit_url": "",
+    "nonprofit_status_text": "A volunteer-run 501(c)(3) nonprofit.",
+    "check_payable_to": "Placeholder Organisation Name",
+    "mailing_address": "PO Box 0000\nChicago, IL 60600",
+    "legal_name": "Placeholder Organisation Name",
+    "ein": "00-0000000",
 }
 
 OPPORTUNITIES = [
@@ -338,12 +349,14 @@ class Command(BaseCommand):
                 defaults={"answer": answer, "sort_order": index * 10, "is_published": True},
             )
 
+        load(read_files(DEMO_CONTENT_DIR), commit=True)
         users = self.seed_users()
         events = self.seed_events(users)
         post_count = self.seed_journal(events)
         if settings.DEBUG:
             self.seed_member_feed(users["verified"])
             self.seed_memberships()
+            self.seed_parity()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -396,6 +409,24 @@ class Command(BaseCommand):
         )
         for display_name, (email, password) in accounts.items():
             self.stdout.write(f"  {email}  {password}  ({display_name})")
+
+    def seed_parity(self):
+        """Guests come with the membership demo; this adds rentals, volunteers,
+        gifts and the email list. DEBUG only."""
+        from apps.donations.demo import seed_donations
+        from apps.newsletter.demo import seed_newsletter
+        from apps.rentals.demo import seed_rentals
+        from apps.volunteers.demo import seed_volunteers
+
+        staff = User.objects.filter(email="desk.volunteer@example.org").first()
+        seed_rentals()
+        seed_volunteers()
+        seed_donations(staff)
+        seed_newsletter()
+        self.stdout.write(
+            "Rentals, volunteers, gifts, the email list and placeholder acknowledgement "
+            "wording (DEBUG only)."
+        )
 
     def upsert_event(self, slug, **values):
         values.setdefault("is_published", True)

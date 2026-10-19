@@ -1,0 +1,32 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
+{% block extrahead %}{{ block.super }}<script src="{% static 'newsletter/inbox-preview.js' %}" defer></script>{% endblock %}
+
+{% block object-tools %}
+{{ block.super }}
+<section class="tool-inline-form" aria-labelledby="inbox-preview-title">
+  <h2 id="inbox-preview-title" class="visually-hidden">Inbox preview</h2>
+  <p class="help">How it looks in an inbox, before anyone opens it. The sender and subject show on lock screens and shared computers, so keep them neutral.</p>
+  <div class="inbox-preview" data-inbox-preview>
+    <p class="inbox-preview-line inbox-preview-from" data-preview-from>{{ sender_name|default:"Rose" }}</p>
+    <p class="inbox-preview-line"><span class="inbox-preview-subject" data-preview-subject>{{ original.subject|default:"(no subject yet)" }}</span>
+      <span class="inbox-preview-preheader" data-preview-preheader>{% if original.preheader %} - {{ original.preheader }}{% endif %}</span></p>
+  </div>
+</section>
+{% if original and original.status != "sent" %}
+<div class="tool-inline-form">
+  <form method="post" action="{% url 'admin:newsletter_send_test' original.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="button">Send test to me</button>
+  </form>
+  <form method="post" action="{% url 'admin:newsletter_send' original.pk %}">
+    {% csrf_token %}
+    <label><input type="checkbox" name="confirm"> Send now to {{ recipient_count }} confirmed subscriber{{ recipient_count|pluralize }}</label>
+    <button type="submit" class="button default">Send</button>
+  </form>
+  <p class="help">Save your changes first. A test goes only to your own address. No opens or clicks are tracked.</p>
+</div>
+{% endif %}
+{% endblock %}

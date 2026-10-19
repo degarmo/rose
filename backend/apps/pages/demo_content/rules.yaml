@@ -1,0 +1,25 @@
+status: placeholder - development only
+source_url: []
+page: rules
+copy:
+  hero:
+    eyebrow: House rules
+    title: The agreements that keep every evening good.
+    lede: Short, specific and the same for everyone, every night.
+  intro: Placeholder rules for development. The club's own rules replace these before launch.
+  rules:
+    1:
+      title: Consent first
+      body:
+        rich: <p>Ask before you touch anyone or anything that belongs to them. A no, or a pause, is respected straight away.</p>
+    2:
+      title: Privacy
+      body:
+        rich: <p>No photos or recordings. What you see and who you see stays here.</p>
+    3:
+      title: Look after one another
+      body:
+        rich: <p>If anything feels wrong, find a host. Concerns are handled quietly and taken seriously.</p>
+  help:
+    eyebrow: Questions about the rules?
+    title: Ask a host, or write to us.

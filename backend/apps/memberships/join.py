@@ -35,6 +35,17 @@ def open_membership(user):
     return Membership.objects.non_terminal().filter(user=user).select_related("tier").first()
 
 
+def end_guest_pass(membership):
+    """Close an open guest pass: an unpaid one is cancelled, a running one has ended."""
+    status = (
+        Membership.Status.CANCELLED
+        if membership.status == Membership.Status.PENDING_PAYMENT
+        else Membership.Status.EXPIRED
+    )
+    membership.end(status)
+    membership.save(update_fields=["status", "ended_at", "auto_renew", "updated_at"])
+
+
 def payment_methods():
     methods = [{"key": "manual", "label": registry.build("manual").label, "online": False}]
     methods += [{"key": p.key, "label": p.label, "online": True} for p in registry.online()]
@@ -80,13 +91,22 @@ def join(user, tier_slug, agreement_version, typed_name, method):
         raise JoinError("typed_name", "Type your full name to sign.")
     if method not in [m["key"] for m in payment_methods()]:
         raise JoinError("method", "That payment method is not available.")
-    if open_membership(user) is not None:
+    if tier.is_guest_pass and method != "manual":
+        raise JoinError("method", "Guest passes are paid at the door.")
+    current = open_membership(user)
+    # A guest who becomes a member gives up tonight's pass for the membership.
+    replaces_guest_pass = (
+        current is not None and current.tier.is_guest_pass and not tier.is_guest_pass
+    )
+    if current is not None and not replaces_guest_pass:
         raise JoinError(
             "exists", "You already have a membership. See your account page.", status=409
         )
 
     try:
         with transaction.atomic():
+            if replaces_guest_pass:
+                end_guest_pass(current)
             AgreementSignature.objects.create(user=user, agreement=agreement, typed_name=typed_name)
             membership = Membership.objects.create(
                 user=user,

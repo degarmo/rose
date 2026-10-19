@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+  <a href="{% url 'admin:volunteers_volunteersignup_changelist' %}">Volunteer signups</a> &rsaquo; Export
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="tool-page">
+  <p>Name, interests, availability, status and signup date. Every download is logged with your name and the time. Keep the file off shared drives and delete it when you are done.</p>
+  <form method="post" class="tool-form">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit" class="button default">Download CSV</button>
+  </form>
+</div>
+{% endblock %}

@@ -36,15 +36,21 @@ class EventAdmin(admin.ModelAdmin):
         "category",
         "audience",
         "is_published",
+        "is_private_hold",
         "going",
         "door_list_link",
     )
-    list_filter = ("is_published", "category", "audience", "starts_at")
+    list_filter = ("is_published", "is_private_hold", "category", "audience", "starts_at")
     search_fields = ("title", "summary")
     prepopulated_fields = {"slug": ("title",)}
     date_hierarchy = "starts_at"
     autocomplete_fields = ("opportunity",)
-    readonly_fields = ("final_going_count", "final_checked_in_count", "rsvps_purged_at")
+    readonly_fields = (
+        "final_going_count",
+        "final_checked_in_count",
+        "rsvps_purged_at",
+        "is_private_hold",
+    )
     actions = ["repeat_weekly_action"]
     fieldsets = (
         (None, {"fields": ("title", "slug", "summary", "body", "category")}),
@@ -75,7 +81,7 @@ class EventAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Publishing", {"fields": ("is_published",)}),
+        ("Publishing", {"fields": ("is_published", "is_private_hold")}),
         (
             "After the event",
             {

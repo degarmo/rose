@@ -1,0 +1,36 @@
+status: placeholder - development only
+source_url: []
+page: visit
+copy:
+  hero:
+    eyebrow: Plan your visit
+    title: Your first evening, without surprises.
+    lede: Here is everything that happens between your first message and the moment you feel at home.
+  expect:
+    eyebrow: What to expect
+    title: Three easy steps.
+  steps:
+    1:
+      title: Say hello first
+      body: Send us a short note through the contact form. We will reply with the next orientation date and the street address.
+    2:
+      title: Arrive for orientation
+      body: A host meets you at the door, checks your ID and walks you through our community agreements in a relaxed, seated conversation.
+    3:
+      title: Stay as long as you like
+      body: Join the class that follows, have a drink at the bar, or head home. There is no pressure to do anything more than look around.
+  id:
+    title: Bring a valid photo ID
+    body: Everyone must be 18 or older, every time, with no exceptions. Please bring a current, government-issued photo ID such as a driver’s license, state ID or passport. We check it at the door and hand it straight back. We never photograph, scan or copy it.
+  hours:
+    title: Hours
+  directions:
+    title: Getting here
+  rules:
+    eyebrow: House rules
+    title: A few agreements everyone keeps.
+    lede: Consent before contact, no photos, look after one another. The full list is short and worth reading before you come.
+  faq:
+    eyebrow: Questions
+    title: Things people often ask
+    lede: Parking, what to wear, what to bring. The FAQ covers the usual first-visit questions.

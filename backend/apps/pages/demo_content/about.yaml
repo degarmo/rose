@@ -1,0 +1,32 @@
+status: placeholder - development only
+source_url: []
+page: about
+copy:
+  hero:
+    eyebrow: About
+    title: Built by volunteers. Kept by its members.
+    lede: We exist so that adults can learn, connect and explore in a space that treats consent, privacy and kindness as non-negotiable.
+  mission:
+    eyebrow: Our mission
+    title: Education first, community always.
+    lede:
+      rich: >-
+        <p>Our mission is to provide a welcoming, well-run space where adults can learn about
+        communication, consent and the practices that interest them, guided by people with real
+        experience and good judgment.</p>
+        <p>We believe people make better choices when they have accurate information, a supportive
+        community and room to ask any question without embarrassment. Everything we do, from
+        Thursday classes to how we train our door team, follows from that.</p>
+  nonprofit:
+    title: A registered nonprofit
+    body: We are a 501(c)(3) charitable organization. Membership dues and donations cover rent, insurance, safety equipment and the education program. Nobody profits from the house.
+  volunteer:
+    title: Entirely volunteer-run
+    body: Every host, teacher, mentor and board member gives their time freely. If you would like to help, there is a place for you, whether that is one shift a month or leading a class.
+  values:
+    eyebrow: What we stand for
+    title: Four promises we keep.
+  people:
+    eyebrow: The people
+    title: Who you will meet
+    lede: Our volunteers are known here by the names they choose. Ask for any of them at the door.

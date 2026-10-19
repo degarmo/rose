@@ -1,0 +1,46 @@
+status: placeholder - development only
+source_url: []
+page: home
+copy:
+  hero:
+    eyebrow: Chicago, after dark
+    title:
+      rich: A house for <em>curiosity</em>, care and good company.
+    lede: A volunteer-run members’ house for learning, connection and consent-first community.
+  who:
+    eyebrow: Who we are
+    title: A private club with an open door.
+    lede:
+      rich: >-
+        <p>We are a nonprofit community of adults who believe exploration is better with
+        education, honesty and people who look out for one another.</p>
+        <p>Whether this is your first time anywhere like us or you have been part of community
+        spaces for years, you will find hosts who remember your name and a pace that lets you
+        settle in.</p>
+  week:
+    eyebrow: At the house
+    title: Learn on Thursdays. Unwind on weekends.
+    lede: Most people start with an education night, then find their way to the weekends.
+  education:
+    eyebrow: Education
+    title: Coming up
+    lede: Every class is beginner-friendly unless it says otherwise.
+  journal:
+    eyebrow: Journal
+    title: From the Journal
+  involved:
+    eyebrow: Get involved
+    title: The house runs on its people.
+    lede: Give an evening, give a gift, or bring your own gathering to the space.
+    1:
+      title: Volunteer
+      body: Hosting, teaching, setting up, fixing things. Every hour helps, and regular volunteers earn their membership.
+    2:
+      title: Donate
+      body: Gifts pay the rent and keep safety supplies stocked. Give at the door, by check or online.
+    3:
+      title: Rent the space
+      body: Private sessions, workshops, photoshoots and group events, on nights we are not open.
+  closing:
+    title: Your first evening starts with a conversation.
+    lede: Tell us a little about yourself, and we will help you find the right night to begin.

@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
-from .models import FAQItem, SiteSettings, SocialLink
+from apps.core.consent_images import consent_image_payload
+
+from .models import FAQItem, SiteSettings, SocialLink, StaffProfile
 
 
 class SocialLinkSerializer(serializers.ModelSerializer):
@@ -21,6 +23,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "directions_text",
             "contact_email",
             "quick_exit_url",
+            "nonprofit_status_text",
             "social_links",
         ]
 
@@ -29,3 +32,16 @@ class FAQItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = FAQItem
         fields = ["id", "question", "answer"]
+
+
+class StaffProfileSerializer(serializers.ModelSerializer):
+    """A display name, a role and a few words. Never the account behind it."""
+
+    photo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StaffProfile
+        fields = ["slug", "display_name", "role_title", "bio", "photo"]
+
+    def get_photo(self, obj):
+        return consent_image_payload(obj, "photo", self.context.get("request"))

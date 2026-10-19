@@ -1,9 +1,13 @@
 import mimetypes
 
+import markdown
+import nh3
+from django.conf import settings
 from django.contrib import admin
 from django.http import FileResponse, Http404
 from django.template.response import TemplateResponse
 from django.urls import path
+from django.utils.safestring import mark_safe
 
 from . import admin_auth
 from .admin_nav import build_nav
@@ -51,6 +55,7 @@ class RoseAdminSite(admin.AdminSite):
                 self.admin_view(self.image_review_view),
                 name="image_review",
             ),
+            path("staff-guide/", self.admin_view(self.staff_guide_view), name="staff_guide"),
             path(
                 "image-review/file/<str:filename>",
                 self.admin_view(self.image_file_view),
@@ -118,3 +123,23 @@ class RoseAdminSite(admin.AdminSite):
         response = FileResponse(file_path.open("rb"), content_type=content_type)
         response["Cache-Control"] = "private, no-store"
         return response
+
+    def staff_guide_view(self, request):
+        """docs/staff-guide.md, for anyone with a staff login."""
+        try:
+            text = settings.STAFF_GUIDE_PATH.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise Http404("The staff guide is not on this server.") from exc
+        rendered = nh3.clean(
+            markdown.markdown(text),
+            tags={"h1", "h2", "h3", "h4", "p", "ul", "ol", "li", "strong", "em", "code", "a"},
+            attributes={"a": {"href"}},
+            url_schemes={"https", "mailto"},
+            link_rel="noopener noreferrer",
+        )
+        context = {
+            **self.each_context(request),
+            "title": "Staff guide",
+            "guide": mark_safe(rendered),  # sanitised by nh3 above
+        }
+        return TemplateResponse(request, "admin/staff_guide.html", context)

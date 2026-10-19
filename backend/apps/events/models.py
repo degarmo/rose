@@ -14,7 +14,8 @@ RESERVED_SLUGS = frozenset({"calendar", "rsvp", "cancel"})
 
 class EventQuerySet(models.QuerySet):
     def published(self):
-        return self.filter(is_published=True)
+        # A private hold (a confirmed rental's placeholder) is never public.
+        return self.filter(is_published=True, is_private_hold=False)
 
     def visible_to(self, user):
         """Published events this person may see. Account-only events need a sign-in."""
@@ -86,6 +87,13 @@ class Event(consented_image("hero_image", upload_to="events")):
         related_name="events",
     )
 
+    is_private_hold = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="A confirmed rental's placeholder, so the date is not double-booked. "
+        "Never published or shown on the site.",
+    )
+
     final_going_count = models.PositiveIntegerField(null=True, blank=True, editable=False)
     final_checked_in_count = models.PositiveIntegerField(null=True, blank=True, editable=False)
     rsvps_purged_at = models.DateTimeField(null=True, blank=True, editable=False)
@@ -103,6 +111,8 @@ class Event(consented_image("hero_image", upload_to="events")):
 
     def save(self, *args, **kwargs):
         self.body = sanitize_rich_text(self.body)
+        if self.is_private_hold:
+            self.is_published = False
         super().save(*args, **kwargs)
 
     def clean(self):
@@ -121,6 +131,8 @@ class Event(consented_image("hero_image", upload_to="events")):
             errors["slug"] = "That address is reserved. Please choose another."
         if self.capacity == 0:
             errors["capacity"] = "Use a number above zero, or leave blank for unlimited."
+        if self.is_private_hold and self.is_published:
+            errors["is_published"] = "A private rental hold is never published."
         if errors:
             raise ValidationError(errors)
 

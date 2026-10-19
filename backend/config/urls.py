@@ -18,6 +18,10 @@ api_patterns = [
     path("payments/", include("apps.memberships.payment_urls")),
     path("events/", include("apps.events.urls")),
     path("journal/", include("apps.journal.urls")),
+    path("rentals/", include("apps.rentals.urls")),
+    path("volunteer/", include("apps.volunteers.urls")),
+    path("donations/", include("apps.donations.urls")),
+    path("newsletter/", include("apps.newsletter.urls")),
 ]
 
 urlpatterns = [

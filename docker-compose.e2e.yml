@@ -36,7 +36,8 @@ x-app: &app
     S3_PUBLIC_BUCKET: rose-public
     S3_PRIVATE_BUCKET: rose-private
     S3_ADDRESSING_STYLE: path
-    PAYMENT_PROVIDERS: manual
+    # The sandbox lets the browser tests pay online; it never runs anywhere deployed.
+    PAYMENT_PROVIDERS: manual,sandbox
     FEED_PREMODERATION_POSTS: "0"
     CONTACT_RATE_LIMIT: 3/h
     # The tests sign the same known accounts in many times an hour.

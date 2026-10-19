@@ -8,6 +8,7 @@ account. tests/test_privacy.py enforces both rules for every serializer.
 
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.urls import reverse
 from rest_framework import serializers
 
 from .models import User, display_name_validator
@@ -28,14 +29,19 @@ class AccountSerializer(serializers.ModelSerializer):
     self_only = True
     email_verified = serializers.BooleanField(read_only=True)
     has_membership = serializers.SerializerMethodField()
+    staff_guide_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["display_name", "email", "email_verified", "has_membership"]
+        fields = ["display_name", "email", "email_verified", "has_membership", "staff_guide_url"]
         read_only_fields = ["email", "email_verified"]
 
     def get_has_membership(self, user):
         return user.memberships.exists()
+
+    def get_staff_guide_url(self, user):
+        """Staff only, so the admin's address never reaches anyone else's browser."""
+        return reverse("admin:staff_guide") if user.is_staff and user.is_active else None
 
 
 def validate_display_name_available(value, exclude_pk=None):
