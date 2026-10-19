@@ -33,8 +33,6 @@ interface ImageFrameProps {
   fill?: boolean
   /** Member images: no right-click save, no drag, no long-press callout. A deterrent only. */
   protect?: boolean
-  /** Which part of a picture the frame keeps, as a Tailwind class (e.g. `object-[50%_15%]`). */
-  position?: string
 }
 
 const PROTECTED_CLASSES = 'select-none [-webkit-touch-callout:none] [-webkit-user-drag:none]'
@@ -59,7 +57,6 @@ export function ImageFrame({
   className,
   fill = false,
   protect = false,
-  position,
 }: ImageFrameProps) {
   const [failed, setFailed] = useState(false)
   const local = image ? resolveImage(image) : null
@@ -77,7 +74,7 @@ export function ImageFrame({
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         onError={() => setFailed(true)}
-        className={cn('absolute inset-0 size-full object-cover', position)}
+        className="absolute inset-0 size-full object-cover"
       />
     )
   } else if (!failed && remote) {

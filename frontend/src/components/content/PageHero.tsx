@@ -15,8 +15,6 @@ interface PageHeroProps {
   image?: string
   remoteImage?: RemoteImage | null
   ratio?: AspectRatio
-  /** Which part of the picture shows in the frame (an `object-[x_y]` class). */
-  imagePosition?: string
   placeholder?: PlaceholderTexture
   /** Something at the right end of the title row, like the List / Month switch. */
   aside?: ReactNode
@@ -30,7 +28,7 @@ interface PageHeroProps {
  * "Contact"): the title in Fraunces 300 at 52px (36 on phones) and a muted lead. With a
  * picture it becomes two columns, the picture on the right.
  */
-export function PageHero({ copy, prefix = 'hero', title, lede, image, remoteImage, ratio = '3/2', imagePosition, placeholder = 'rose', aside, phoneLede = true, children }: PageHeroProps) {
+export function PageHero({ copy, prefix = 'hero', title, lede, image, remoteImage, ratio = '3/2', placeholder = 'rose', aside, phoneLede = true, children }: PageHeroProps) {
   const loading = copy?.status === 'loading'
   const withImage = Boolean(image || remoteImage)
   const heading = (
@@ -65,7 +63,7 @@ export function PageHero({ copy, prefix = 'hero', title, lede, image, remoteImag
           {leadText}
           {children}
         </div>
-        <ImageFrame image={image} remote={remoteImage} alt="" ratio={ratio} position={imagePosition} placeholder={placeholder} priority className="hidden rounded-card lg:block" sizes="(min-width: 1024px) 50vw, 100vw" />
+        <ImageFrame image={image} remote={remoteImage} alt="" ratio={ratio} placeholder={placeholder} priority className="hidden rounded-card lg:block" sizes="(min-width: 1024px) 50vw, 100vw" />
       </div>
     )
   }
