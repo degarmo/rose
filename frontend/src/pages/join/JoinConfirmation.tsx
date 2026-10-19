@@ -26,15 +26,18 @@ export function WhatToBring({ membership }: { membership: MyMembership }) {
 }
 
 export function JoinConfirmation({ membership }: { membership: MyMembership }) {
+  const guest = membership.tier.is_guest_pass
   return (
     <Card as="article" aria-labelledby="confirmation-heading" className="p-6 sm:p-8">
       <h2 id="confirmation-heading" className="flex items-center gap-3 text-3xl text-fg">
         <BadgeCheck aria-hidden="true" className="size-7 text-success" />
-        You are almost a member
+        {guest ? 'Your guest pass is ready' : 'You are almost a member'}
       </h2>
       <p className="mt-3 text-fg-muted">
-        Staff will start your {membership.tier.name.toLowerCase()} membership at the door on your first visit. We have
-        emailed you this code too.
+        {guest
+          ? 'Show this code at the door on the night you visit. Staff check your ID, take payment and you are in for the evening. Next time, the same account and code work again.'
+          : `Staff will start your ${membership.tier.name.toLowerCase()} membership at the door on your first visit.`}{' '}
+        We have emailed you this code too.
       </p>
       <ReferenceCode code={membership.reference_code} className="mt-8" />
       <h3 className="mt-10 text-xl text-fg">What to bring</h3>

@@ -32,6 +32,17 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'about', lazy: page(() => import('./pages/AboutPage').then((m) => m.AboutPage)) },
+      { path: 'about/staff', lazy: page(() => import('./pages/StaffPage').then((m) => m.StaffPage)) },
+      { path: 'guests', lazy: page(() => import('./pages/GuestsPage').then((m) => m.GuestsPage)) },
+      { path: 'faq', lazy: page(() => import('./pages/FAQPage').then((m) => m.FAQPage)) },
+      { path: 'house-rules', lazy: page(() => import('./pages/HouseRulesPage').then((m) => m.HouseRulesPage)) },
+      { path: 'rentals', lazy: page(() => import('./pages/RentalsPage').then((m) => m.RentalsPage)) },
+      { path: 'get-involved/volunteer', lazy: page(() => import('./pages/VolunteerPage').then((m) => m.VolunteerPage)) },
+      { path: 'get-involved/donate', lazy: page(() => import('./pages/DonatePage').then((m) => m.DonatePage)) },
+      { path: 'subscribe/confirm', lazy: page(() => import('./pages/SubscriptionPages').then((m) => m.ConfirmSubscriptionPage)) },
+      { path: 'unsubscribe', lazy: page(() => import('./pages/SubscriptionPages').then((m) => m.UnsubscribePage)) },
+      // The old Gallery lives on as the journal (the server answers /gallery with a 301 too).
+      { path: 'gallery', element: <Navigate to="/journal" replace /> },
       { path: 'events', lazy: page(() => import('./pages/EventsPage').then((m) => m.EventsPage)) },
       { path: 'events/cancel', lazy: page(() => import('./pages/CancelRSVPPage').then((m) => m.CancelRSVPPage)) },
       { path: 'events/:slug', lazy: page(() => import('./pages/EventPage').then((m) => m.EventPage)) },

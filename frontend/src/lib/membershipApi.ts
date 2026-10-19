@@ -16,6 +16,8 @@ export interface Tier {
   grants_feed_access: boolean
   grants_members_events: boolean
   grants_members_education: boolean
+  /** A one-night guest pass, paid at the door. Offered on /guests, not with memberships. */
+  is_guest_pass: boolean
   /** Development-only demo tier; never offered with DEBUG off. */
   is_placeholder: boolean
 }
@@ -97,6 +99,8 @@ export interface Receipt {
 export interface SandboxSession {
   amount_cents: number
   reference: string
+  /** What the payment is for, in one neutral word: "Membership" or "Donation". */
+  description: string
   interval: TierInterval
 }
 

@@ -49,7 +49,11 @@ export default function SandboxCheckoutPage() {
         {session.status === 'error' && <ErrorState title="This checkout did not load" onRetry={session.retry} />}
         {session.status === 'success' && (
           <>
-            <dl className="mt-6 grid gap-4 border-y border-border py-5 sm:grid-cols-2">
+            <dl className="mt-6 grid gap-4 border-y border-border py-5 sm:grid-cols-3">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">For</dt>
+                <dd className="mt-1 font-display text-3xl text-fg">{session.data.description}</dd>
+              </div>
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-subtle">Amount</dt>
                 <dd className="mt-1 font-display text-3xl text-fg">{formatMoney(session.data.amount_cents)}</dd>

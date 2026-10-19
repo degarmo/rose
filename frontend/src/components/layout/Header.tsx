@@ -5,7 +5,8 @@ import { cn } from '@/lib/cn'
 import { Modal } from '../ui'
 import { AccountMenu } from './AccountMenu'
 import { useAuth } from './authContext'
-import { NAV_ITEMS } from './navigation'
+import { NavDropdown } from './NavDropdown'
+import { isGroup, NAV, type NavEntry, type NavLinkItem } from './navigation'
 import { QuickExit } from './QuickExit'
 import { Wordmark } from './Wordmark'
 
@@ -34,10 +35,29 @@ function MobileAccountLinks({ onNavigate }: { onNavigate: () => void }) {
 }
 
 /** "Join" reads "Membership" for anyone who has, or has had, a membership. */
-function useNavItems() {
+function useNavItems(): NavEntry[] {
   const auth = useAuth()
   const member = Boolean(auth.user?.has_membership)
-  return NAV_ITEMS.map((item) => (item.to === '/join' && member ? { ...item, label: 'Membership' } : item))
+  return NAV.map((entry) => (!isGroup(entry) && entry.to === '/join' && member ? { ...entry, label: 'Membership' } : entry))
+}
+
+function MobileLink({ item, onNavigate, size = 'large' }: { item: NavLinkItem; onNavigate: () => void; size?: 'large' | 'small' }) {
+  return (
+    <NavLink
+      to={item.to}
+      end={item.to === '/'}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center font-display transition-colors',
+          size === 'large' ? 'min-h-16 text-3xl' : 'min-h-12 text-2xl',
+          isActive ? 'text-accent' : 'text-fg hover:text-accent',
+        )
+      }
+    >
+      {item.label}
+    </NavLink>
+  )
 }
 
 export function Header() {
@@ -72,30 +92,41 @@ export function Header() {
         <Wordmark />
         <nav aria-label="Main" className="hidden xl:flex xl:items-center">
           <ul className="flex items-center gap-0.5">
-            {navItems.filter((item) => item.to !== '/').map((item) => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      'relative inline-flex min-h-11 items-center px-2.5 text-sm tracking-wide transition-colors duration-300',
-                      isActive ? 'text-fg' : 'text-fg-muted hover:text-fg',
-                      item.to === '/join' &&
-                        'ml-1 rounded-full border border-highlight/50 px-5 text-fg hover:border-highlight',
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {item.label}
-                      {isActive && item.to !== '/join' && (
-                        <span aria-hidden="true" className="absolute inset-x-2.5 bottom-2 h-px bg-highlight" />
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              </li>
-            ))}
+            {navItems.map((entry) => {
+              if (isGroup(entry)) {
+                return (
+                  <li key={entry.label}>
+                    <NavDropdown group={entry} />
+                  </li>
+                )
+              }
+              const item = entry
+              if (item.to === '/') return null
+              return (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        'relative inline-flex min-h-11 items-center px-2.5 text-sm tracking-wide transition-colors duration-300',
+                        isActive ? 'text-fg' : 'text-fg-muted hover:text-fg',
+                        item.to === '/join' &&
+                          'ml-1 rounded-full border border-highlight/50 px-5 text-fg hover:border-highlight',
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {item.label}
+                        {isActive && item.to !== '/join' && (
+                          <span aria-hidden="true" className="absolute inset-x-2.5 bottom-2 h-px bg-highlight" />
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                </li>
+              )
+            })}
           </ul>
           <AccountMenu className="ml-2" />
         </nav>
@@ -116,23 +147,24 @@ export function Header() {
       <Modal open={menuOpen} onClose={() => setMenuPath(null)} title="Menu" hideTitle variant="sheet">
         <nav aria-label="Main" className="flex h-full flex-col">
           <ul className="mt-6 flex flex-col">
-            {navItems.map((item) => (
-              <li key={item.to} className="border-b border-border/60">
-                <NavLink
-                  to={item.to}
-                  end={item.to === '/'}
-                  onClick={() => setMenuPath(null)}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex min-h-16 items-center font-display text-3xl transition-colors',
-                      isActive ? 'text-accent' : 'text-fg hover:text-accent',
-                    )
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
+            {navItems.map((entry) =>
+              isGroup(entry) ? (
+                <li key={entry.label} className="border-b border-border/60 py-3">
+                  <h2 className="pt-2 text-xs font-semibold uppercase tracking-[0.28em] text-highlight">{entry.label}</h2>
+                  <ul className="mt-1 flex flex-col">
+                    {entry.items.map((item) => (
+                      <li key={item.to}>
+                        <MobileLink item={item} size="small" onNavigate={() => setMenuPath(null)} />
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : (
+                <li key={entry.to} className="border-b border-border/60">
+                  <MobileLink item={entry} onNavigate={() => setMenuPath(null)} />
+                </li>
+              ),
+            )}
           </ul>
           <MobileAccountLinks onNavigate={() => setMenuPath(null)} />
           <div className="mt-auto flex items-center justify-between gap-4 pt-10">

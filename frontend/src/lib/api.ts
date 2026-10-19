@@ -12,7 +12,62 @@ export interface SiteSettings {
   directions_text: string
   contact_email: string
   quick_exit_url: string
+  nonprofit_status_text: string
   social_links: SocialLink[]
+}
+
+export interface StaffProfile {
+  slug: string
+  display_name: string
+  role_title: string
+  bio: string
+  photo: RemoteImage | null
+}
+
+export type RentalType = 'private_session' | 'workshop' | 'photoshoot' | 'group_event' | 'other'
+
+export interface RentalInquiryPayload {
+  contact_name: string
+  contact_email: string
+  contact_phone: string
+  type: RentalType | ''
+  preferred_date: string
+  alternate_date: string | null
+  start_time: string
+  duration_hours: number | null
+  party_size: number | null
+  notes: string
+  photoshoot_acknowledged: boolean
+  website: string
+}
+
+export interface Choice {
+  value: string
+  label: string
+}
+
+export interface VolunteerOptions {
+  interests: Choice[]
+  availability: Choice[]
+}
+
+export interface VolunteerPayload {
+  contact_name: string
+  contact_email: string
+  interests: string[]
+  availability: string[]
+  experience_note: string
+  website: string
+}
+
+export interface DonationOptions {
+  online: boolean
+  presets_cents: number[]
+  minimum_cents: number
+  maximum_cents: number
+  nonprofit_status: string
+  check_payable_to: string
+  mailing_address: string
 }
 
 export interface FAQItem {
@@ -234,6 +289,8 @@ export interface Account {
   email_verified: boolean
   /** Any membership, current or past. Only ever the signed-in person's own. */
   has_membership: boolean
+  /** Set for staff only: where the staff guide lives in the admin. */
+  staff_guide_url: string | null
 }
 
 export interface Session {
@@ -341,6 +398,16 @@ export const api = {
     return siteSettingsPromise
   },
   faqs: () => request<FAQItem[]>('/faqs/'),
+  staff: () => request<StaffProfile[]>('/staff/'),
+  sendRentalInquiry: (payload: RentalInquiryPayload) => post<Detail>('/rentals/inquiries/', payload),
+  volunteerOptions: () => request<VolunteerOptions>('/volunteer/options/'),
+  sendVolunteerSignup: (payload: VolunteerPayload) => post<Detail>('/volunteer/signup/', payload),
+  donationOptions: () => request<DonationOptions>('/donations/options/'),
+  startDonation: (payload: { amount_cents: number; email: string; show_name: boolean; website: string }) =>
+    post<{ redirect_url: string }>('/donations/checkout/', payload),
+  subscribe: (email: string, website: string) => post<Detail>('/newsletter/subscribe/', { email, website }),
+  confirmSubscription: (token: string) => post<Detail>('/newsletter/confirm/', { token }),
+  unsubscribe: (token: string) => post<Detail>('/newsletter/unsubscribe/', { token }),
   opportunities: (filters: OpportunityFilters = {}) =>
     request<Opportunity[]>(
       `/education/opportunities/${query({ category: filters.category, level: filters.level })}`,

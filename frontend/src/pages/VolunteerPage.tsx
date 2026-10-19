@@ -1,0 +1,283 @@
+import { CircleAlert, CircleCheck } from 'lucide-react'
+import { useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
+import { Copy, CopyHeading } from '@/components/content/Copy'
+import { PageHero } from '@/components/content/PageHero'
+import { Reveal } from '@/components/content/Reveal'
+import { ErrorState, LoadingState } from '@/components/content/States'
+import { useAuth } from '@/components/layout/authContext'
+import { Button, Card, FormField, Input, Section, Textarea, useToast } from '@/components/ui'
+import { api, ApiError, type Choice, type FieldErrors, type VolunteerPayload } from '@/lib/api'
+import { usePageContent } from '@/lib/pageContent'
+import { useAsync } from '@/lib/useAsync'
+import { useDocumentMeta } from '@/lib/useDocumentMeta'
+import { validateVolunteer, VOLUNTEER_FIELDS as FIELDS } from './volunteerValidation'
+
+const EMPTY: VolunteerPayload = {
+  contact_name: '',
+  contact_email: '',
+  interests: [],
+  availability: [],
+  experience_note: '',
+  website: '',
+}
+
+function CheckboxGroup({
+  legend,
+  name,
+  choices,
+  selected,
+  error,
+  onChange,
+}: {
+  legend: string
+  name: string
+  choices: Choice[]
+  selected: string[]
+  error?: string
+  onChange: (next: string[]) => void
+}) {
+  const errorId = `${name}-error`
+  return (
+    <fieldset aria-describedby={error ? errorId : undefined} className="flex flex-col gap-3">
+      <legend className="mb-2 text-sm font-medium text-fg">{legend}</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {choices.map((choice) => (
+          <label
+            key={choice.value}
+            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface-sunken px-4 text-sm text-fg hover:border-border-strong"
+          >
+            <input
+              type="checkbox"
+              name={name}
+              value={choice.value}
+              checked={selected.includes(choice.value)}
+              onChange={(event) =>
+                onChange(
+                  event.target.checked
+                    ? [...selected, choice.value]
+                    : selected.filter((value) => value !== choice.value),
+                )
+              }
+              className="size-4 accent-[var(--color-primary)]"
+            />
+            {choice.label}
+          </label>
+        ))}
+      </div>
+      {error && (
+        <p id={errorId} className="flex items-center gap-2 text-sm text-danger">
+          <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+          {error}
+        </p>
+      )}
+    </fieldset>
+  )
+}
+
+function VolunteerForm() {
+  const auth = useAuth()
+  const toast = useToast()
+  const options = useAsync(() => api.volunteerOptions(), 'volunteer-options')
+  // Signed in: start from their display name and email; the signup is linked to the account.
+  const [values, setValues] = useState<VolunteerPayload>(() => ({
+    ...EMPTY,
+    contact_name: auth.user?.display_name ?? '',
+    contact_email: auth.user?.email ?? '',
+  }))
+  const [errors, setErrors] = useState<FieldErrors>({})
+  const [submitting, setSubmitting] = useState(false)
+  const [sent, setSent] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const successRef = useRef<HTMLHeadingElement>(null)
+
+
+  if (options.status === 'loading') return <LoadingState label="Loading the form" />
+  if (options.status === 'error') return <ErrorState title="The form did not load" onRetry={options.retry} />
+
+  function set<K extends keyof VolunteerPayload>(field: K, value: VolunteerPayload[K]) {
+    setValues((current) => ({ ...current, [field]: value }))
+    if (errors[field]) setErrors((current) => ({ ...current, [field]: undefined }))
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const clientErrors = validateVolunteer(values)
+    setErrors(clientErrors)
+    const first = FIELDS.find((field) => clientErrors[field])
+    if (first) {
+      formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus()
+      return
+    }
+    setSubmitting(true)
+    try {
+      await api.sendVolunteerSignup(values)
+      setSent(true)
+      requestAnimationFrame(() => successRef.current?.focus())
+    } catch (error) {
+      if (error instanceof ApiError && Object.keys(error.fieldErrors).length > 0) {
+        setErrors(error.fieldErrors)
+        toast.show({ tone: 'error', title: 'Please check the highlighted fields.' })
+      } else {
+        toast.show({
+          tone: 'error',
+          title: 'Your note was not sent',
+          message: error instanceof Error ? error.message : 'Please try again in a moment.',
+        })
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="py-6" role="status">
+        <CircleCheck aria-hidden="true" className="size-10 text-success" strokeWidth={1.5} />
+        <h2 ref={successRef} tabIndex={-1} className="mt-6 text-4xl text-fg focus:outline-none">
+          Thank you for offering to help.
+        </h2>
+        <p className="mt-4 max-w-lg leading-relaxed text-fg-muted">
+          A volunteer coordinator will reply by email to talk about what might suit you.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <form ref={formRef} noValidate onSubmit={submit} className="flex flex-col gap-6" aria-label="Volunteer form">
+      <div className="grid gap-6 sm:grid-cols-2">
+        <FormField label="Name or display name" error={errors.contact_name} required>
+          {(field) => (
+            <Input
+              {...field}
+              name="contact_name"
+              autoComplete="nickname"
+              value={values.contact_name}
+              onChange={(event) => set('contact_name', event.target.value)}
+            />
+          )}
+        </FormField>
+        <FormField label="Email" error={errors.contact_email} required>
+          {(field) => (
+            <Input
+              {...field}
+              name="contact_email"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              value={values.contact_email}
+              onChange={(event) => set('contact_email', event.target.value)}
+            />
+          )}
+        </FormField>
+      </div>
+      <CheckboxGroup
+        legend="How would you like to help?"
+        name="interests"
+        choices={options.data.interests}
+        selected={values.interests}
+        error={errors.interests}
+        onChange={(next) => set('interests', next)}
+      />
+      <CheckboxGroup
+        legend="When are you usually free?"
+        name="availability"
+        choices={options.data.availability}
+        selected={values.availability}
+        error={errors.availability}
+        onChange={(next) => set('availability', next)}
+      />
+      <FormField
+        label="Anything about your experience"
+        hint="Teaching, hosting, trades, admin: whatever you would like us to know."
+        error={errors.experience_note}
+      >
+        {(field) => (
+          <Textarea
+            {...field}
+            name="experience_note"
+            rows={5}
+            maxLength={2000}
+            value={values.experience_note}
+            onChange={(event) => set('experience_note', event.target.value)}
+          />
+        )}
+      </FormField>
+
+      {/* Honeypot: hidden from people and assistive tech, tempting to bots. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label>
+          Website
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={values.website}
+            onChange={(event) => set('website', event.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-fg-subtle">
+          Only our volunteer coordinators see this.{' '}
+          <Link to="/privacy" className="underline underline-offset-4 hover:text-fg">
+            Privacy
+          </Link>
+        </p>
+        <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting}>
+          {submitting ? 'Sending' : 'Send'}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+export function VolunteerPage() {
+  useDocumentMeta({
+    title: 'Volunteer',
+    description: 'Why volunteer, the roles you can take on, and how to offer your time.',
+  })
+  const copy = usePageContent('volunteer')
+  const auth = useAuth()
+  const roles = copy.status === 'loading' ? [1, 2, 3] : copy.items('roles')
+
+  return (
+    <>
+      <PageHero copy={copy} image="about-hero.webp" placeholder="candle" />
+
+      <Section width="narrow" aria-labelledby="why">
+        <CopyHeading copy={copy} prefix="why" id="why" />
+      </Section>
+
+      <Section tone="surface" aria-labelledby="roles">
+        <CopyHeading copy={copy} prefix="roles" id="roles" />
+        <ul className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {roles.map((n, index) => (
+            <Reveal as="li" key={n} delay={(index % 3) as 0 | 1 | 2}>
+              <Card className="h-full p-8">
+                <Copy copy={copy} k={`roles.${n}.title`} as="h3" className="text-2xl text-fg" />
+                <Copy copy={copy} k={`roles.${n}.body`} lines={3} className="mt-3 leading-relaxed text-fg-muted" />
+              </Card>
+            </Reveal>
+          ))}
+        </ul>
+      </Section>
+
+      <Section aria-labelledby="offer">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
+          <CopyHeading copy={copy} prefix="form" id="offer" />
+          <Card className="p-6 sm:p-10">
+            {auth.status === 'loading' ? (
+              <LoadingState label="Loading the form" />
+            ) : (
+              <VolunteerForm key={auth.user?.display_name ?? 'signed-out'} />
+            )}
+          </Card>
+        </div>
+      </Section>
+    </>
+  )
+}

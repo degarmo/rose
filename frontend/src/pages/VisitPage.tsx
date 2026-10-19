@@ -1,31 +1,15 @@
-import { Clock, IdCard, MapPin, MessageCircle, Sparkles, Users } from 'lucide-react'
-import { FAQAccordion } from '@/components/content/FAQAccordion'
+import { Clock, IdCard, MapPin, MessageCircle, ScrollText, Sparkles, Users } from 'lucide-react'
+import { Copy, CopyHeading } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
 import { Reveal } from '@/components/content/Reveal'
-import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
+import { ErrorState, LoadingState } from '@/components/content/States'
 import { useSiteSettings } from '@/components/layout/siteSettingsContext'
-import { ButtonLink, Card, Section, SectionHeading } from '@/components/ui'
-import { api } from '@/lib/api'
-import { useAsync } from '@/lib/useAsync'
+import { ButtonLink, Card, Section } from '@/components/ui'
+import { usePageContent } from '@/lib/pageContent'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
-const STEPS = [
-  {
-    icon: MessageCircle,
-    title: 'Say hello first',
-    body: 'Send us a short note through the contact form. We will reply with the next orientation date and the street address.',
-  },
-  {
-    icon: Users,
-    title: 'Arrive for orientation',
-    body: 'A host meets you at the door, checks your ID and walks you through our community agreements in a relaxed, seated conversation.',
-  },
-  {
-    icon: Sparkles,
-    title: 'Stay as long as you like',
-    body: 'Join the class that follows, have a drink at the bar, or head home. There is no pressure to do anything more than look around.',
-  },
-]
+// Icons for the "what to expect" steps, in order. Their words are editable copy.
+const STEP_ICONS = [MessageCircle, Users, Sparkles]
 
 function Hours() {
   const settings = useSiteSettings()
@@ -53,39 +37,25 @@ function Directions() {
   )
 }
 
-function FAQs() {
-  const state = useAsync(() => api.faqs(), 'faqs')
-  if (state.status === 'loading') return <LoadingState label="Loading questions" />
-  if (state.status === 'error') return <ErrorState title="Questions did not load" onRetry={state.retry} />
-  if (state.data.length === 0) {
-    return <EmptyState title="No questions yet" message="Send us yours and we will answer it." />
-  }
-  return <FAQAccordion items={state.data} />
-}
-
 export function VisitPage() {
   useDocumentMeta({
     title: 'Plan Your Visit',
     description: 'What to expect on your first visit, what to bring, hours and how to find us.',
   })
+  const copy = usePageContent('visit')
+  const steps = copy.status === 'loading' ? [1, 2, 3] : copy.items('steps')
 
   return (
     <>
-      <PageHero
-        eyebrow="Plan your visit"
-        title="Your first evening, without surprises."
-        lede="Here is everything that happens between your first message and the moment you feel at home."
-        image="visit-hero.webp"
-        placeholder="shadow"
-      />
+      <PageHero copy={copy} image="visit-hero.webp" placeholder="shadow" />
 
-      <Section aria-labelledby="expect">
-        <SectionHeading id="expect" eyebrow="What to expect" title="Three easy steps." />
+      <Section aria-labelledby="expect" className="scroll-mt-24">
+        <CopyHeading copy={copy} prefix="expect" id="expect" />
         <ol className="mt-14 grid gap-6 md:grid-cols-3">
-          {STEPS.map((step, index) => {
-            const Icon = step.icon
+          {steps.map((n, index) => {
+            const Icon = STEP_ICONS[index % STEP_ICONS.length]
             return (
-              <Reveal as="li" key={step.title} delay={index as 0 | 1 | 2}>
+              <Reveal as="li" key={n} delay={(index % 3) as 0 | 1 | 2}>
                 <Card className="h-full p-8">
                   <div className="flex items-center justify-between">
                     <Icon aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
@@ -93,8 +63,8 @@ export function VisitPage() {
                       {index + 1}
                     </span>
                   </div>
-                  <h3 className="mt-6 text-2xl text-fg">{step.title}</h3>
-                  <p className="mt-3 leading-relaxed text-fg-muted">{step.body}</p>
+                  <Copy copy={copy} k={`steps.${n}.title`} as="h3" className="mt-6 text-2xl text-fg" />
+                  <Copy copy={copy} k={`steps.${n}.body`} lines={3} className="mt-3 leading-relaxed text-fg-muted" />
                 </Card>
               </Reveal>
             )
@@ -107,25 +77,19 @@ export function VisitPage() {
           <div className="flex flex-col gap-6 rounded-2xl border border-highlight/40 bg-primary-deep/40 p-8 sm:flex-row sm:items-start sm:p-10">
             <IdCard aria-hidden="true" className="size-10 shrink-0 text-highlight" strokeWidth={1.25} />
             <div>
-              <h2 id="id-required" className="text-3xl text-fg">
-                Bring a valid photo ID
-              </h2>
-              <p className="mt-4 max-w-2xl leading-relaxed text-fg-muted">
-                Everyone must be 18 or older, every time, with no exceptions. Please bring a current, government-issued
-                photo ID such as a driver&rsquo;s license, state ID or passport. We check it at the door and hand it
-                straight back. We never photograph, scan or copy it.
-              </p>
+              <Copy copy={copy} k="id.title" as="h2" id="id-required" className="text-3xl text-fg" />
+              <Copy copy={copy} k="id.body" lines={3} className="mt-4 max-w-2xl leading-relaxed text-fg-muted" />
             </div>
           </div>
         </Reveal>
       </Section>
 
-      <Section aria-label="Hours and directions">
+      <Section aria-label="Hours and directions" id="directions" className="scroll-mt-24">
         <div className="grid gap-12 md:grid-cols-2">
           <Reveal>
             <h2 className="flex items-center gap-3 text-3xl text-fg">
               <Clock aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-              Hours
+              <Copy copy={copy} k="hours.title" as="span" />
             </h2>
             <div className="mt-6">
               <Hours />
@@ -134,7 +98,7 @@ export function VisitPage() {
           <Reveal delay={1}>
             <h2 className="flex items-center gap-3 text-3xl text-fg">
               <MapPin aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-              Getting here
+              <Copy copy={copy} k="directions.title" as="span" />
             </h2>
             <div className="mt-6">
               <Directions />
@@ -143,17 +107,29 @@ export function VisitPage() {
         </div>
       </Section>
 
-      <Section tone="sunken" width="narrow" aria-labelledby="faq">
-        <SectionHeading id="faq" eyebrow="Questions" title="Things people often ask" />
-        <div className="mt-10">
-          <FAQs />
-        </div>
-        <div className="mt-12 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink to="/contact" size="lg">
-            Send us a note
+      <Section tone="surface" aria-labelledby="rules">
+        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+          <div className="flex gap-5">
+            <ScrollText aria-hidden="true" className="mt-2 size-8 shrink-0 text-highlight" strokeWidth={1.25} />
+            <CopyHeading copy={copy} prefix="rules" id="rules" />
+          </div>
+          <ButtonLink to="/house-rules" size="lg" variant="ghost">
+            Read the house rules
           </ButtonLink>
-          <ButtonLink to="/education" size="lg" variant="ghost">
-            See upcoming classes
+        </div>
+      </Section>
+
+      <Section tone="sunken" width="narrow" aria-labelledby="faq">
+        <CopyHeading copy={copy} prefix="faq" id="faq" />
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+          <ButtonLink to="/faq" size="lg">
+            Read the FAQ
+          </ButtonLink>
+          <ButtonLink to="/guests" size="lg" variant="ghost">
+            Coming as a guest
+          </ButtonLink>
+          <ButtonLink to="/contact" size="lg" variant="ghost">
+            Send us a note
           </ButtonLink>
         </div>
       </Section>

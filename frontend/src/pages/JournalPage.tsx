@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/content/State
 import { Button, Modal, Section } from '@/components/ui'
 import { api, type JournalPost } from '@/lib/api'
 import { useAsync } from '@/lib/useAsync'
+import { usePageContent } from '@/lib/pageContent'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
 type LoadState = 'loading' | 'idle' | 'error' | 'done'
@@ -31,6 +32,7 @@ interface MorePosts {
 
 export function JournalPage() {
   useDocumentMeta({ title: 'Journal', description: 'Notes and pictures from life at the house.' })
+  const copy = usePageContent('journal')
   const first = useAsync(() => api.journal(), 'journal-first')
   const [more, setMore] = useState<MorePosts>({ posts: [], cursor: undefined, status: 'idle' })
   const [open, setOpen] = useState<JournalPost | null>(null)
@@ -82,13 +84,7 @@ export function JournalPage() {
 
   return (
     <>
-      <PageHero
-        eyebrow="Journal"
-        title="From the house."
-        lede="Notes, small moments and the evenings ahead. No faces without consent, ever."
-        image="journal-hero.webp"
-        placeholder="silk"
-      />
+      <PageHero copy={copy} image="journal-hero.webp" placeholder="silk" />
       <Section spacing="tight" width="default" aria-label="Journal posts">
         {posts.length > 0 && <JournalGrid posts={posts} onOpen={setOpen} />}
         <div ref={sentinel} className="mt-10 flex flex-col items-center gap-4" aria-live="polite">

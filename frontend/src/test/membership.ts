@@ -14,6 +14,7 @@ export function makeTier(overrides: Partial<Tier> = {}): Tier {
     grants_feed_access: true,
     grants_members_events: true,
     grants_members_education: true,
+    is_guest_pass: false,
     is_placeholder: false,
     ...overrides,
   }

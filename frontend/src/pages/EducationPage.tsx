@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, SkeletonCards } from '@/components/content/Stat
 import { Button, FormField, Section, Select, type SelectOption } from '@/components/ui'
 import { api, type OpportunityCategory, type OpportunityLevel } from '@/lib/api'
 import { useAsync } from '@/lib/useAsync'
+import { usePageContent } from '@/lib/pageContent'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
 const CATEGORY_OPTIONS: SelectOption[] = [
@@ -35,6 +36,7 @@ export function EducationPage() {
     title: 'Education',
     description: 'Classes, workshops, mentorship and volunteer opportunities for every level of experience.',
   })
+  const copy = usePageContent('education')
   const [params, setParams] = useSearchParams()
   const category = pick<OpportunityCategory>(params.get('category'), CATEGORY_OPTIONS)
   const level = pick<OpportunityLevel>(params.get('level'), LEVEL_OPTIONS)
@@ -51,13 +53,7 @@ export function EducationPage() {
 
   return (
     <>
-      <PageHero
-        eyebrow="Education"
-        title="Learn at your own pace."
-        lede="Our education program is the heart of the house. Classes are taught by experienced members, and every one of them leaves room for questions."
-        image="education-hero.webp"
-        placeholder="candle"
-      />
+      <PageHero copy={copy} image="education-hero.webp" placeholder="candle" />
 
       <Section spacing="tight" aria-label="Opportunities">
         <div

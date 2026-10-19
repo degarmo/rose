@@ -1,11 +1,12 @@
 import { CalendarHeart, Check, GraduationCap, KeyRound, Lock, UserPlus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { Copy, CopyHeading } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
 import { Reveal } from '@/components/content/Reveal'
 import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
-import { Badge, Button, ButtonLink, Card, Section, SectionHeading, useToast } from '@/components/ui'
+import { Badge, Button, ButtonLink, Card, Section, useToast } from '@/components/ui'
 import { ApiError } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import {
@@ -18,33 +19,14 @@ import {
   type PaymentMethod,
   type Tier,
 } from '@/lib/membershipApi'
+import { usePageContent } from '@/lib/pageContent'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { AgreementStep } from './AgreementStep'
 import { JoinConfirmation } from './JoinConfirmation'
 
-const BENEFITS = [
-  {
-    icon: CalendarHeart,
-    title: 'Members-only evenings',
-    body: 'Seasonal gatherings, member nights and community meetings, with a say in how the house is run.',
-  },
-  {
-    icon: GraduationCap,
-    title: 'Members-only classes',
-    body: 'Smaller, deeper sessions and mentorship circles that build on the public education program.',
-  },
-  {
-    icon: KeyRound,
-    title: 'The member community',
-    body: 'A private feed for members who choose to join it. Off unless you turn it on.',
-  },
-  {
-    icon: Lock,
-    title: 'Private by design',
-    body: 'You are known by a display name you choose. Payment records are kept apart from everything else.',
-  },
-]
+// Icons for the benefits, in order. Their words are editable copy (benefits.1 ...).
+const BENEFIT_ICONS = [CalendarHeart, GraduationCap, KeyRound, Lock]
 
 type Step =
   | { name: 'tiers' }
@@ -197,11 +179,15 @@ function ExistingMembership({ membership }: { membership: MyMembership }) {
   )
 }
 
-function SignInFirst() {
-  const next = encodeURIComponent('/join')
+function SignInFirst({ guest }: { guest?: Tier }) {
+  const next = encodeURIComponent(guest ? `/join?tier=${guest.slug}` : '/join')
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 sm:flex-row sm:items-center">
-      <p className="flex-1 text-fg-muted">Joining takes a free account, so your membership has somewhere private to live.</p>
+      <p className="flex-1 text-fg-muted">
+        {guest
+          ? 'A guest pass takes a free account, so your code and ID check are there for your next visit too.'
+          : 'Joining takes a free account, so your membership has somewhere private to live.'}
+      </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <ButtonLink to={`/account/register?next=${next}`}>
           <UserPlus aria-hidden="true" className="size-4" />
@@ -215,10 +201,25 @@ function SignInFirst() {
   )
 }
 
-function JoinFlow({ tiers, options, existing, reloadOptions }: { tiers: Tier[]; options: JoinOptions; existing: MyMembership | null; reloadOptions: () => void }) {
+function JoinFlow({
+  tiers,
+  options,
+  existing,
+  reloadOptions,
+  preselected,
+}: {
+  tiers: Tier[]
+  options: JoinOptions
+  existing: MyMembership | null
+  reloadOptions: () => void
+  preselected: Tier | null
+}) {
   const auth = useAuth()
   const toast = useToast()
-  const [step, setStep] = useState<Step>({ name: 'tiers' })
+  const guest = preselected?.is_guest_pass ? preselected : null
+  const verified = Boolean(auth.user?.email_verified)
+  // Someone arriving from the Guests page goes straight to the agreement.
+  const [step, setStep] = useState<Step>(guest && verified ? { name: 'agreement', tier: guest } : { name: 'tiers' })
   const [busy, setBusy] = useState(false)
   const top = useRef<HTMLDivElement>(null)
   const agreement = options.agreement
@@ -235,8 +236,11 @@ function JoinFlow({ tiers, options, existing, reloadOptions }: { tiers: Tier[]; 
       </div>
     )
   }
-  if (isOpen(existing)) return <ExistingMembership membership={existing} />
-  if (!agreement || tiers.length === 0) {
+  // A guest becoming a member gives up their open guest pass; anything else stops here.
+  const guestPassOpen = isOpen(existing) && existing.tier.is_guest_pass
+  if (isOpen(existing) && (!guestPassOpen || guest)) return <ExistingMembership membership={existing} />
+  const membershipTiers = tiers.filter((tier) => !tier.is_guest_pass)
+  if (!agreement || (!guest && membershipTiers.length === 0)) {
     return (
       <EmptyState
         title="Joining online is not open yet"
@@ -269,20 +273,30 @@ function JoinFlow({ tiers, options, existing, reloadOptions }: { tiers: Tier[]; 
   }
 
   const current = step.name === 'tiers' ? 0 : step.name === 'agreement' ? 1 : 2
-  const verified = Boolean(auth.user?.email_verified)
+  // Guest passes are paid at the door, never online.
+  const methodsFor = (tier: Tier) => (tier.is_guest_pass ? options.methods.filter((m) => !m.online) : options.methods)
 
   return (
     <div ref={top} className="flex scroll-mt-24 flex-col gap-8">
       <Stepper current={current} />
       {step.name === 'tiers' && (
         <>
-          {auth.status === 'ready' && !auth.user && <SignInFirst />}
+          {auth.status === 'ready' && !auth.user && <SignInFirst guest={guest ?? undefined} />}
+          {guestPassOpen && (
+            <p role="status" className="rounded-2xl border border-border bg-surface p-5 text-fg-muted">
+              Choosing a membership replaces your guest pass. Your ID check carries over.
+            </p>
+          )}
           {auth.user && !auth.user.email_verified && (
             <p role="status" className="rounded-2xl border border-highlight/40 bg-primary-deep/40 p-5 text-fg-muted">
               Confirm your email first. Open the link we sent to {auth.user.email}, then come back here.
             </p>
           )}
-          <TierCards tiers={tiers} canChoose={verified} onChoose={(tier) => setStep({ name: 'agreement', tier })} />
+          <TierCards
+            tiers={guest ? [guest] : membershipTiers}
+            canChoose={verified}
+            onChoose={(tier) => setStep({ name: 'agreement', tier })}
+          />
         </>
       )}
       {step.name === 'agreement' && (
@@ -297,7 +311,7 @@ function JoinFlow({ tiers, options, existing, reloadOptions }: { tiers: Tier[]; 
       {step.name === 'method' && (
         <MethodStep
           tier={step.tier}
-          methods={options.methods}
+          methods={methodsFor(step.tier)}
           busy={busy}
           onBack={() => setStep({ name: 'agreement', tier: step.tier })}
           onSubmit={(method) => void join(step.tier, step.typedName, method)}
@@ -312,6 +326,8 @@ export function JoinPage() {
   const auth = useAuth()
   const [params] = useSearchParams()
   const cancelled = params.get('cancelled') === '1'
+  const wanted = params.get('tier')
+  const copy = usePageContent('join')
   const tiers = useAsync(() => membershipApi.tiers(), 'tiers')
   const options = useAsync(() => membershipApi.options(), 'join-options')
   const signedIn = auth.user ? auth.user.display_name : ''
@@ -339,19 +355,14 @@ export function JoinPage() {
         options={options.data}
         existing={me.data?.membership ?? null}
         reloadOptions={options.retry}
+        preselected={tiers.data.find((tier) => tier.slug === wanted) ?? null}
       />
     )
   }
 
   return (
     <>
-      <PageHero
-        eyebrow="Membership"
-        title="Become part of the house."
-        lede="Membership supports a volunteer-run nonprofit and opens members' evenings, members-only classes and the member community."
-        image="join-hero.webp"
-        placeholder="rose"
-      />
+      <PageHero copy={copy} image="join-hero.webp" placeholder="rose" />
 
       <Section width="narrow" aria-labelledby="join-heading">
         <h2 id="join-heading" className="mb-10 text-4xl text-fg sm:text-5xl">
@@ -366,16 +377,16 @@ export function JoinPage() {
       </Section>
 
       <Section tone="surface" aria-labelledby="benefits">
-        <SectionHeading id="benefits" eyebrow="What membership includes" title="More of what you love about the house." />
+        <CopyHeading copy={copy} prefix="benefits" id="benefits" />
         <ul className="mt-14 grid gap-6 sm:grid-cols-2">
-          {BENEFITS.map((benefit, index) => {
-            const Icon = benefit.icon
+          {(copy.status === 'loading' ? [1, 2, 3, 4] : copy.items('benefits')).map((n, index) => {
+            const Icon = BENEFIT_ICONS[index % BENEFIT_ICONS.length]
             return (
-              <Reveal as="li" key={benefit.title} delay={(index % 2) as 0 | 1}>
+              <Reveal as="li" key={n} delay={(index % 2) as 0 | 1}>
                 <Card className="h-full p-8">
                   <Icon aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-                  <h3 className="mt-6 text-2xl text-fg">{benefit.title}</h3>
-                  <p className="mt-3 leading-relaxed text-fg-muted">{benefit.body}</p>
+                  <Copy copy={copy} k={`benefits.${n}.title`} as="h3" className="mt-6 text-2xl text-fg" />
+                  <Copy copy={copy} k={`benefits.${n}.body`} lines={2} className="mt-3 leading-relaxed text-fg-muted" />
                 </Card>
               </Reveal>
             )

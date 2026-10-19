@@ -1,14 +1,15 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, HandCoins, HandHeart, KeyRound } from 'lucide-react'
 import { useNavigate } from 'react-router'
+import { Copy, CopyHeading } from '@/components/content/Copy'
 import { EventCard } from '@/components/content/EventCard'
 import { JournalTile } from '@/components/content/JournalTile'
 import { OpportunityCard } from '@/components/content/OpportunityCard'
 import { Reveal } from '@/components/content/Reveal'
 import { ErrorState, SkeletonCards, EmptyState } from '@/components/content/States'
 import { ValuesStrip } from '@/components/content/ValuesStrip'
-import { useSiteSettings } from '@/components/layout/siteSettingsContext'
-import { ButtonLink, ImageFrame, Section, SectionHeading } from '@/components/ui'
+import { ButtonLink, Card, ImageFrame, Section } from '@/components/ui'
 import { api } from '@/lib/api'
+import { usePageContent, type PageCopy } from '@/lib/pageContent'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
@@ -86,8 +87,39 @@ function FeaturedOpportunities() {
   )
 }
 
+// Get involved: the cards' words are editable copy (involved.1 to involved.3).
+const INVOLVED = [
+  { icon: HandHeart, to: '/get-involved/volunteer', action: 'Volunteer' },
+  { icon: HandCoins, to: '/get-involved/donate', action: 'Donate' },
+  { icon: KeyRound, to: '/rentals', action: 'Rentals' },
+]
+
+function GetInvolved({ copy }: { copy: PageCopy }) {
+  return (
+    <ul className="mt-12 grid gap-6 md:grid-cols-3">
+      {INVOLVED.map((item, index) => {
+        const Icon = item.icon
+        const n = index + 1
+        return (
+          <Reveal as="li" key={item.to} delay={index as 0 | 1 | 2}>
+            <Card className="h-full p-8">
+              <Icon aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
+              <Copy copy={copy} k={`involved.${n}.title`} as="h3" className="mt-6 text-2xl text-fg" />
+              <Copy copy={copy} k={`involved.${n}.body`} lines={3} className="mt-3 leading-relaxed text-fg-muted" />
+              <ButtonLink to={item.to} variant="link" className="mt-6">
+                {item.action}
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </ButtonLink>
+            </Card>
+          </Reveal>
+        )
+      })}
+    </ul>
+  )
+}
+
 export function HomePage() {
-  const settings = useSiteSettings()
+  const copy = usePageContent('home')
   useDocumentMeta({
     description: 'A volunteer-run members’ house in Chicago for learning, connection and consent-first community.',
   })
@@ -101,20 +133,17 @@ export function HomePage() {
           <Reveal>
             <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.32em] text-highlight">
               <span aria-hidden="true" className="h-px w-10 bg-highlight/70" />
-              Chicago, after dark
+              {copy.text('hero.eyebrow')}
             </p>
           </Reveal>
           <Reveal delay={1}>
             <h1 className="mt-6 max-w-4xl text-[clamp(3rem,10vw,6.5rem)] leading-[0.98] text-fg">
-              A house for <em className="text-accent">curiosity</em>, care and good company.
+              {copy.status === 'loading' && <span className="sr-only">Loading</span>}
+              <Copy copy={copy} k="hero.title" as="span" lines={2} />
             </h1>
           </Reveal>
           <Reveal delay={2}>
-            <p className="mt-8 max-w-xl text-lg leading-relaxed text-fg-muted sm:text-xl">
-              {settings.status === 'success' && settings.data.tagline
-                ? settings.data.tagline
-                : 'A volunteer-run members’ house for learning, connection and consent-first community.'}
-            </p>
+            <Copy copy={copy} k="hero.lede" lines={2} className="mt-8 max-w-xl text-lg leading-relaxed text-fg-muted sm:text-xl" />
           </Reveal>
           <Reveal delay={3} className="mt-10 flex flex-col gap-3 sm:flex-row">
             <ButtonLink to="/visit" size="lg">
@@ -131,23 +160,7 @@ export function HomePage() {
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <ImageFrame image="home-interior.webp" alt="" ratio="4/5" placeholder="architecture" className="rounded-2xl" />
           <Reveal>
-            <SectionHeading
-              id="who-we-are"
-              eyebrow="Who we are"
-              title="A private club with an open door."
-              lede={
-                <>
-                  <p>
-                    We are a nonprofit community of adults who believe exploration is better with education, honesty and
-                    people who look out for one another.
-                  </p>
-                  <p className="mt-4">
-                    Whether this is your first time anywhere like us or you have been part of community spaces for years,
-                    you will find hosts who remember your name and a pace that lets you settle in.
-                  </p>
-                </>
-              }
-            />
+            <CopyHeading copy={copy} prefix="who" id="who-we-are" />
             <ButtonLink to="/about" variant="link" className="mt-8">
               More about us
               <ArrowRight aria-hidden="true" className="size-4" />
@@ -158,12 +171,7 @@ export function HomePage() {
 
       <Section tone="surface" aria-labelledby="week">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <SectionHeading
-            id="week"
-            eyebrow="At the house"
-            title="Learn on Thursdays. Unwind on weekends."
-            lede="Most people start with an education night, then find their way to the weekends."
-          />
+          <CopyHeading copy={copy} prefix="week" id="week" />
           <ButtonLink to="/events" variant="link">
             All events
             <ArrowRight aria-hidden="true" className="size-4" />
@@ -176,12 +184,7 @@ export function HomePage() {
 
       <Section aria-labelledby="featured">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <SectionHeading
-            id="featured"
-            eyebrow="Education"
-            title="Coming up"
-            lede="Every class is beginner-friendly unless it says otherwise."
-          />
+          <CopyHeading copy={copy} prefix="education" id="featured" />
           <ButtonLink to="/education" variant="link">
             All opportunities
             <ArrowRight aria-hidden="true" className="size-4" />
@@ -194,7 +197,7 @@ export function HomePage() {
 
       <Section aria-labelledby="journal" spacing="tight">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <SectionHeading id="journal" eyebrow="Journal" title="From the Journal" />
+          <CopyHeading copy={copy} prefix="journal" id="journal" />
           <ButtonLink to="/journal" variant="link">
             See the journal
             <ArrowRight aria-hidden="true" className="size-4" />
@@ -203,6 +206,11 @@ export function HomePage() {
         <div className="mt-10">
           <JournalStrip />
         </div>
+      </Section>
+
+      <Section tone="surface" aria-labelledby="involved">
+        <CopyHeading copy={copy} prefix="involved" id="involved" />
+        <GetInvolved copy={copy} />
       </Section>
 
       <Section tone="sunken" spacing="tight" aria-labelledby="values">
@@ -216,10 +224,8 @@ export function HomePage() {
         <ImageFrame image="home-closing.webp" alt="" fill placeholder="leather" reveal={false} className="-z-20" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-canvas/70" />
         <Reveal className="mx-auto max-w-3xl px-5 text-center sm:px-8">
-          <h2 className="text-4xl leading-tight text-fg sm:text-6xl">Your first evening starts with a conversation.</h2>
-          <p className="mx-auto mt-6 max-w-xl text-lg text-fg-muted">
-            Tell us a little about yourself, and we will help you find the right night to begin.
-          </p>
+          <Copy copy={copy} k="closing.title" as="h2" lines={2} className="text-4xl leading-tight text-fg sm:text-6xl" />
+          <Copy copy={copy} k="closing.lede" lines={2} className="mx-auto mt-6 max-w-xl text-lg text-fg-muted" />
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
             <ButtonLink to="/visit" size="lg">
               Plan a Visit

@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn'
 import { chicagoDateKey } from '@/lib/format'
 import { EVENT_CATEGORIES, isEventCategory } from '@/lib/events'
 import { useAsync } from '@/lib/useAsync'
+import { usePageContent } from '@/lib/pageContent'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
 type View = 'list' | 'month'
@@ -112,6 +113,7 @@ export function EventsPage() {
     title: 'Events',
     description: 'Education nights, weekend socials and special evenings at the house.',
   })
+  const copy = usePageContent('events')
   const [params, setParams] = useSearchParams()
   const view: View = params.get('view') === 'month' ? 'month' : 'list'
   const rawCategory = params.get('category')
@@ -129,13 +131,7 @@ export function EventsPage() {
 
   return (
     <>
-      <PageHero
-        eyebrow="Events"
-        title="Evenings at the house."
-        lede="Thursday education nights, weekend socials and the occasional special evening. RSVP with a free account; only our hosts ever see who is coming."
-        image="events-hero.webp"
-        placeholder="candle"
-      />
+      <PageHero copy={copy} image="events-hero.webp" placeholder="candle" />
       <Section spacing="tight" aria-label="Events">
         <div className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="sm:w-72">

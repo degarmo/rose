@@ -25,7 +25,9 @@ function post(slug: string, images: number, extra: Partial<JournalPost> = {}): J
   }
 }
 
-beforeEach(() => apiMock.journal.mockReset())
+beforeEach(() => {
+  apiMock.journal.mockReset()
+})
 
 async function openFirstPost() {
   renderWithProviders(<JournalPage />)

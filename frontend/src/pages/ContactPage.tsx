@@ -1,11 +1,13 @@
 import { CircleCheck, Mail, MapPin, ShieldAlert } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
+import { Copy } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
 import { ErrorState, LoadingState } from '@/components/content/States'
 import { useSiteSettings } from '@/components/layout/siteSettingsContext'
 import { Button, Card, FormField, Input, Section, Select, Textarea, useToast } from '@/components/ui'
 import { api, ApiError, type ContactPayload, type FieldErrors } from '@/lib/api'
+import { usePageContent } from '@/lib/pageContent'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { EMPTY_FORM, FIELDS, TOPIC_OPTIONS, validateAll, validateField, type ContactField } from './contactValidation'
 
@@ -46,6 +48,7 @@ export function ContactPage() {
     description: 'Ask a question, plan a visit, offer to volunteer or raise a concern in confidence.',
   })
   const toast = useToast()
+  const copy = usePageContent('contact')
   const [values, setValues] = useState<ContactPayload>(EMPTY_FORM)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [touched, setTouched] = useState<Partial<Record<ContactField, boolean>>>({})
@@ -110,13 +113,7 @@ export function ContactPage() {
 
   return (
     <>
-      <PageHero
-        eyebrow="Contact"
-        title="We would love to hear from you."
-        lede="Questions, first-visit nerves, volunteering, or something that needs our attention. A real person reads every message."
-        image="contact-hero.webp"
-        placeholder="silk"
-      />
+      <PageHero copy={copy} image="contact-hero.webp" placeholder="silk" />
 
       <Section>
         <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
@@ -195,10 +192,7 @@ export function ContactPage() {
                 {values.topic === 'concern' && (
                   <div className="flex gap-3 rounded-xl border border-rose/40 bg-primary-deep/40 p-4 text-sm leading-relaxed text-fg-muted">
                     <ShieldAlert aria-hidden="true" className="size-5 shrink-0 text-rose" />
-                    <p>
-                      Concerns go to a small safety team and are marked as a priority. Share as much or as little as you
-                      are comfortable with. If someone is in immediate danger, call 911.
-                    </p>
+                    <Copy copy={copy} k="concern" as="div" lines={2} className="text-sm" />
                   </div>
                 )}
                 <FormField label="Message" error={errors.message} required>
@@ -245,14 +239,13 @@ export function ContactPage() {
           </Card>
 
           <aside aria-label="Contact details" className="lg:pt-4">
-            <h2 className="text-3xl text-fg">Other ways to reach us</h2>
+            <Copy copy={copy} k="aside.title" as="h2" className="text-3xl text-fg" />
             <div className="mt-8">
               <ContactDetails />
             </div>
-            <p className="mt-10 border-t border-border pt-6 text-sm leading-relaxed text-fg-muted">
-              Messages are stored privately and read only by the volunteers who answer them. Email notifications to our
-              team never include what you wrote.
-            </p>
+            <div className="mt-10 border-t border-border pt-6">
+              <Copy copy={copy} k="aside.note" as="div" lines={3} className="text-sm leading-relaxed text-fg-muted" />
+            </div>
           </aside>
         </div>
       </Section>

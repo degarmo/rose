@@ -151,6 +151,42 @@ describe('JoinPage', () => {
     expect(await screen.findByText('Joining online is not open yet')).toBeInTheDocument()
   })
 
+  it('takes a guest from the Guests page straight to the agreement, paid at the door only', async () => {
+    const guest = makeTier({
+      slug: 'guest-night',
+      name: 'Guest night pass',
+      price_cents: 1500,
+      interval: 'once',
+      duration_days: 1,
+      is_guest_pass: true,
+    })
+    api.tiers.mockResolvedValue([makeTier(), guest])
+    api.options.mockResolvedValue(withOnline)
+    api.join.mockResolvedValue({
+      membership: makeMembership({ tier: guest }),
+      entitlements: [],
+      redirect_url: null,
+    })
+    renderWithProviders(<JoinPage />, { user: verifiedUser, path: '/join?tier=guest-night' })
+    expect(await screen.findByRole('heading', { name: 'Membership agreement' })).toBeInTheDocument()
+    scrollToEnd()
+    await userEvent.click(screen.getByLabelText('I have read and agree'))
+    await userEvent.type(screen.getByLabelText(/Your full name/), 'Casey Guest')
+    await userEvent.click(screen.getByRole('button', { name: 'Sign and continue' }))
+    expect(screen.getByLabelText(/Pay at your first visit/)).toBeChecked()
+    expect(screen.queryByLabelText(/Pay online/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Get my reference code' }))
+    expect(await screen.findByRole('heading', { name: 'Your guest pass is ready' })).toBeInTheDocument()
+    expect(api.join).toHaveBeenCalledWith(expect.objectContaining({ tier: 'guest-night', method: 'manual' }))
+  })
+
+  it('never lists the guest pass among memberships', async () => {
+    api.tiers.mockResolvedValue([makeTier(), makeTier({ slug: 'guest-night', name: 'Guest night pass', is_guest_pass: true })])
+    renderWithProviders(<JoinPage />, { user: verifiedUser })
+    expect(await screen.findByRole('button', { name: 'Choose Monthly' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Choose Guest night pass' })).not.toBeInTheDocument()
+  })
+
   it('reassures after a cancelled checkout', async () => {
     renderWithProviders(<JoinPage />, { user: verifiedUser, path: '/join?cancelled=1' })
     expect(await screen.findByText(/nothing was charged/)).toBeInTheDocument()

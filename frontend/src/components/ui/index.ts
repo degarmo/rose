@@ -1,6 +1,7 @@
 export { Badge } from './Badge'
 export { Button, ButtonLink, type ButtonSize, type ButtonVariant } from './Button'
 export { Card } from './Card'
+export { Checkbox } from './Checkbox'
 export { FormField, type FieldControlProps } from './FormField'
 export { ImageFrame, type AspectRatio, type PlaceholderTexture } from './ImageFrame'
 export { Input } from './Input'
