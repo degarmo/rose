@@ -183,7 +183,7 @@ export function JoinFeedPage() {
               }}
               aria-label="Set up your feed profile"
             >
-              <FormField label="Display name" hint="Change it from your account page." optionalLabel="">
+              <FormField label="Display name" hint="Change it in Settings, under Profile." optionalLabel="">
                 {(field) => <Input {...field} value={account.profile.display_name} readOnly />}
               </FormField>
               <div>

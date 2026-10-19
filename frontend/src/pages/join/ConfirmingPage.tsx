@@ -118,7 +118,7 @@ export function ConfirmingPage() {
                   <Button size="lg" onClick={() => void retry()} disabled={retrying} aria-busy={retrying}>
                     {retrying ? 'Opening checkout' : 'Try again'}
                   </Button>
-                  <ButtonLink to="/account#membership" size="lg" variant="secondary">
+                  <ButtonLink to="/members/settings/membership" size="lg" variant="secondary">
                     Pay in person instead
                   </ButtonLink>
                 </div>
@@ -127,11 +127,11 @@ export function ConfirmingPage() {
               <>
                 <h1 className="text-[2rem] font-light leading-[1.05] text-fg lg:text-h2-lg">Still confirming</h1>
                 <p className="text-fg-muted lg:text-lead">
-                  This is taking longer than usual. If your payment went through, your account page will show it within a
-                  few minutes. You have not been charged twice by waiting.
+                  This is taking longer than usual. If your payment went through, your membership in Settings will show it
+                  within a few minutes. You have not been charged twice by waiting.
                 </p>
-                <ButtonLink to="/account#membership" size="lg" className="mt-2 self-start">
-                  Go to my account
+                <ButtonLink to="/members/settings/membership" size="lg" className="mt-2 self-start">
+                  See my membership
                 </ButtonLink>
               </>
             ) : (

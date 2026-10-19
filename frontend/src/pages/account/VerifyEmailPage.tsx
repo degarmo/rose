@@ -51,8 +51,8 @@ export function VerifyEmailPage() {
       {status === 'error' && (
         <div role="alert" className="flex flex-col items-start gap-6">
           <p className="w-full rounded-card bg-blush p-4 text-fg-muted-tint">{message}</p>
-          <ButtonLink to="/account" variant="secondary" size="lg">
-            Go to my account
+          <ButtonLink to="/members/settings" variant="secondary" size="lg">
+            Go to Settings
           </ButtonLink>
         </div>
       )}

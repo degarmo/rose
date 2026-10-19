@@ -34,6 +34,7 @@ class AccountSerializer(serializers.ModelSerializer):
     feed_controls = serializers.SerializerMethodField()
     member_app = serializers.SerializerMethodField()
     staff = serializers.SerializerMethodField()
+    calendar_details = serializers.BooleanField(source="profile.calendar_details", read_only=True)
 
     class Meta:
         model = User
@@ -47,6 +48,7 @@ class AccountSerializer(serializers.ModelSerializer):
             "feed_controls",
             "member_app",
             "staff",
+            "calendar_details",
             "appearance",
         ]
         read_only_fields = ["email", "email_verified", "appearance"]

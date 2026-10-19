@@ -54,7 +54,7 @@ names are registered with it.
 
 `lib/appearance.ts`. `main.tsx` applies the `appearance` cookie before the first paint (no
 request is made for it). Once the session loads, the account's saved choice wins and is
-written back to the cookie. Changing it (account page, member app Settings or the More
+written back to the cookie. Changing it (Settings > Profile in the member app, or the More
 menu) applies at once, sets the cookie and, when signed in, saves it on the account.
 
 ### Contrast

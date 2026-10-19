@@ -108,7 +108,7 @@ export function relativeDate(iso: string, now: Date = new Date()): string {
 }
 
 /** Only same-site paths are allowed as a post-login destination. */
-export function safeNextPath(value: string | null | undefined, fallback = '/account'): string {
+export function safeNextPath(value: string | null | undefined, fallback = '/members/home'): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) {
     return fallback
   }

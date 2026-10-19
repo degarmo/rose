@@ -67,4 +67,5 @@ def test_beat_schedule_runs_purge_and_reminders(settings):
         "apps.rentals.tasks.purge_closed_inquiries",
         "apps.volunteers.tasks.purge_old_signups",
         "apps.donations.tasks.purge_donation_contacts",
+        "apps.accounts.tasks.purge_stale_sessions",
     }

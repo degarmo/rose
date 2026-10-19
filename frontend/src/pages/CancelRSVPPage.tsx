@@ -63,8 +63,8 @@ export function CancelRSVPPage() {
           <Panel role="alert">
             <h2 className={TITLE}>We could not cancel this RSVP</h2>
             <p className={TEXT}>{message}</p>
-            <ButtonLink to="/account" variant="outline" className="mt-2">
-              Manage RSVPs in your account
+            <ButtonLink to="/members/home" variant="outline" className="mt-2">
+              See your plans
             </ButtonLink>
           </Panel>
         ) : (

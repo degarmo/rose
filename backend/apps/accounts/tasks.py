@@ -1,6 +1,11 @@
-"""Account email. Tasks take ids, not tokens, so no secret sits in the queue."""
+"""Account email, and forgetting old sign-ins. Tasks take ids, not tokens, so no secret
+sits in the queue."""
+
+from datetime import timedelta
 
 from celery import shared_task
+from django.conf import settings
+from django.utils import timezone
 
 from apps.core.email import send_neutral_mail, site_link
 
@@ -78,3 +83,13 @@ def send_account_deleted_email(email):
         "Thank you for being part of the community.\n"
     )
     send_neutral_mail(DELETED_SUBJECT, body, to=[email])
+
+
+@shared_task
+def purge_stale_sessions():
+    """Forget sign-ins that can no longer be in use (older than the session lifetime)."""
+    from .models import AccountSession
+
+    cutoff = timezone.now() - timedelta(seconds=settings.SESSION_COOKIE_AGE)
+    deleted, _ = AccountSession.objects.filter(last_seen_at__lt=cutoff).delete()
+    return deleted

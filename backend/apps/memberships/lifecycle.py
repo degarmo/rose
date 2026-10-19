@@ -95,7 +95,7 @@ def run(now=None):
         current_period_end__lte=now + timedelta(days=first),
         tier__is_guest_pass=False,
         tier__is_free=False,
-    ).select_related("user")
+    ).select_related("user__profile")
     for membership in upcoming:
         days_left = membership.current_period_end - now
         if days_left <= timedelta(days=second) and membership.reminded_3_at is None:
@@ -106,6 +106,9 @@ def run(now=None):
         else:
             continue
         membership.save(update_fields=["reminded_14_at", "reminded_3_at", "updated_at"])
+        # Turned off in Settings > Notifications: the reminder is recorded but not sent.
+        if membership.user is None or not membership.user.profile.email_membership_reminders:
+            continue
         emails.send_account_note(membership, "upcoming")
         counts["reminders"] += 1
     return counts

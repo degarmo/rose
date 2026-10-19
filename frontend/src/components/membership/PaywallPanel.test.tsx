@@ -23,7 +23,7 @@ describe('PaywallPanel', () => {
 
   it('sends people with a membership to their account', () => {
     renderWithProviders(<PaywallPanel {...props} tiers={['Monthly']} />, { user: { ...verifiedUser, has_membership: true } })
-    expect(screen.getByRole('link', { name: 'See my membership' })).toHaveAttribute('href', '/account#membership')
+    expect(screen.getByRole('link', { name: 'See my membership' })).toHaveAttribute('href', '/members/settings/membership')
     expect(screen.getByText(/does not include this, or is not active/)).toBeInTheDocument()
     expect(screen.getByText('Included with Monthly membership.')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Join' })).not.toBeInTheDocument()

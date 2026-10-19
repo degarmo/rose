@@ -1,11 +1,12 @@
 import { Link } from 'react-router'
-import { api, type EventSummary } from '@/lib/api'
+import { api } from '@/lib/api'
 import { dateParts } from '@/lib/format'
 import { postedShort } from '@/lib/membersApi'
 import { leaveNow, quickExitUrl } from '@/lib/quickExit'
 import { useAsync } from '@/lib/useAsync'
 import { Avatar } from '../Avatar'
 import { useMembers } from '../membersContext'
+import { eventAction, timeOnly } from './events'
 import { profilePath } from './postUtils'
 
 /** Captions may hold links; inside a link to the post only their text is shown. */
@@ -16,28 +17,8 @@ function plainText(html: string) {
 /** The copyright year, read once when the module loads. */
 const YEAR = new Date().getFullYear()
 
-const timeOnly = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' })
-
-/** What the rail offers for an event, by the viewer's own RSVP state. */
-function eventAction(event: EventSummary): { status: string; action: string } {
-  switch (event.rsvp.state) {
-    case 'going':
-      return { status: 'Going', action: 'Going' }
-    case 'waitlisted':
-      return { status: 'Waitlist', action: 'On the list' }
-    case 'waitlist':
-      return { status: 'Waitlist', action: 'Join list' }
-    case 'open':
-      return { status: 'Open', action: 'RSVP' }
-    case 'members_only':
-      return { status: 'Members only', action: 'Details' }
-    default:
-      return { status: 'Full', action: 'Details' }
-  }
-}
-
 /** The date tile (design: 44px, 8px corners, the rose tint, day name over the day). */
-function DateTile({ iso }: { iso: string }) {
+export function DateTile({ iso }: { iso: string }) {
   const { weekday, day } = dateParts(iso)
   return (
     <span aria-hidden="true" className="flex size-11 shrink-0 flex-col items-center justify-center rounded-app bg-tint leading-none text-tint-fg">

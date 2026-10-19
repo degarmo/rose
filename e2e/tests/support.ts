@@ -67,16 +67,24 @@ export function uniqueName(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}${randomInt(10, 99)}`.slice(0, 30)
 }
 
-/** The newest link to `path` in mail sent to `to`, read from Mailpit's API. */
-export async function mailLink(to: string, path: string): Promise<string> {
+/** Every link to `path` in mail sent to `to`, newest first, read from Mailpit's API. */
+export async function mailLinks(to: string, path: string): Promise<string[]> {
+  const search = await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}`)
+  const { messages } = (await search.json()) as { messages: Array<{ ID: string }> }
+  const links: string[] = []
+  for (const message of messages ?? []) {
+    const detail = (await (await fetch(`${MAILPIT}/api/v1/message/${message.ID}`)).json()) as { Text: string }
+    const match = detail.Text.match(new RegExp(`https?://\\S+${path.replace(/[/#]/g, '\\$&')}\\S*`))
+    if (match) links.push(match[0])
+  }
+  return links
+}
+
+/** The newest link to `path` in mail sent to `to`, waiting for it; `skip` leaves out links seen before. */
+export async function mailLink(to: string, path: string, skip: string[] = []): Promise<string> {
   for (let attempt = 0; attempt < 40; attempt++) {
-    const search = await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}`)
-    const { messages } = (await search.json()) as { messages: Array<{ ID: string }> }
-    for (const message of messages ?? []) {
-      const detail = (await (await fetch(`${MAILPIT}/api/v1/message/${message.ID}`)).json()) as { Text: string }
-      const match = detail.Text.match(new RegExp(`https?://\\S+${path.replace(/[/#]/g, '\\$&')}\\S*`))
-      if (match) return match[0]
-    }
+    const fresh = (await mailLinks(to, path)).find((link) => !skip.includes(link))
+    if (fresh) return fresh
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
   throw new Error(`No mail to ${to} with a ${path} link`)
@@ -147,6 +155,13 @@ async function twoStepLogin(page: Page, account: { email: string; totp_secret: s
 export async function enterTwoStepCode(page: Page, secret: string) {
   await page.getByLabel(/Six-digit code/).fill(await freshCode(secret))
   await page.getByRole('button', { name: 'Log in' }).click()
+}
+
+/** The website's own code step, for accounts with an authenticator. */
+export async function enterWebsiteCode(page: Page, secret: string) {
+  await expect(page.getByRole('heading', { name: 'Enter your code' })).toBeVisible()
+  await page.getByLabel(/^Code/).fill(await freshCode(secret))
+  await page.getByRole('button', { name: 'Continue' }).click()
 }
 
 /** Open the admin with the two-step login, as door staff would. */

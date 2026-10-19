@@ -119,7 +119,7 @@ the account. Keep it neutral.
 - **Product name** at the processor: "Membership". Tier names are not sent as product
   names.
 - **Processor receipts and invoices**: turn off processor-sent receipt email if it cannot
-  be made neutral; the site's own receipt (`/account/receipts/<id>`) shows only the merchant
+  be made neutral; the site's own receipt (`/members/settings/membership/receipts/<id>`) shows only the merchant
   name, date, amount, reference and "Membership".
 - **Customer records** at the processor: email only. Do not send display names or typed
   signature names.

@@ -43,7 +43,7 @@ function MemberBanner({ membership }: { membership: MyMembership }) {
           <p className="font-display text-[1.375rem] leading-[1.2] text-fg">Your plan: {membership.tier.name}</p>
           <p className="text-sm text-fg-muted-tint">{facts.join(' · ')}</p>
         </div>
-        <ButtonLink to="/account#membership" variant="secondary" className="self-start sm:self-auto">
+        <ButtonLink to="/members/settings/membership" variant="secondary" className="self-start sm:self-auto">
           Manage
         </ButtonLink>
       </div>
@@ -66,7 +66,7 @@ function Plans({ tiers, current }: { tiers: Tier[]; current: MyMembership | null
               tag={tag}
               action={
                 mine ? (
-                  <ButtonLink to="/account#membership" size="lg" variant="secondary" className="w-full">
+                  <ButtonLink to="/members/settings/membership" size="lg" variant="secondary" className="w-full">
                     Manage
                   </ButtonLink>
                 ) : (

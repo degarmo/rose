@@ -15,8 +15,8 @@ TEAM_SUBJECT = "Something is waiting for review"
 def account_update(address):
     body = (
         "Hello,\n\n"
-        "There is an update about your account. You can read it on your account page:\n"
-        f"{site_link('/account/notices')}\n"
+        "There is an update about your account. You can read it in your settings:\n"
+        f"{site_link('/members/settings/guidelines')}\n"
     )
     send_neutral_mail(ACCOUNT_SUBJECT, body, to=[address])
 

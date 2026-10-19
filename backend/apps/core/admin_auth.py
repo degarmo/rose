@@ -12,7 +12,6 @@ session that is not verified.
 """
 
 import base64
-import secrets
 import time
 from io import BytesIO
 from urllib.parse import quote, urlsplit
@@ -31,10 +30,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django_otp import login as otp_login
-from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
-from apps.accounts import lockout
+from apps.accounts import lockout, two_step
 from apps.accounts.models import User
 from apps.accounts.sessions import start_staff_session
 
@@ -147,10 +145,6 @@ def admin_login(request, site):
     return TemplateResponse(request, "admin/login.html", context)
 
 
-def _confirmed_totp(user):
-    return TOTPDevice.objects.filter(user=user, confirmed=True).first()
-
-
 @never_cache
 @csrf_protect
 def otp_verify(request, site):
@@ -158,8 +152,7 @@ def otp_verify(request, site):
     user = _pending_user(request)
     if user is None:
         return HttpResponseRedirect(reverse("admin:login"))
-    totp = _confirmed_totp(user)
-    if totp is None:
+    if two_step.confirmed_totp(user) is None:
         return HttpResponseRedirect(reverse("admin:otp_enrol"))
 
     form = TokenForm(request.POST or None)
@@ -168,20 +161,9 @@ def otp_verify(request, site):
         if lockout.is_locked(user.email):
             error = LOCKED_MESSAGE
         elif form.is_valid():
-            token = form.cleaned_token()
-            if totp.verify_token(token):
-                return _finish(request, user, totp)
-            backup = StaticDevice.objects.filter(user=user, confirmed=True).first()
-            if backup is not None and backup.verify_token(token):
-                audit(
-                    AuditLog.Category.SECURITY,
-                    "backup_code_used",
-                    user,
-                    f"Staff account ({user.display_name})",
-                    "user",
-                    target_user=user,
-                )
-                return _finish(request, user, backup)
+            device = two_step.verify(user, form.cleaned_token())
+            if device is not None:
+                return _finish(request, user, device)
             lockout.register_failure(user.email)
             error = LOCKED_MESSAGE if lockout.is_locked(user.email) else "That code did not work."
     return TemplateResponse(
@@ -217,7 +199,7 @@ def otp_enrol(request, site):
     user = _pending_user(request)
     if user is None:
         return HttpResponseRedirect(reverse("admin:login"))
-    if _confirmed_totp(user) is not None:
+    if two_step.confirmed_totp(user) is not None:
         return HttpResponseRedirect(reverse("admin:otp_verify"))
 
     device = TOTPDevice.objects.filter(
@@ -234,10 +216,7 @@ def otp_enrol(request, site):
         if device.verify_token(form.cleaned_token()):
             device.confirmed = True
             device.save(update_fields=["confirmed"])
-            StaticDevice.objects.filter(user=user).delete()
-            backup = StaticDevice.objects.create(user=user, name="Backup codes", confirmed=True)
-            codes = [secrets.token_hex(5) for _ in range(settings.OTP_BACKUP_CODE_COUNT)]
-            StaticToken.objects.bulk_create(StaticToken(device=backup, token=c) for c in codes)
+            codes = two_step.new_backup_codes(user)
             audit(
                 AuditLog.Category.SECURITY,
                 "two_factor_enrolled",

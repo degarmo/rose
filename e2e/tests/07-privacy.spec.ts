@@ -26,6 +26,13 @@ const PUBLIC_ROUTES = [
 ]
 const MEMBER_ROUTES = [
   '/account',
+  '/members/home',
+  '/members/settings/membership',
+  '/members/settings/privacy',
+  '/members/settings/notifications',
+  '/members/settings/security',
+  '/members/settings/guidelines',
+  '/members/settings/leave',
   '/members/feed',
   '/members/explore',
   '/members/search',

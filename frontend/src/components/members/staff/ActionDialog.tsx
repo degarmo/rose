@@ -144,7 +144,7 @@ export function ActionDialog({ open, onClose, handle, reportId, canRemoveContent
             <option key={title} value={title} />
           ))}
         </datalist>
-        <FormField label="Reason" hint="The member reads this on their account page. Emails never include it." required>
+        <FormField label="Reason" hint="The member reads this in their Settings. Emails never include it." required>
           {(field) => <Textarea {...field} rows={3} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />}
         </FormField>
       </div>

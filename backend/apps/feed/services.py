@@ -246,7 +246,7 @@ def _viewable_post(viewer, public_id):
 def like(viewer, public_id):
     post = _viewable_post(viewer, public_id)
     _, created = FeedLike.objects.get_or_create(post=post, user=viewer)
-    if created and post.author_id != viewer.pk:
+    if created and post.author_id != viewer.pk and post.author.profile.notify_likes:
         notification, _ = Notification.objects.get_or_create(
             recipient=post.author, post=post, kind=Notification.Kind.LIKE
         )
@@ -320,7 +320,7 @@ def add_comment(viewer, public_id, body):
     ):
         raise FeedError("rate_limited", "You are commenting very quickly. Take a short break.", 429)
     comment = FeedComment.objects.create(post=post, author=viewer, body=body)
-    if post.author_id != viewer.pk:
+    if post.author_id != viewer.pk and post.author.profile.notify_comments:
         Notification.objects.create(
             recipient=post.author,
             kind=Notification.Kind.COMMENT,
@@ -629,6 +629,55 @@ def _when(moment):
     return moment.isoformat() if moment else None
 
 
+def _account_export(user):
+    """The account's own records: settings, RSVPs and membership (dates and amounts).
+    Never the email, legal name or phone: a zip travels, and those stay in Settings."""
+    from apps.events.models import RSVP
+    from apps.memberships.models import Membership, Payment
+
+    profile = user.profile
+    return {
+        "display_name": user.display_name,
+        "created_at": _when(user.date_joined),
+        "pronouns": profile.pronouns,
+        "appearance": user.appearance,
+        "preferences": {
+            "calendar_details": profile.calendar_details,
+            "email_event_reminders": profile.email_event_reminders,
+            "email_membership_reminders": profile.email_membership_reminders,
+            "notify_likes": profile.notify_likes,
+            "notify_comments": profile.notify_comments,
+        },
+        "rsvps": [
+            {
+                "event": rsvp.event.title,
+                "starts_at": _when(rsvp.event.starts_at),
+                "status": rsvp.status,
+                "party_size": rsvp.party_size,
+                "created_at": _when(rsvp.created_at),
+            }
+            for rsvp in RSVP.objects.filter(user=user).select_related("event")
+        ],
+        "memberships": [
+            {
+                "tier": membership.tier.name,
+                "status": membership.status,
+                "started_at": _when(membership.current_period_start),
+                "ends_at": _when(membership.current_period_end),
+            }
+            for membership in Membership.objects.filter(user=user).select_related("tier")
+        ],
+        "payments": [
+            {
+                "date": _when(payment.created_at),
+                "amount_cents": payment.amount_cents,
+                "status": payment.status,
+            }
+            for payment in Payment.objects.filter(membership__user=user)
+        ],
+    }
+
+
 def build_export(export):
     """Write the zip and return the single-use download token."""
     user = export.user
@@ -638,6 +687,7 @@ def build_export(export):
     media = private_media()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         data = {
+            "account": _account_export(user),
             "profile": {
                 "display_name": user.display_name,
                 "bio": profile.bio,

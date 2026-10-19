@@ -171,7 +171,7 @@ lists what the club must supply before launch.
 ## Member feed
 
 Members whose tier includes the feed, and anyone staff give access to from Admin > Accounts >
-Profiles ("Grant member feed access"), can join it from `/account`. Moderators work from Admin > Feed > Feed posts > "Open queue"
+Profiles ("Grant member feed access"), can join it from the member app (Home, or Settings > Privacy). Moderators work from Admin > Feed > Feed posts > "Open queue"
 (`/admin/feed/feedpost/moderation/`). Member uploads live in `backend/private_media/` locally
 (the private bucket in production) and are only ever served through access-checked views;
 never point a web server at that folder.

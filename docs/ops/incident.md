@@ -14,8 +14,8 @@ from a member. Work in order; write down what you do and when.
    deleted; setting it back to `true` restores everything.
 2. **End sessions.**
    - One person: in the admin, untick "active" on their account and save (this
-     ends all their sessions at once), or ask them to use "Sign out everywhere"
-     on `/account`.
+     ends all their sessions at once), or ask them to use "Log out everywhere"
+     in Settings > Security.
    - A staff account: untick "staff status" and "active", and delete their TOTP
      device (Admin > Django OTP > TOTP devices) so they must re-enrol.
    - Everyone: rotate `DJANGO_SECRET_KEY` (step 3). Every session, every emailed

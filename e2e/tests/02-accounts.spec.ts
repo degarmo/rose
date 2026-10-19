@@ -23,12 +23,15 @@ test.describe('Accounts @smoke', () => {
     await expect(page.getByText('Your email is confirmed.')).toBeVisible()
     await expect(page).toHaveURL(/\/account\/verify$/) // the token was removed from the address bar
 
-    await page.goto('/account/login?next=%2Faccount')
+    // A plain account (no membership, no feed) lands on Home in the member app.
+    await page.goto('/account/login')
     await page.getByLabel('Email').fill(email.toUpperCase())
     await page.getByLabel('Password').fill(PASSWORD)
     await page.getByRole('button', { name: 'Log in' }).click()
+    await expect(page).toHaveURL(/\/members\/home$/)
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
 
+    await page.goto('/members/settings')
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL(/\/$/)
     await page.goto('/account')

@@ -163,6 +163,7 @@ def test_profile_shows_month_not_date(member_client, make_member):
         "handle",
         "avatar",
         "bio",
+        "pronouns",
         "joined",
         "is_self",
         "relationship",

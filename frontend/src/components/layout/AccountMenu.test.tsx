@@ -22,9 +22,10 @@ describe('AccountMenu', () => {
     expect(screen.getByRole('link', { name: 'Member app' })).toHaveAttribute('href', '/members/join-feed')
   })
 
-  it('has no app link for people without it', async () => {
+  it('takes people without the feed to Home, and everyone to Settings', async () => {
     await open(verifiedUser)
-    expect(screen.queryByRole('link', { name: 'Member app' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Member app' })).toHaveAttribute('href', '/members/home')
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/members/settings')
     expect(screen.queryByRole('list', { name: 'Staff' })).not.toBeInTheDocument()
   })
 

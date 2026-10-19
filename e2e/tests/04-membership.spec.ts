@@ -49,7 +49,7 @@ test.describe('Membership', () => {
     await expect(desk.getByText(`${code} is active.`)).toBeVisible()
 
     // The member now has the community.
-    await member.goto('/account')
+    await member.goto('/members/home')
     await expect(member.getByText(/Paid through/)).toBeVisible()
     await member.getByRole('link', { name: 'Join the member feed' }).click()
     await member.getByRole('button', { name: 'Read the guidelines' }).click()

@@ -107,16 +107,14 @@ def test_account_deletion_runs_the_same_erase(busy_member, monkeypatch):
 
 def test_export_contents_and_single_use(busy_member, api_client):
     client, member = busy_member["client"], busy_member["member"]
-    response = client.post("/api/account/feed/export/")
+    response = client.post("/api/account/export/")
     assert response.status_code == 202
-    assert client.post("/api/account/feed/export/").status_code in (202, 409)
+    assert client.post("/api/account/export/").status_code in (202, 409)
     email = next(m for m in mail.outbox if m.subject == tasks.EXPORT_SUBJECT)
     token = email.body.split("#token=")[1].split()[0]
     assert len(token) > 30
 
-    download = api_client.post(
-        "/api/account/feed/export/download/", {"token": token}, format="json"
-    )
+    download = api_client.post("/api/account/export/download/", {"token": token}, format="json")
     assert download.status_code == 200
     assert download["Content-Disposition"] == 'attachment; filename="my-data.zip"'
     assert download["Cache-Control"].startswith("private")
@@ -130,12 +128,12 @@ def test_export_contents_and_single_use(busy_member, api_client):
     assert len(data["likes"]) == 1
     assert member.email not in archive.read("data.json").decode()
 
-    again = api_client.post("/api/account/feed/export/download/", {"token": token}, format="json")
+    again = api_client.post("/api/account/export/download/", {"token": token}, format="json")
     assert again.status_code == 400
 
 
 def test_export_expires(busy_member, api_client):
-    busy_member["client"].post("/api/account/feed/export/")
+    busy_member["client"].post("/api/account/export/")
     token = (
         next(m for m in mail.outbox if m.subject == tasks.EXPORT_SUBJECT)
         .body.split("#token=")[1]
@@ -144,7 +142,7 @@ def test_export_expires(busy_member, api_client):
     DataExport.objects.update(expires_at=timezone.now() - timedelta(minutes=1))
     assert (
         api_client.post(
-            "/api/account/feed/export/download/", {"token": token}, format="json"
+            "/api/account/export/download/", {"token": token}, format="json"
         ).status_code
         == 400
     )
@@ -157,5 +155,5 @@ def test_export_task_receives_only_an_id(busy_member, monkeypatch):
     monkeypatch.setattr(
         "apps.feed.tasks.build_member_export.delay", lambda *args: sent.append(args)
     )
-    busy_member["client"].post("/api/account/feed/export/")
+    busy_member["client"].post("/api/account/export/")
     assert sent == [(DataExport.objects.get().pk,)]

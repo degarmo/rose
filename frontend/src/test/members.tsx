@@ -10,6 +10,7 @@ export const me: Me = {
   avatar: null,
   avatar_alt: '',
   bio: '',
+  pronouns: '',
   hide_from_directory: false,
   always_show_sensitive: false,
   can_post: true,

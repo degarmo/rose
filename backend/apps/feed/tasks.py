@@ -49,7 +49,7 @@ def build_member_export(export_id):
         f"Hello {export.user.display_name},\n\n"
         "The copy of your data you asked for is ready. The link works once and expires "
         "in 24 hours:\n\n"
-        f"{site_link(f'/account/export#token={token}')}\n\n"
+        f"{site_link(f'/members/settings/privacy/export#token={token}')}\n\n"
         "If you did not ask for this, you can ignore this email.\n",
         to=[export.user.email],
     )

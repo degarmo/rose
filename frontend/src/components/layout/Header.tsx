@@ -66,9 +66,14 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
           <div className="mt-6 flex flex-col gap-3">
             <MyFeedLink onNavigate={onClose} className="text-[0.9375rem] font-semibold text-link" />
             {auth.user ? (
-              <NavLink to="/account" onClick={onClose} className="text-[0.9375rem] font-semibold text-fg">
-                {auth.user.display_name}
-              </NavLink>
+              <>
+                <NavLink to="/members/home" onClick={onClose} className="text-[0.9375rem] font-semibold text-fg">
+                  {auth.user.display_name}
+                </NavLink>
+                <NavLink to="/members/settings" onClick={onClose} className="text-[0.9375rem] font-semibold text-fg">
+                  Settings
+                </NavLink>
+              </>
             ) : (
               <NavLink to={`/account/login?next=${encodeURIComponent(pathname)}`} onClick={onClose} className="text-[0.9375rem] font-semibold text-fg">
                 Log in

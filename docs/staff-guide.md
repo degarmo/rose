@@ -206,8 +206,9 @@ waiting for review.
 ## The staff section (in the member app)
 
 Moderators, staff and admins work in the member app, under **Staff** in the sidebar (on a
-phone: your profile, then Settings, then Staff). The first time in each session it asks for
-the code from your authenticator app; a new team member sets one up then.
+phone: your profile, then Settings, then Staff). Logging in on the website asks for the code
+from your authenticator app straight after your password, and that unlocks the staff section
+for the session; a new team member sets one up the first time they open it.
 
 - **Roles.** A *moderator* handles reports and member actions. *Staff* also see the
   dashboard. An *admin* also manages the team (**Team**) and can see who sent a report.
@@ -221,8 +222,8 @@ the code from your authenticator app; a new team member sets one up then.
   the reported content, a feed suspension (7 or 30 days, or until a date), an event
   suspension (no RSVPs, and the door desk shows it) or a ban (ends their membership, closes
   the app, the door desk shows **Do not admit**, and you can stop the email registering
-  again). Every action needs the rule it relates to and a reason; the member reads both on
-  their account page. Emails only say "An update about your account".
+  again). Every action needs the rule it relates to and a reason; the member reads both in
+  Settings, under Community guidelines. Emails only say "An update about your account".
 - **Reversing.** Any action can be reversed with a reason, from the member's page or the
   report. The log keeps both.
 - **Appeals.** A member can appeal each action once. Appeals go to someone other than the

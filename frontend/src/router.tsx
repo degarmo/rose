@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { Layout } from './components/layout/Layout'
+import { AccountMoved } from './pages/account/AccountMoved'
 import { HomePage } from './pages/HomePage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
@@ -19,6 +20,8 @@ export const router = createBrowserRouter([
     children: [
       // The door: the feed, joining, or a short explanation (never a bare dead end).
       { index: true, lazy: members((m) => m.MembersEntryPage) },
+      // The emailed download link: the token is the credential, so it opens signed in or out.
+      { path: 'settings/privacy/export', lazy: members((m) => m.ExportDownloadPage) },
       {
         lazy: members((m) => m.AppShell),
         children: [
@@ -30,7 +33,11 @@ export const router = createBrowserRouter([
           { path: 'u/:handle', lazy: members((m) => m.MemberProfilePage) },
           { path: 'u/:handle/saved', lazy: members((m) => m.MemberProfilePage) },
           { path: 'saved', lazy: members((m) => m.SavedPage) },
+          // The account screens: open to every signed-in person, feed or not.
+          { path: 'home', lazy: members((m) => m.HomePage) },
           { path: 'settings', lazy: members((m) => m.SettingsPage) },
+          { path: 'settings/:section', lazy: members((m) => m.SettingsPage) },
+          { path: 'settings/membership/receipts/:id', lazy: members((m) => m.ReceiptPage) },
           { path: 'report', lazy: members((m) => m.ReportConcernPage) },
           // The staff section: team roles only, after the staff two-step login.
           { path: 'staff', lazy: members((m) => m.StaffDashboardPage) },
@@ -79,15 +86,16 @@ export const router = createBrowserRouter([
       // Development only: the API behind it answers 404 unless DEBUG and the sandbox are on.
       { path: 'dev/checkout/:token', lazy: page(() => import('./pages/join/SandboxCheckoutPage').then((m) => m.default)) },
       { path: 'privacy', lazy: page(() => import('./pages/PrivacyPage').then((m) => m.PrivacyPage)) },
-      { path: 'account', lazy: page(() => import('./pages/account/AccountPage').then((m) => m.AccountPage)) },
+      // The old account page moved into the member app's Settings.
+      { path: 'account', element: <AccountMoved to="settings" /> },
+      { path: 'account/notices', element: <AccountMoved to="guidelines" /> },
+      { path: 'account/export', element: <AccountMoved to="export" /> },
+      { path: 'account/receipts/:id', element: <AccountMoved to="receipt" /> },
       { path: 'account/login', lazy: page(() => import('./pages/account/LoginPage').then((m) => m.LoginPage)) },
       { path: 'account/register', lazy: page(() => import('./pages/account/RegisterPage').then((m) => m.RegisterPage)) },
       { path: 'account/verify', lazy: page(() => import('./pages/account/VerifyEmailPage').then((m) => m.VerifyEmailPage)) },
       { path: 'account/forgot', lazy: page(() => import('./pages/account/ForgotPasswordPage').then((m) => m.ForgotPasswordPage)) },
       { path: 'account/reset', lazy: page(() => import('./pages/account/ResetPasswordPage').then((m) => m.ResetPasswordPage)) },
-      { path: 'account/receipts/:id', lazy: page(() => import('./pages/account/ReceiptPage').then((m) => m.default)) },
-      { path: 'account/notices', lazy: page(() => import('./pages/account/NoticesPage').then((m) => m.NoticesPage)) },
-      { path: 'account/export', lazy: members((m) => m.ExportDownloadPage) },
       { path: 'members/join-feed', lazy: members((m) => m.JoinFeedPage) },
       { path: '*', element: <NotFoundPage /> },
     ],

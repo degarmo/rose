@@ -23,7 +23,8 @@ def send_reference_code(membership):
         f"Your reference code is {membership.reference_code}.\n\n"
         f"Please bring it on your first visit, along with {bring} "
         "showing you are 18 or older. Staff will finish setting up your account there.\n\n"
-        f"The code stays open for {days} days. You can see it any time at {site_link('/account')}\n"
+        "The code stays open for "
+        f"{days} days. You can see it any time at {site_link('/members/settings/membership')}\n"
     )
     send_neutral_mail(REFERENCE_SUBJECT, body, to=[membership.user.email])
 
@@ -42,7 +43,7 @@ def send_account_note(membership, kind):
     body = (
         f"Hello {membership.user.display_name},\n\n"
         + REMINDER_BODIES[kind].format(date=_date(membership.current_period_end))
-        + f"\n\nRenew or check your account: {site_link('/account')}\n"
+        + f"\n\nRenew or check your account: {site_link('/members/settings/membership')}\n"
         f"Reference: {membership.reference_code}\n"
     )
     send_neutral_mail(NOTE_SUBJECT, body, to=[membership.user.email])
@@ -62,6 +63,7 @@ def send_import_invite(membership, new_account):
     body = (
         f"Hello {membership.user.display_name},\n\n{intro}\n\n"
         f"Your reference code is {membership.reference_code}. You can see it any time at "
-        f"{site_link('/account')}\n\nIf you were not expecting this, you can ignore this email.\n"
+        f"{site_link('/members/settings/membership')}\n\n"
+        "If you were not expecting this, you can ignore this email.\n"
     )
     send_neutral_mail(INVITE_SUBJECT, body, to=[membership.user.email])

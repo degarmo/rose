@@ -296,12 +296,14 @@ export interface Account {
   staff_guide_url: string | null
   /** The member app opens for them (entitled and joined): the header shows "My feed". */
   feed_access: boolean
-  /** The account page has feed controls for them (entitled, or with feed history). */
+  /** Settings has feed controls for them (entitled, or with feed history). */
   feed_controls: boolean
   /** "open": the app opens now; "join": after joining; "paused": a suspension or ban; null: not theirs. */
   member_app: 'open' | 'join' | 'paused' | null
   /** Team members only: their role and whether this session passed the staff two-step login. */
   staff: StaffSession | null
+  /** Calendar files name the event and place (off: the generic "Rose - Evening"). */
+  calendar_details: boolean
   appearance: Appearance
 }
 
@@ -310,6 +312,39 @@ export type Appearance = 'light' | 'dark'
 export interface Session {
   user: Account | null
   csrfToken: string
+  /** The password was right and an authenticator code comes next (nobody is signed in yet). */
+  two_step?: boolean
+}
+
+/** Your own preferences (Settings). Discreet email subjects are always on. */
+export interface Preferences {
+  pronouns: string
+  calendar_details: boolean
+  email_event_reminders: boolean
+  email_membership_reminders: boolean
+  notify_likes: boolean
+  notify_comments: boolean
+  discreet_subjects: true
+}
+
+export interface TwoStepState {
+  enabled: boolean
+  backup_codes_left: number
+  /** Staff must keep it. */
+  required: boolean
+}
+
+/** A copy of your data: emailed as a link that works once. */
+export interface DataExportState {
+  export: { ready: boolean; expires_at: string | null } | null
+}
+
+export interface SignedInSession {
+  device: string
+  signed_in_at: string
+  last_seen_at: string
+  current: boolean
+  active_now: boolean
 }
 
 export interface Detail {
@@ -451,6 +486,17 @@ export const api = {
   verifyEmail: (token: string) => post<Detail>('/account/verify-email/', { token }),
   resendVerification: () => post<Detail>('/account/verify-email/resend/'),
   login: (email: string, password: string) => post<Session>('/account/login/', { email, password }),
+  loginTwoStep: (code: string) => post<Session>('/account/login/two-step/', { code }),
+  preferences: () => request<Preferences>('/account/preferences/'),
+  updatePreferences: (changes: Partial<Omit<Preferences, 'discreet_subjects'>>) => send<Preferences>('PATCH', '/account/preferences/', changes),
+  twoStep: () => request<TwoStepState>('/account/two-step/'),
+  startTwoStep: () => post<{ qr: string; secret: string }>('/account/two-step/setup/'),
+  confirmTwoStep: (code: string) => post<TwoStepState & { backup_codes: string[] }>('/account/two-step/confirm/', { code }),
+  disableTwoStep: (password: string) => post<TwoStepState>('/account/two-step/disable/', { password }),
+  sessions: () => request<SignedInSession[]>('/account/sessions/'),
+  dataExport: () => request<DataExportState>('/account/export/'),
+  requestDataExport: () => post<DataExportState>('/account/export/'),
+  downloadDataExport: (token: string) => postForBlob('/account/export/download/', { token }),
   logout: () => post<Session>('/account/logout/'),
   requestPasswordReset: (email: string) => post<Detail>('/account/password-reset/', { email }),
   confirmPasswordReset: (uid: string, token: string, new_password: string) =>

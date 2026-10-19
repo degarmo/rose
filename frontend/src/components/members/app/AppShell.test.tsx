@@ -28,14 +28,25 @@ const auth: AuthState = {
 
 const settings = { status: 'loading', retry: () => undefined } as SiteSettingsState
 
-function renderApp(entry: string | { pathname: string; search?: string; state?: unknown }) {
+function renderApp(entry: string | { pathname: string; search?: string; state?: unknown }, user: AuthState['user'] = auth.user) {
   const router = createMemoryRouter(
-    [{ path: '/members', element: <AppShell />, children: [{ path: 'feed', element: <p>Feed content</p> }] }],
+    [
+      {
+        path: '/members',
+        element: <AppShell />,
+        children: [
+          { path: 'feed', element: <p>Feed content</p> },
+          { path: 'home', element: <p>Home content</p> },
+          { path: 'settings/:section', element: <p>Settings content</p> },
+        ],
+      },
+      { path: '/account/login', element: <p>Login page</p> },
+    ],
     { initialEntries: [entry] },
   )
   render(
     <SiteSettingsContext.Provider value={settings}>
-      <AuthContext.Provider value={auth}>
+      <AuthContext.Provider value={{ ...auth, user }}>
         <ToastProvider>
           <RouterProvider router={router} />
         </ToastProvider>
@@ -86,6 +97,34 @@ describe('AppShell', () => {
     // In the website's frame, so the quick exit is there as on every other page.
     expect(screen.getAllByRole('navigation', { name: 'Main', hidden: true }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('link', { name: /Leave/ }).length).toBeGreaterThan(0)
+  })
+
+  describe('without feed access', () => {
+    beforeEach(() => {
+      api.me.mockRejectedValue(new ApiError(404, 'Not found'))
+    })
+
+    it.each(['/members/home', '/members/settings/privacy'])('opens %s in the app shell, with no feed in the navigation', async (path) => {
+      renderApp(path, { ...verifiedUser, feed_access: false })
+      expect(await screen.findByText(path === '/members/home' ? 'Home content' : 'Settings content')).toBeInTheDocument()
+      expect(document.querySelector('.member-app')).not.toBeNull()
+      const nav = screen.getAllByRole('navigation', { name: 'Members', hidden: true })[0]
+      expect(within(nav).getByRole('link', { name: /Settings/, hidden: true })).toHaveAttribute('href', '/members/settings')
+      expect(within(nav).queryByRole('link', { name: /Explore|Search|Notifications/, hidden: true })).not.toBeInTheDocument()
+    })
+
+    it('still answers feed pages with the website 404', async () => {
+      renderApp('/members/feed', { ...verifiedUser, feed_access: false })
+      expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(/not on the map/i)
+      expect(screen.queryByText('Feed content')).not.toBeInTheDocument()
+      expect(document.querySelector('.member-app')).toBeNull()
+    })
+
+    it('asks someone signed out to log in, then come back', async () => {
+      const router = renderApp('/members/settings/security', null)
+      expect(await screen.findByText('Login page')).toBeInTheDocument()
+      expect(router.state.location.search).toBe(`?next=${encodeURIComponent('/members/settings/security')}`)
+    })
   })
 
   describe('post modal', () => {

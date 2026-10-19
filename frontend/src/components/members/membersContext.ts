@@ -27,6 +27,21 @@ export interface MembersState {
 
 export const MembersContext = createContext<MembersState | null>(null)
 
+/** The member app's state, or null on the account-only screens (no feed access). */
+export function useOptionalMembers(): MembersState | null {
+  return useContext(MembersContext)
+}
+
+/**
+ * Screens anyone signed in may open inside the app shell, with or without feed access:
+ * Home, Settings, Report a concern and the staff section. Everything else is the feed.
+ */
+export function isAccountPath(pathname: string) {
+  return ['/members/home', '/members/settings', '/members/report', '/members/staff'].some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  )
+}
+
 export function useMembers(): MembersState {
   const context = useContext(MembersContext)
   if (!context) throw new Error('useMembers must be used inside the members area')

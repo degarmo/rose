@@ -126,6 +126,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def sign_out_everywhere(self):
         User.objects.filter(pk=self.pk).update(session_epoch=F("session_epoch") + 1)
         self.refresh_from_db(fields=["session_epoch"])
+        self.account_sessions.all().delete()
 
     @property
     def email_verified(self):
@@ -179,6 +180,18 @@ class Profile(
         default=True, help_text="Leave on to stay out of the member directory search."
     )
     always_show_sensitive = models.BooleanField(default=False)
+    pronouns = models.CharField(
+        max_length=40, blank=True, help_text="Optional. Shown on the profile only when filled in."
+    )
+    # Account preferences (Settings in the member app).
+    calendar_details = models.BooleanField(
+        default=False,
+        help_text='Calendar files include the event name and place. Off: "Rose - Evening".',
+    )
+    email_event_reminders = models.BooleanField(default=True)
+    email_membership_reminders = models.BooleanField(default=True)
+    notify_likes = models.BooleanField(default=True)
+    notify_comments = models.BooleanField(default=True)
     hidden_by_report = models.BooleanField(
         default=False, help_text="Avatar, bio and profile page hidden pending review."
     )
@@ -222,6 +235,24 @@ class Profile(
         self.participates_in_feed = participates
         self.feed_status_changed_at = timezone.now()
         self.save(update_fields=["participates_in_feed", "feed_status_changed_at", "updated_at"])
+
+
+class AccountSession(models.Model):
+    """One signed-in session, for "where you are signed in" in Settings. Only a coarse
+    device label (browser and system) and times; never an IP address. The session key
+    is kept as a hash."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="account_sessions")
+    key_hash = models.CharField(max_length=64, unique=True)
+    device = models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-last_seen_at"]
+
+    def __str__(self):
+        return f"Session on {self.device}"
 
 
 def feed_visible_q(author_field="author"):

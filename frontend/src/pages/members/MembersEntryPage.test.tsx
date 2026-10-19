@@ -51,7 +51,7 @@ describe('/members', () => {
 
   it('points a paused member to their account', () => {
     renderEntry({ ...verifiedUser, member_app: 'paused' })
-    expect(screen.getByRole('link', { name: 'See my account' })).toHaveAttribute('href', '/account/notices')
+    expect(screen.getByRole('link', { name: 'See my notices' })).toHaveAttribute('href', '/members/settings/guidelines')
   })
 
   it('is the ordinary 404 when signed out', () => {
@@ -61,16 +61,19 @@ describe('/members', () => {
 })
 
 describe('getting into the app', () => {
-  it('lands the team on the staff dashboard, and open-app members in the feed, unless they came from a page', () => {
+  it('lands the team on the staff dashboard, open-app members in the feed and everyone else on Home, unless they came from a page', () => {
     const open = { member_app: 'open' as const, staff: null }
-    expect(landingAfterLogin(open, null, '/account')).toBe('/members/feed')
+    expect(landingAfterLogin(open, null, '/members/home')).toBe('/members/feed')
     expect(landingAfterLogin(open, '/', '/')).toBe('/members/feed')
     expect(landingAfterLogin(open, '/events/x', '/events/x')).toBe('/events/x')
-    expect(landingAfterLogin({ member_app: 'join', staff: null }, null, '/account')).toBe('/account')
+    for (const member_app of ['join', 'paused', null] as const) {
+      expect(landingAfterLogin({ member_app, staff: null }, null, '/members/home')).toBe('/members/home')
+    }
     const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', door_desk_url: null } }
-    expect(landingAfterLogin(owner, null, '/account')).toBe('/members/staff')
+    expect(landingAfterLogin(owner, null, '/members/home')).toBe('/members/staff')
     expect(landingAfterLogin(owner, '/events/x', '/events/x')).toBe('/events/x')
     expect(memberAppPath({ member_app: 'open' })).toBe('/members/feed')
     expect(memberAppPath({ member_app: 'join' })).toBe('/members/join-feed')
+    expect(memberAppPath({ member_app: null })).toBe('/members/home')
   })
 })

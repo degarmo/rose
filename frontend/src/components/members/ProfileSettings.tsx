@@ -89,33 +89,43 @@ export function AvatarPicker({ onSaved }: { onSaved: (me: Me) => void }) {
   )
 }
 
-/** People you blocked, one settings row each with Unblock. Never shows who blocked you. */
-export function BlockedList() {
+const LISTS = {
+  block: { load: () => members.myBlocks().then((data) => data.blocked), empty: 'You have not blocked anyone.', undo: 'Unblock', done: 'is unblocked', failed: 'Could not load your blocks' },
+  mute: { load: () => members.myMutes().then((data) => data.muted), empty: 'You have not muted anyone.', undo: 'Unmute', done: 'is unmuted', failed: 'Could not load your mutes' },
+} as const
+
+/**
+ * People you blocked or muted, one row each with Unblock or Unmute. Never shows who
+ * blocked or muted you.
+ */
+export function RelationList({ kind }: { kind: 'block' | 'mute' }) {
   const toast = useToast()
   const [version, setVersion] = useState(0)
-  const state = useAsync(() => members.myBlocks(), `blocks|${version}`)
-  const row = 'flex min-h-14 items-center gap-4 border-b border-border py-2 pl-10'
+  const list = LISTS[kind]
+  const state = useAsync(list.load, `${kind}s|${version}`)
+  const row = 'flex min-h-14 items-center gap-4 border-b border-border py-2 pl-10 last:border-b-0'
   if (state.status === 'loading') return <LoadingState label="Loading" className="py-4 pl-10" />
-  if (state.status === 'error') return <ErrorState title="Could not load your blocks" onRetry={state.retry} className="my-2" />
-  if (state.data.blocked.length === 0) return <p className={cn(row, 'text-fg-muted')}>You have not blocked anyone.</p>
+  if (state.status === 'error') return <ErrorState title={list.failed} onRetry={state.retry} className="my-2" />
+  if (state.data.length === 0) return <p className={cn(row, 'text-fg-muted')}>{list.empty}</p>
   return (
     <ul>
-      {state.data.blocked.map((handle) => (
+      {state.data.map((handle) => (
         <li key={handle} className={row}>
           <span className="min-w-0 flex-1 truncate font-semibold text-fg">{handle}</span>
           <AppButton
             variant="secondary"
+            aria-label={`${list.undo} ${handle}`}
             onClick={async () => {
               try {
-                await members.unrelate(handle, 'block')
+                await members.unrelate(handle, kind)
                 setVersion((n) => n + 1)
-                toast.show({ tone: 'success', title: `${handle} is unblocked` })
+                toast.show({ tone: 'success', title: `${handle} ${list.done}` })
               } catch {
                 toast.show({ tone: 'error', title: 'That did not work' })
               }
             }}
           >
-            Unblock<span className="sr-only"> {handle}</span>
+            {list.undo}
           </AppButton>
         </li>
       ))}

@@ -173,6 +173,8 @@ class MemberProfileSerializer(serializers.Serializer):
     handle = serializers.CharField(source="display_name")
     avatar = serializers.SerializerMethodField()
     bio = serializers.SerializerMethodField()
+    # Optional: only what the member chose to fill in, and blank when they did not.
+    pronouns = serializers.SerializerMethodField()
     # Posts only: there are no follower or following counts anywhere.
     post_count = serializers.SerializerMethodField()
     joined = serializers.SerializerMethodField()
@@ -181,6 +183,9 @@ class MemberProfileSerializer(serializers.Serializer):
 
     def get_avatar(self, user):
         return avatar_url(user.profile)
+
+    def get_pronouns(self, user):
+        return user.profile.pronouns
 
     def get_bio(self, user):
         return user.profile.bio
@@ -205,6 +210,7 @@ class MeSerializer(serializers.Serializer):
     avatar = serializers.SerializerMethodField()
     avatar_alt = serializers.CharField(source="profile.avatar_alt")
     bio = serializers.CharField(source="profile.bio")
+    pronouns = serializers.CharField(source="profile.pronouns")
     hide_from_directory = serializers.BooleanField(source="profile.hide_from_directory")
     always_show_sensitive = serializers.BooleanField(source="profile.always_show_sensitive")
     can_post = serializers.SerializerMethodField()

@@ -31,12 +31,13 @@ test.describe('Moderation', () => {
     await actionDialog.getByRole('button', { name: 'Record action' }).click()
     await expect(moderator.getByText('Feed suspension recorded')).toBeVisible()
 
-    // The author cannot open the app, sees the notice on their account and appeals.
+    // The author cannot open the app, sees the notice in Settings and appeals.
     const author = await personPage(browser, baseURL!, subjects.author)
     await author.goto('/members')
     await expect(author.getByRole('heading', { name: 'The member app is paused on your account' })).toBeVisible()
-    await author.getByRole('link', { name: 'See my account' }).click()
-    await expect(author.getByRole('heading', { name: 'Feed suspension' })).toBeVisible()
+    await author.getByRole('link', { name: 'See my notices' }).click()
+    await expect(author).toHaveURL(/\/members\/settings\/guidelines$/)
+    await expect(author.getByText('Feed suspension', { exact: true })).toBeVisible()
     await expect(author.getByText('Unkind post after a reminder.')).toBeVisible()
     await expect(author.getByText(subjects.reporter)).toHaveCount(0)
     await expect(author.getByText(`e2e_${info.project.name}_reporter`)).toHaveCount(0)
@@ -56,7 +57,7 @@ test.describe('Moderation', () => {
     await expect(admin.getByText(/Reversed by e2e_admin/)).toBeVisible()
 
     // The author is back in.
-    await author.goto('/account/notices')
+    await author.goto('/account/notices') // the old address still lands on the notices
     await expect(author.getByText(/Reversed on/)).toBeVisible()
     await author.goto('/members/feed')
     await expect(author.getByRole('navigation', { name: 'Members' }).first()).toBeAttached()

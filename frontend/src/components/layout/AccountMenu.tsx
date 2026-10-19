@@ -107,17 +107,15 @@ export function AccountMenu({ className }: { className?: string }) {
               </ul>
             </li>
           ) : (
-            (auth.user.member_app === 'open' || auth.user.member_app === 'join') && (
-              <li>
-                <Link to={memberAppPath(auth.user)} className="flex min-h-11 items-center px-4 text-sm font-semibold text-link hover:bg-surface">
-                  Member app
-                </Link>
-              </li>
-            )
+            <li>
+              <Link to={memberAppPath(auth.user)} className="flex min-h-11 items-center px-4 text-sm font-semibold text-link hover:bg-surface">
+                Member app
+              </Link>
+            </li>
           )}
           <li>
-            <Link to="/account" className="flex min-h-11 items-center px-4 text-sm font-medium text-fg hover:bg-surface">
-              My account
+            <Link to="/members/settings" className="flex min-h-11 items-center px-4 text-sm font-medium text-fg hover:bg-surface">
+              Settings
             </Link>
           </li>
           <li>

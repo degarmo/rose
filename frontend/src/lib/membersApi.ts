@@ -1,4 +1,4 @@
-import { postForBlob, postForm, post, request, send, type Page } from './api'
+import { postForm, post, request, send, type Page } from './api'
 
 export interface MemberCard {
   handle: string
@@ -62,6 +62,8 @@ export interface MemberProfile {
   handle: string
   avatar: string | null
   bio: string
+  /** Optional, and blank unless the member filled it in. */
+  pronouns: string
   /** Posts only: there are no follower or following counts. */
   post_count: number
   joined: string
@@ -74,6 +76,7 @@ export interface Me {
   avatar: string | null
   avatar_alt: string
   bio: string
+  pronouns: string
   hide_from_directory: boolean
   always_show_sensitive: boolean
   can_post: boolean
@@ -97,9 +100,10 @@ export interface FeedAccount {
   suspended_until: string | null
   accepted_current_guidelines: boolean
   guidelines: Guidelines | null
+  /** When you accepted the current version, if you have. */
+  guidelines_accepted_at: string | null
   has_content: boolean
   profile: { display_name: string; bio: string; hide_from_directory: boolean; has_avatar: boolean }
-  export: { ready: boolean; expires_at: string | null } | null
 }
 
 export interface FeedNotification {
@@ -189,6 +193,7 @@ export const members = {
   },
   removeAvatar: () => send<Me>('DELETE', '/members/me/avatar/'),
   myBlocks: () => request<{ blocked: string[] }>('/members/me/blocks/'),
+  myMutes: () => request<{ muted: string[] }>('/members/me/mutes/'),
   guidelines: () => request<Guidelines>('/members/guidelines/'),
 
   feed: (tab: 'everyone' | 'following', cursor: string | null = null) =>
@@ -255,8 +260,6 @@ export const feedAccount = {
     post<FeedAccount>('/account/feed/guidelines/', { guidelines_version: guidelinesVersion }),
   stepAway: () => post<FeedAccount>('/account/feed/step-away/'),
   erase: (displayName: string) => post<FeedAccount>('/account/feed/erase/', { display_name: displayName }),
-  requestExport: () => post<FeedAccount>('/account/feed/export/'),
-  downloadExport: (token: string) => postForBlob('/account/feed/export/download/', { token }),
 }
 
 export const REPORT_REASONS: Array<{ value: ReportReason; label: string }> = [

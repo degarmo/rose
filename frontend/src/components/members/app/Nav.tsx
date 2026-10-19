@@ -161,7 +161,8 @@ function MoreMenu({ collapsed }: { collapsed: boolean }) {
 }
 
 interface SidebarProps {
-  me: Me
+  /** Null on the account-only screens (no feed access): Home, Settings and Staff only. */
+  me: Me | null
   panel: Panel
   onPanel: (panel: Panel) => void
   onCreate: () => void
@@ -215,7 +216,7 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
       </button>
     </li>
   )
-  const profile = profilePath(me.handle)
+  const home = me ? '/members/feed' : '/members/home'
 
   return (
     <nav
@@ -225,7 +226,7 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
         !collapsed && 'wide:w-[245px]',
       )}
     >
-      <Link to="/members/feed" onClick={() => onPanel(null)} className={cn('flex shrink-0 items-center pb-5 pt-6', collapsed ? 'justify-center' : 'justify-center wide:justify-start wide:px-3')}>
+      <Link to={home} onClick={() => onPanel(null)} className={cn('flex shrink-0 items-center pb-5 pt-6', collapsed ? 'justify-center' : 'justify-center wide:justify-start wide:px-3')}>
         <Wordmark className={cn('hidden', !collapsed && 'wide:inline')} />
         <span aria-hidden="true" className={cn('font-serif text-2xl leading-none text-wordmark', !collapsed && 'wide:hidden')}>
           R
@@ -233,19 +234,28 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
         <span className="sr-only">Home</span>
       </Link>
       <ul className="flex flex-1 flex-col">
-        {link('/members/feed', 'Home', House)}
-        {toggle('search', 'Search', Search)}
-        {link('/members/explore', 'Explore', Compass)}
-        {toggle('notifications', 'Notifications', Bell, me.unread_notifications)}
-        <li>
-          <button type="button" title={me.can_post ? 'Create' : 'Posting is paused on your account'} disabled={!me.can_post} onClick={onCreate} className={rowClass(collapsed)}>
-            <Glyph icon={SquarePlus} active={false} />
-            <Label active={false} collapsed={collapsed}>
-              Create
-            </Label>
-          </button>
-        </li>
-        {link(profile, 'Profile', User, (path) => path.startsWith(profile))}
+        {me ? (
+          <>
+            {link('/members/feed', 'Home', House)}
+            {toggle('search', 'Search', Search)}
+            {link('/members/explore', 'Explore', Compass)}
+            {toggle('notifications', 'Notifications', Bell, me.unread_notifications)}
+            <li>
+              <button type="button" title={me.can_post ? 'Create' : 'Posting is paused on your account'} disabled={!me.can_post} onClick={onCreate} className={rowClass(collapsed)}>
+                <Glyph icon={SquarePlus} active={false} />
+                <Label active={false} collapsed={collapsed}>
+                  Create
+                </Label>
+              </button>
+            </li>
+            {link(profilePath(me.handle), 'Profile', User, (path) => path.startsWith(profilePath(me.handle)))}
+          </>
+        ) : (
+          <>
+            {link('/members/home', 'Home', House)}
+            {link('/members/settings', 'Settings', Settings, (path) => path.startsWith('/members/settings'))}
+          </>
+        )}
         {staffRole && link('/members/staff', 'Staff', ShieldCheck, (path) => path.startsWith('/members/staff'))}
       </ul>
       <MoreMenu collapsed={collapsed} />
@@ -271,13 +281,14 @@ export function LeaveButton({ className }: { className?: string }) {
 }
 
 /** Steps back in the app's history, or to the feed when the page was opened directly. */
-export function BackButton() {
+/** Back one step, or to `to` when given (the account screens' fixed parent). */
+export function BackButton({ to }: { to?: string }) {
   const navigate = useNavigate()
   const location = useLocation()
   return (
     <button
       type="button"
-      onClick={() => (location.key === 'default' ? navigate('/members/feed') : navigate(-1))}
+      onClick={() => (to ? navigate(to) : location.key === 'default' ? navigate('/members/feed') : navigate(-1))}
       className="-ml-2 inline-flex size-10 items-center justify-center text-fg"
     >
       <ArrowLeft aria-hidden="true" size={ICON.size} strokeWidth={ICON.stroke} />
@@ -289,7 +300,8 @@ export function BackButton() {
 interface PhoneBarProps {
   /** The bar's title (16/600), or the wordmark when absent. */
   title?: ReactNode
-  back?: boolean
+  /** A back arrow: one step back, or to the path given. */
+  back?: boolean | string
   /** Icons before the Leave control, which always comes last. */
   actions?: ReactNode
   /** A 1px rule under the bar (design: the Post page). */
@@ -304,7 +316,7 @@ interface PhoneBarProps {
 export function PhoneBar({ title, back = false, actions, rule = false, className }: PhoneBarProps) {
   return (
     <header className={cn('sticky top-0 z-30 flex h-11 items-center gap-3 bg-canvas px-4 md:hidden print:hidden', rule && 'border-b border-border', className)}>
-      {back && <BackButton />}
+      {back && <BackButton to={typeof back === 'string' ? back : undefined} />}
       <div className="min-w-0 flex-1 truncate text-base font-semibold text-fg">{title}</div>
       <div className="-mr-2 flex items-center gap-1">
         {actions}
@@ -338,9 +350,9 @@ export function HomeBar({ me }: { me: Me }) {
 }
 
 /** Phones: a 50px tab bar (design: Home, Search, Create, Explore, Profile). */
-export function TabBar({ me, onCreate }: { me: Me; onCreate: () => void }) {
+export function TabBar({ me, onCreate }: { me: Me | null; onCreate: () => void }) {
   const { pathname } = useLocation()
-  const profile = profilePath(me.handle)
+  const auth = useAuth()
   const tab = (to: string, label: string, icon: LucideIcon, active?: boolean) => (
     <li className="flex-1">
       <NavLink to={to} className="flex h-[50px] items-center justify-center text-fg">
@@ -353,8 +365,22 @@ export function TabBar({ me, onCreate }: { me: Me; onCreate: () => void }) {
       </NavLink>
     </li>
   )
+  const bar = 'fixed inset-x-0 bottom-0 z-40 border-t border-border bg-canvas px-2 pb-[env(safe-area-inset-bottom)] md:hidden print:hidden'
+  if (!me) {
+    // The account-only screens: Home, Settings and, for the team, Staff.
+    return (
+      <nav aria-label="Members" className={bar}>
+        <ul className="flex">
+          {tab('/members/home', 'Home', House)}
+          {tab('/members/settings', 'Settings', Settings, pathname.startsWith('/members/settings'))}
+          {auth.user?.staff && tab('/members/staff', 'Staff', ShieldCheck, pathname.startsWith('/members/staff'))}
+        </ul>
+      </nav>
+    )
+  }
+  const profile = profilePath(me.handle)
   return (
-    <nav aria-label="Members" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-canvas px-2 pb-[env(safe-area-inset-bottom)] md:hidden print:hidden">
+    <nav aria-label="Members" className={bar}>
       <ul className="flex">
         {tab('/members/feed', 'Home', House)}
         {tab('/members/search', 'Search', Search)}

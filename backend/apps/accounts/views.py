@@ -1,7 +1,12 @@
+import functools
+import time
+
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.db import transaction
 from django.middleware.csrf import get_token
+from django_otp import login as otp_login
+from django_otp.middleware import is_verified as otp_is_verified
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -17,7 +22,7 @@ from apps.safety.models import BlockedEmail
 from apps.safety.owner import prepare_owner
 from apps.volunteers.models import forget_account as forget_volunteer
 
-from . import lockout, tasks
+from . import lockout, tasks, two_step
 from .models import User
 from .serializers import (
     AccountSerializer,
@@ -30,9 +35,14 @@ from .serializers import (
     SessionUpdateSerializer,
     TokenSerializer,
 )
+from .session_tracking import current_hash
+from .sessions import start_staff_session
 from .tokens import user_from_reset_params, user_from_verification_token
 
 LOGIN_FAILED = "That email and password do not match an account."
+PENDING_USER = "login_pending_user"
+PENDING_AT = "login_pending_at"
+PENDING_SECONDS = 5 * 60
 LOCKED = "Too many attempts. For your security, please wait 15 minutes and try again."
 
 
@@ -155,7 +165,49 @@ class LoginView(CsrfProtectedAPIView):
             return Response({"detail": LOGIN_FAILED}, status=status.HTTP_400_BAD_REQUEST)
 
         lockout.clear(email)
+        if two_step.is_enabled(user):
+            # The password was right; the authenticator code comes next. Nobody is signed in yet.
+            request.session.cycle_key()
+            request.session[PENDING_USER] = user.pk
+            request.session[PENDING_AT] = time.time()
+            return Response({**session_payload(request), "two_step": True})
         login(request, user)
+        return Response(session_payload(request))
+
+
+class LoginTwoStepView(CsrfProtectedAPIView):
+    """The second step of logging in, for accounts with an authenticator app."""
+
+    def post(self, request):
+        user_id = request.session.get(PENDING_USER)
+        started = request.session.get(PENDING_AT, 0)
+        user = None
+        if user_id and time.time() - started <= PENDING_SECONDS:
+            user = User.objects.filter(pk=user_id, is_active=True).first()
+        if user is None:
+            return Response(
+                {"detail": "Your sign-in timed out. Enter your email and password again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if is_over_limit(request, "login", [("ip", settings.LOGIN_RATE_LIMIT_IP)]):
+            return too_many_requests()
+        if lockout.is_locked(user.email):
+            return too_many_requests(LOCKED)
+        device = two_step.verify(user, str(request.data.get("code", "")))
+        if device is None:
+            lockout.register_failure(user.email)
+            if lockout.is_locked(user.email):
+                return too_many_requests(LOCKED)
+            return Response({"detail": "That code did not work."}, status=400)
+        for key in (PENDING_USER, PENDING_AT):
+            request.session.pop(key, None)
+        lockout.clear(user.email)
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        otp_login(request, device)
+        # As django-otp's middleware would on the next request, so this reply says so too.
+        user.is_verified = functools.partial(otp_is_verified, user)
+        if user.is_staff:
+            start_staff_session(request)
         return Response(session_payload(request))
 
 
@@ -231,7 +283,12 @@ class ChangePasswordView(CsrfProtectedAPIView):
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save(update_fields=["password"])
+        before = current_hash(request)
         update_session_auth_hash(request, request.user)
+        # Every other session ended with the old password; this one has a new key.
+        sessions = request.user.account_sessions
+        sessions.exclude(key_hash=before).delete()
+        sessions.filter(key_hash=before).update(key_hash=current_hash(request))
         after_commit(tasks.send_password_changed_email, request.user.pk)
         return Response(session_payload(request))
 

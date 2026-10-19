@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
 import { Button, FormField, Input } from '@/components/ui'
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, type Session } from '@/lib/api'
 import { safeNextPath } from '@/lib/format'
 import { landingAfterLogin } from '@/lib/memberApp'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -20,6 +20,27 @@ export function LoginPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [twoStep, setTwoStep] = useState(false)
+  const [code, setCode] = useState('')
+
+  function signedIn(session: Session) {
+    auth.applySession(session)
+    navigate(landingAfterLogin(session.user, params.get('next'), next), { replace: true })
+  }
+
+  async function submitCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setFormError('')
+    if (!code.trim()) return setFormError('Enter the code from your authenticator app, or a backup code.')
+    setSubmitting(true)
+    try {
+      signedIn(await api.loginTwoStep(code))
+    } catch (error) {
+      setFormError(error instanceof ApiError ? error.message : 'Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -30,8 +51,10 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       const session = await api.login(email.trim(), password)
-      auth.applySession(session)
-      navigate(landingAfterLogin(session.user, params.get('next'), next), { replace: true })
+      if (session.two_step) {
+        auth.applySession(session)
+        setTwoStep(true)
+      } else signedIn(session)
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : 'Please try again.')
     } finally {
@@ -40,6 +63,40 @@ export function LoginPage() {
   }
 
   const query = params.get('next') ? `?next=${encodeURIComponent(next)}` : ''
+
+  if (twoStep) {
+    return (
+      <AccountShell title="Enter your code" lede="Your account has two-step login. Open your authenticator app for the six-digit code.">
+        <form noValidate onSubmit={submitCode} className="flex flex-col gap-5" aria-label="Two-step login">
+          {formError && (
+            <p role="alert" className={FORM_ALERT}>
+              {formError}
+            </p>
+          )}
+          <FormField label="Code" hint="No phone to hand? Use one of your backup codes." required>
+            {(field) => (
+              <Input {...field} name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+            )}
+          </FormField>
+          <Button type="submit" size="lg" disabled={submitting} aria-busy={submitting} className="self-start">
+            {submitting ? 'Checking' : 'Continue'}
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              setTwoStep(false)
+              setCode('')
+              setPassword('')
+              setFormError('')
+            }}
+            className="self-start text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline"
+          >
+            Start again
+          </button>
+        </form>
+      </AccountShell>
+    )
+  }
 
   return (
     <AccountShell

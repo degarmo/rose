@@ -46,7 +46,7 @@ MESSAGES = {
     TIER_EVENT_NOT_INCLUDED: "Your membership does not include this event.",
     MONTHLY_LIMIT_REACHED: "You have used this month's events on your membership.",
     PARTY_SIZE_EXCEEDS_TIER: "Your membership does not include that many guests here.",
-    RESTRICTED: "RSVPs are paused on your account. See your account page.",
+    RESTRICTED: "RSVPs are paused on your account. Your notices in Settings explain why.",
 }
 
 

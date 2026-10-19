@@ -411,7 +411,10 @@ def test_warning_notifies_discreetly_and_reverses(team, joined_member):
     mail.outbox.clear()
     warning = action(moderator, member)
     assert mail.outbox[-1].subject == "An update about your account"
-    assert "Because" not in mail.outbox[-1].body and "/account/notices" in mail.outbox[-1].body
+    assert (
+        "Because" not in mail.outbox[-1].body
+        and "/members/settings/guidelines" in mail.outbox[-1].body
+    )
     services.reverse_action(moderator, warning, "Mistake")
     warning.refresh_from_db()
     assert warning.is_reversed and not warning.is_in_force()

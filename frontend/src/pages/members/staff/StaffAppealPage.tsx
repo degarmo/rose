@@ -54,7 +54,7 @@ function Decide({ appeal, onDone }: { appeal: Appeal; onDone: (next: Appeal) => 
           ))}
         </div>
       </fieldset>
-      <FormField label="Reason" hint="The member reads this on their account page." required error={error}>
+      <FormField label="Reason" hint="The member reads this in their Settings." required error={error}>
         {(field) => <Textarea {...field} rows={3} maxLength={2000} value={note} onChange={(e) => setNote(e.target.value)} />}
       </FormField>
       <AppButton className="self-start" onClick={() => void submit()} disabled={busy}>

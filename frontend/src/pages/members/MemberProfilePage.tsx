@@ -68,7 +68,7 @@ export function MemberProfilePage() {
   const toast = useToast()
   const navigate = useNavigate()
   const [version, setVersion] = useState(0)
-  const state = useAsync(() => members.profile(handle), `${handle}|${version}|${me.avatar}|${me.bio}`)
+  const state = useAsync(() => members.profile(handle), `${handle}|${version}|${me.avatar}|${me.bio}|${me.pronouns}`)
   const [dialog, setDialog] = useState<'edit' | 'sheet' | 'report' | 'block' | null>(null)
 
   const loadingBar = <PhoneBar back title={handle} />
@@ -147,7 +147,10 @@ export function MemberProfilePage() {
             <span className="text-base font-semibold md:text-sm">{profile.post_count}</span> <span>{profile.post_count === 1 ? 'post' : 'posts'}</span>
           </p>
           <section aria-label="About" className="mt-3 min-w-0 [grid-area:about] md:mt-0">
-            <p className="font-semibold text-fg">{profile.handle}</p>
+            <p className="font-semibold text-fg">
+              {profile.handle}
+              {profile.pronouns && <span className="font-normal text-fg-muted"> · {profile.pronouns}</span>}
+            </p>
             {profile.bio && <p className="whitespace-pre-line break-words text-fg">{profile.bio}</p>}
             <p className="text-fg-muted">Joined {joinedLabel(profile.joined)}</p>
           </section>

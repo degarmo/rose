@@ -4,7 +4,7 @@ core.AuditLog (moderation category), which can never be edited or deleted.
 Privacy rules kept here:
 - The reported member never learns who reported them; reporters only learn that their
   report was received, then reviewed.
-- Emails are discreet: a neutral subject and a link to the account page, never what
+- Emails are discreet: a neutral subject and a link to Settings, never what
   happened or what was said.
 """
 
@@ -287,7 +287,7 @@ def take_action(actor, member, data):
 
 
 def _tell_member(member, message):
-    """An in-app notice, and a discreet email pointing to the account page."""
+    """An in-app notice, and a discreet email pointing to Settings."""
     notify(member, Notification.Kind.MODERATION, f"{message} See your account for details.")
     address = member.email
     _on_commit(lambda: emails.account_update(address))

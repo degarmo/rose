@@ -121,15 +121,15 @@ test.describe('Member feed', () => {
     await expect(postBy(friend, posterHandle)).toHaveCount(0)
 
     // Step away hides everything, rejoining brings it back.
-    await poster.goto('/account')
-    await poster.getByRole('button', { name: 'Step away from the feed' }).click()
+    await poster.goto('/members/settings/privacy')
+    await poster.getByRole('button', { name: /Step away from the feed/ }).click()
     await poster.getByRole('dialog', { name: 'Step away from the feed?' }).getByRole('button', { name: 'Step away' }).click()
     await expect(poster.getByRole('link', { name: 'Rejoin the feed' })).toBeVisible()
     await joinFeedAgain(poster)
     await expect(postBy(poster, posterHandle).filter({ hasText: second })).toBeVisible()
 
     // Leave and erase, after typing the display name.
-    await poster.goto('/account')
+    await poster.goto('/members/settings/leave')
     await poster.getByRole('button', { name: 'Leave and erase' }).click()
     const erase = poster.getByRole('dialog', { name: 'Erase everything you shared?' })
     await expect(erase.getByRole('button', { name: 'Erase for good' })).toBeDisabled()

@@ -62,7 +62,8 @@ in Admin > Django OTP > TOTP devices; they enrol again at next login.
 | Members | Idle sessions end after `MEMBER_SESSION_DAYS` (14); every request extends the session |
 | Staff | Sessions end when the browser closes and at most `STAFF_SESSION_HOURS` (12) after the two-step login |
 | Everyone | The session key changes at login and at the second step. Changing someone's staff, superuser or active status, groups or permissions ends all their sessions |
-| Members | "Sign out everywhere" on `/account` ends every session on every device, including the current one |
+| Members | "Log out everywhere" in Settings > Security ends every session on every device, including the current one; the same screen lists where they are signed in |
+| Members | Two-step login is optional: once on, `/api/account/login/` stops after the password and `login/two-step/` takes the code or a backup code within 5 minutes. Staff keep it and cannot turn it off; a website login with the code also counts as the staff second step |
 
 Sessions are ended through a per-account `session_epoch` mixed into the session
 hash, so nothing has to search the session table.
@@ -106,7 +107,7 @@ reaches the cache. Over-limit requests get HTTP 429.
 
 | Endpoint | Limit |
 | --- | --- |
-| Member login (`/api/account/login/`) | 20/hour per IP, 10/hour per email; 5 failures lock the email for 15 minutes |
+| Member login (`/api/account/login/` and `login/two-step/`) | 20/hour per IP, 10/hour per email; 5 failures (wrong passwords or codes) lock the email for 15 minutes |
 | Admin login (password and code steps) | 20/hour per IP; shares the per-email lockout; wrong codes count |
 | Registration | 5/hour per IP, 3/hour per email |
 | Password reset request | 5/hour per IP, 3/hour per email |

@@ -1,13 +1,14 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Outlet, ScrollRestoration, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { Navigate, Outlet, ScrollRestoration, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { LoadingState } from '@/components/content/States'
 import { SiteFrame } from '@/components/layout/Layout'
 import { QuickExit } from '@/components/layout/QuickExit'
 import { ApiError } from '@/lib/api'
 import { firstMe, members, type FeedPost, type Me } from '@/lib/membersApi'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { MembersContext } from '../membersContext'
+import { useAuth } from '@/components/layout/authContext'
+import { isAccountPath, MembersContext } from '../membersContext'
 import { CreatePost } from './CreatePost'
 import { Sidebar, TabBar, type Panel } from './Nav'
 import { NotificationsContent } from './NotificationsContent'
@@ -141,12 +142,36 @@ function PostModal({ id, ids, onClose, onStep }: { id: string; ids: string[]; on
 }
 
 /**
+ * The shell for the account screens when there is no feed access (Home, Settings, Report a
+ * concern, Staff): the same sidebar, tab bar and Leave control, without any feed.
+ */
+function AccountShell() {
+  return (
+    <div className="member-app min-h-dvh pb-[calc(50px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[72px] wide:pl-[245px] print:p-0">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"
+      >
+        Skip to content
+      </a>
+      <Sidebar me={null} panel={null} onPanel={() => undefined} onCreate={() => undefined} />
+      <main id="main" className="min-w-0">
+        <Outlet />
+      </main>
+      <TabBar me={null} onCreate={() => undefined} />
+      <ScrollRestoration />
+    </div>
+  )
+}
+
+/**
  * The member app: its own shell, never the website's header or footer. Only people who
- * pass can_view_feed get it; for everyone else the API answers 404 and this renders the
- * website's ordinary 404 page. The loading state also looks like the website, so nothing
- * hints that the app exists.
+ * pass can_view_feed get the feed; for everyone else its pages render the website's
+ * ordinary 404, so nothing hints that the feed exists. The account screens (Home, Settings,
+ * Report a concern, Staff) open for anyone signed in, and ask everyone else to log in.
  */
 export function AppShell() {
+  const auth = useAuth()
   const location = useLocation()
   const { pathname } = location
   const navigate = useNavigate()
@@ -220,6 +245,19 @@ export function AppShell() {
   )
 
   if (state.status === 'denied') {
+    // Signed in without feed access: the account screens still open in the app's shell.
+    if (auth.status === 'loading') {
+      return (
+        <div className="flex min-h-dvh items-center justify-center">
+          <LoadingState label="Loading" />
+          <QuickExit variant="floating" />
+        </div>
+      )
+    }
+    if (isAccountPath(pathname)) {
+      if (auth.user) return <AccountShell />
+      return <Navigate to={`/account/login?next=${encodeURIComponent(pathname + location.search + location.hash)}`} replace />
+    }
     // The website's ordinary 404, header, footer and Leave included.
     return (
       <SiteFrame>
@@ -259,7 +297,7 @@ export function AppShell() {
 
   return (
     <MembersContext.Provider value={value}>
-      <div className="member-app min-h-dvh pb-[calc(50px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[72px] wide:pl-[245px]">
+      <div className="member-app min-h-dvh pb-[calc(50px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[72px] wide:pl-[245px] print:p-0">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"

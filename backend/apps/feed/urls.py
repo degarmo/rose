@@ -6,6 +6,7 @@ urlpatterns = [
     path("me/", views.MeView.as_view(), name="feed-me"),
     path("me/avatar/", views.MyAvatarView.as_view(), name="feed-me-avatar"),
     path("me/blocks/", views.MyBlocksView.as_view(), name="feed-me-blocks"),
+    path("me/mutes/", views.MyMutesView.as_view(), name="feed-me-mutes"),
     path("guidelines/", views.GuidelinesView.as_view(), name="feed-guidelines"),
     path("feed/", views.FeedView.as_view(), name="feed-list"),
     path("home/", views.HomeView.as_view(), name="feed-home"),

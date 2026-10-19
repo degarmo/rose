@@ -40,7 +40,7 @@ export function PaywallPanel({ title, benefit, tiers = [], size = 'sm', headingL
     actions = <p className="text-fg-muted-tint">Checking your account</p>
   } else if (auth.user?.has_membership) {
     actions = (
-      <ButtonLink to="/account#membership" size={buttonSize} variant="secondary">
+      <ButtonLink to="/members/settings/membership" size={buttonSize} variant="secondary">
         See my membership
       </ButtonLink>
     )

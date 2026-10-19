@@ -123,7 +123,7 @@ describe('MembershipPage', () => {
     expect(banner).toHaveTextContent('Your plan: Limited')
     expect(banner).toHaveTextContent('Renews November 18, 2026')
     expect(banner).toHaveTextContent('0 events left this month')
-    expect(within(banner).getByRole('link', { name: 'Manage' })).toHaveAttribute('href', '/account#membership')
+    expect(within(banner).getByRole('link', { name: 'Manage' })).toHaveAttribute('href', '/members/settings/membership')
     const card = (await screen.findByRole('heading', { level: 2, name: 'Limited' })).closest('li')!
     expect(within(card).getByText('Your plan')).toBeInTheDocument()
     expect(within(card).queryByRole('link', { name: 'Choose Limited' })).not.toBeInTheDocument()

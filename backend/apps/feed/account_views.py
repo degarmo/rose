@@ -1,4 +1,4 @@
-"""Feed controls on /account: join, step away, erase and export.
+"""Feed controls in Settings: join, step away and erase.
 
 These live outside /api/members/ because people who have stepped away must
 still reach them. They are hidden (404) from anyone with no feed entitlement
@@ -17,12 +17,12 @@ from apps.core.private_media import private_media, with_private_headers
 
 from . import access, services
 from .api import SessionWithoutCsrf, enforce_csrf
-from .models import DataExport, FeedPost, Guidelines
+from .models import FeedPost, Guidelines, GuidelinesAcceptance
 from .views import guidelines_payload
 
 
 class FeedAccountBase(APIView):
-    """Feed controls on /account. Like the feed itself, anyone without access (signed
+    """Feed controls in Settings. Like the feed itself, anyone without access (signed
     out included) gets the same 404, decided before CSRF or anything else."""
 
     authentication_classes = [SessionWithoutCsrf]
@@ -50,7 +50,11 @@ class FeedAccountBase(APIView):
 def account_feed_payload(user):
     profile = user.profile
     current = Guidelines.current()
-    export = DataExport.objects.filter(user=user, used_at__isnull=True).first()
+    accepted = (
+        GuidelinesAcceptance.objects.filter(user=user, guidelines=current).first()
+        if current
+        else None
+    )
     return {
         "participating": profile.participates_in_feed,
         "can_join": access.can_join_feed(user),
@@ -59,6 +63,7 @@ def account_feed_payload(user):
         "suspended_until": profile.feed_suspended_until if profile.is_feed_suspended() else None,
         "accepted_current_guidelines": access.has_accepted_current_guidelines(user),
         "guidelines": guidelines_payload(current) if current else None,
+        "guidelines_accepted_at": accepted.accepted_at if accepted else None,
         "has_content": FeedPost.objects.filter(author=user).exists()
         or profile.joined_feed_at is not None,
         "profile": {
@@ -67,9 +72,6 @@ def account_feed_payload(user):
             "hide_from_directory": profile.hide_from_directory,
             "has_avatar": bool(profile.avatar),
         },
-        "export": None
-        if export is None
-        else {"ready": export.ready_at is not None, "expires_at": export.expires_at},
     }
 
 
@@ -123,14 +125,6 @@ class EraseView(FeedAccountBase):
         from .tasks import erase_member_feed
 
         services.on_commit(lambda: erase_member_feed.delay(request.user.pk))
-        return Response(account_feed_payload(request.user), status=status.HTTP_202_ACCEPTED)
-
-
-class ExportView(FeedAccountBase):
-    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
-
-    def post(self, request):
-        services.request_export(request.user)
         return Response(account_feed_payload(request.user), status=status.HTTP_202_ACCEPTED)
 
 

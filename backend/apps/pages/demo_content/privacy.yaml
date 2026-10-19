@@ -14,7 +14,7 @@ copy:
           <ul>
           <li><strong>When you contact us:</strong> the name you give, your email address, a phone number if you choose to add one, the topic, and your message. We use these only to reply to you.</li>
           <li><strong>The age confirmation:</strong> a single cookie on your device that remembers you confirmed you are 18 or older. It expires after 12 hours.</li>
-          <li><strong>If you create an account:</strong> your email address, the display name you choose and your password, which we store only in scrambled form. You can change your display name and password, or delete the account, at any time from your account page.</li>
+          <li><strong>If you create an account:</strong> your email address, the display name you choose and your password, which we store only in scrambled form. You can change your display name and password, or delete the account, at any time from Settings.</li>
           <li><strong>When you RSVP:</strong> which evening, your party size and any note you leave for our hosts.</li>
           <li><strong>Rental requests and volunteer offers:</strong> the contact details and answers you give us, read only by the volunteers who handle them.</li>
           <li><strong>Security cookies:</strong> a random token that stops other websites from sending forms in your name, and, while you are signed in, a session cookie. Neither contains anything about you.</li>
@@ -49,7 +49,7 @@ copy:
       title: Asking us to delete your information
       body:
         rich: >-
-          <p>You can delete your account yourself from your account page. That removes your profile, every RSVP and any volunteer offer, and strips your name, email and phone number from messages and rental requests you sent us. You can also ask us to delete anything else we hold about you through the <a href="/contact">contact form</a>. We will confirm once it is done.</p>
+          <p>You can delete your account yourself from Settings. That removes your profile, every RSVP and any volunteer offer, and strips your name, email and phone number from messages and rental requests you sent us. You can also ask us to delete anything else we hold about you through the <a href="/contact">contact form</a>. We will confirm once it is done.</p>
     7:
       title: Email from us
       body:

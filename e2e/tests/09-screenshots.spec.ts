@@ -128,7 +128,7 @@ test.describe('Member app screenshots', () => {
     await snap(page, 'member-notifications', info)
 
     await page.goto('/members/settings')
-    await expect(page.getByRole('button', { name: /^Appearance/ })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Settings' }).getByRole('link', { name: /^Profile/ })).toBeVisible()
     await appChecks(page, info)
     await snap(page, 'member-settings', info)
   })
@@ -168,16 +168,14 @@ test.describe('Member app screenshots', () => {
   })
 
   test('home feed in dark appearance', async ({ page }, info) => {
-    await page.goto('/members/settings')
-    await page.getByRole('button', { name: /^Appearance/ }).click()
+    await page.goto('/members/settings/profile')
     await page.getByRole('radio', { name: 'Dark' }).click()
     await expect(page.locator('html')).toHaveAttribute('data-appearance', 'dark')
     await page.goto('/members/feed')
     await expect(page.getByRole('article').first()).toBeVisible()
     await snap(page, 'member-home-feed-dark', info)
     // Back to light, so the next run starts from the default.
-    await page.goto('/members/settings')
-    await page.getByRole('button', { name: /^Appearance/ }).click()
+    await page.goto('/members/settings/profile')
     await page.getByRole('radio', { name: 'Light' }).click()
     await expect(page.locator('html')).not.toHaveAttribute('data-appearance', 'dark')
   })

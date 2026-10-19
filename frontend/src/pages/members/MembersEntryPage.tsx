@@ -16,12 +16,12 @@ function Explanation({ paused }: { paused: boolean }) {
         </h1>
         <p className="text-sm text-fg-muted-tint lg:text-body">
           {paused
-            ? 'Your account page explains why, for how long, and how to appeal.'
+            ? 'Your notices in Settings explain why, for how long, and how to appeal.'
             : 'It is a private space where members share photos and news with each other. It is included with most memberships.'}
         </p>
         <div className="mt-2 flex flex-wrap justify-center gap-3">
           {paused ? (
-            <ButtonLink to="/account/notices">See my account</ButtonLink>
+            <ButtonLink to="/members/settings/guidelines">See my notices</ButtonLink>
           ) : (
             <ButtonLink to="/membership">See membership plans</ButtonLink>
           )}

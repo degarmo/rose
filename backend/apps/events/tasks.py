@@ -99,7 +99,7 @@ def send_due_reminders():
     from .models import RSVP
 
     now = timezone.now()
-    due = RSVP.objects.select_related("event", "user").filter(
+    due = RSVP.objects.select_related("event", "user__profile").filter(
         status=RSVP.Status.GOING,
         reminder_sent_at__isnull=True,
         event__is_published=True,
@@ -110,7 +110,9 @@ def send_due_reminders():
     for rsvp in due:
         if rsvp.created_at > rsvp.event.starts_at - timedelta(hours=24):
             continue
-        send_rsvp_email(rsvp.pk, "reminder")
+        # Turned off in Settings > Notifications: marked as handled, nothing sent.
+        if rsvp.user.profile.email_event_reminders:
+            send_rsvp_email(rsvp.pk, "reminder")
         rsvp.reminder_sent_at = now
         rsvp.save(update_fields=["reminder_sent_at"])
         sent += 1

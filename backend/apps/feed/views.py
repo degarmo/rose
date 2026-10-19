@@ -168,6 +168,16 @@ class MyBlocksView(FeedAPIView):
         return Response({"blocked": sorted(handles, key=str.lower)})
 
 
+class MyMutesView(FeedAPIView):
+    """People you muted, so you can unmute them. Never shows who muted you."""
+
+    def get(self, request):
+        handles = Mute.objects.filter(muter=request.user).values_list(
+            "muted__display_name", flat=True
+        )
+        return Response({"muted": sorted(handles, key=str.lower)})
+
+
 # The feed and posts
 
 

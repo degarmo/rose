@@ -124,6 +124,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
     "apps.accounts.middleware.SessionPolicyMiddleware",
+    "apps.accounts.session_tracking.SessionSeenMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "csp.middleware.CSPMiddleware",
@@ -481,6 +482,10 @@ CELERY_BEAT_SCHEDULE = {
     "purge-donation-contacts": {
         "task": "apps.donations.tasks.purge_donation_contacts",
         "schedule": crontab(hour=6, minute=15),
+    },
+    "purge-stale-sessions": {
+        "task": "apps.accounts.tasks.purge_stale_sessions",
+        "schedule": crontab(hour=4, minute=45),
     },
     "nightly-backup": {
         "task": "apps.core.tasks.nightly_backup",

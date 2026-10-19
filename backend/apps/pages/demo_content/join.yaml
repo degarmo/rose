@@ -4,7 +4,7 @@ page: join
 copy:
   hero:
     title: Choose how you'd like to join
-    lede: Every option includes members' evenings and classes. Cancel any time from your account.
+    lede: Every option includes members' evenings and classes. Cancel any time in Settings.
   note:
     rich: <p>Membership supports a volunteer-run nonprofit. If the price is a barrier, ask at the door or <a href="/contact">write to us</a>.</p>
   benefits:

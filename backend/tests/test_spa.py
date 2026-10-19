@@ -19,7 +19,7 @@ def dist(settings, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "path", ["/", "/events", "/events/friday-social", "/members/feed", "/account"]
+    "path", ["/", "/events", "/events/friday-social", "/members/feed", "/account/login"]
 )
 def test_client_routes_get_index_with_no_cache(client, dist, path):
     response = client.get(path)
@@ -84,7 +84,8 @@ def test_missing_build_is_a_plain_404(client, settings, tmp_path):
 
 def test_private_spa_routes_are_noindex(client, dist):
     assert client.get("/members/feed")["X-Robots-Tag"] == "noindex, nofollow"
-    assert client.get("/account")["X-Robots-Tag"] == "noindex, nofollow"
+    assert client.get("/members/settings")["X-Robots-Tag"] == "noindex, nofollow"
+    assert client.get("/account/login")["X-Robots-Tag"] == "noindex, nofollow"
     assert "X-Robots-Tag" not in client.get("/events")
 
 

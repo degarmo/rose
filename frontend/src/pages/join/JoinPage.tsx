@@ -232,9 +232,9 @@ function ExistingMembership({ membership }: { membership: MyMembership }) {
     <div className="mx-auto flex max-w-[560px] flex-col items-center gap-3 rounded-panel bg-blush px-6 py-10 text-center">
       <h1 className="text-[2rem] font-light leading-[1.1] text-fg lg:text-h2-lg">You already have a membership</h1>
       <p className="text-fg-muted-tint">
-        {membership.tier.name} &middot; {membership.status_label}. Your code, payments and renewal are on your account page.
+        {membership.tier.name} &middot; {membership.status_label}. Your code, payments and renewal are in Settings.
       </p>
-      <ButtonLink to="/account#membership" size="lg" className="mt-3">
+      <ButtonLink to="/members/settings/membership" size="lg" className="mt-3">
         See my membership
       </ButtonLink>
     </div>

@@ -8,8 +8,4 @@ urlpatterns = [
     path("guidelines/", views.AcceptGuidelinesView.as_view(), name="account-feed-guidelines"),
     path("step-away/", views.StepAwayView.as_view(), name="account-feed-step-away"),
     path("erase/", views.EraseView.as_view(), name="account-feed-erase"),
-    path("export/", views.ExportView.as_view(), name="account-feed-export"),
-    path(
-        "export/download/", views.ExportDownloadView.as_view(), name="account-feed-export-download"
-    ),
 ]

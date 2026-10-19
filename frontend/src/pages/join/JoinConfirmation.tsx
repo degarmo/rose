@@ -48,11 +48,11 @@ export function CodeValidity({ membership }: { membership: MyMembership }) {
   )
 }
 
-/** The way on from a confirmation: the member app once it is open to them, otherwise the account. */
+/** The way on from a confirmation: the member app once it is open to them, otherwise Settings. */
 export function ConfirmationActions({ secondary }: { secondary?: { to: string; label: string } }) {
   const auth = useAuth()
   const app = Boolean(auth.user?.feed_access)
-  const next = app ? { to: '/account#membership', label: 'Go to my account' } : (secondary ?? { to: '/visit', label: 'Plan your visit' })
+  const next = app ? { to: '/members/settings/membership', label: 'See my membership' } : (secondary ?? { to: '/visit', label: 'Plan your visit' })
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3">
       {app ? (
@@ -60,8 +60,8 @@ export function ConfirmationActions({ secondary }: { secondary?: { to: string; l
           Open the member app
         </ButtonLink>
       ) : (
-        <ButtonLink to="/account#membership" size="lg">
-          Go to my account
+        <ButtonLink to="/members/settings/membership" size="lg">
+          See my membership
         </ButtonLink>
       )}
       <ButtonLink to={next.to} size="lg" variant="secondary">

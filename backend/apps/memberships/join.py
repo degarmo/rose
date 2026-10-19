@@ -106,7 +106,7 @@ def join(user, tier_slug, agreement_version, typed_name, method=""):
     )
     if current is not None and not replaces_guest_pass:
         raise JoinError(
-            "exists", "You already have a membership. See your account page.", status=409
+            "exists", "You already have a membership. See Settings, under Membership.", status=409
         )
 
     try:
@@ -130,7 +130,7 @@ def join(user, tier_slug, agreement_version, typed_name, method=""):
                 membership.save()
     except IntegrityError as exc:
         raise JoinError(
-            "exists", "You already have a membership. See your account page.", 409
+            "exists", "You already have a membership. See Settings, under Membership.", 409
         ) from exc
 
     if tier.is_free:

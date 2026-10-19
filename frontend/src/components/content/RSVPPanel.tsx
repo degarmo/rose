@@ -43,9 +43,10 @@ function PartySize({ value, max, onChange }: { value: number; max: number; onCha
   )
 }
 
-/** The calendar file: discreet ("Rose - Evening", no place) unless the box is ticked. */
+/** The calendar file: discreet ("Rose - Evening", no place) unless the box is ticked. Settings > Privacy sets where the box starts. */
 function CalendarDownload({ slug }: { slug: string }) {
-  const [details, setDetails] = useState(false)
+  const auth = useAuth()
+  const [details, setDetails] = useState(Boolean(auth.user?.calendar_details))
   return (
     <div className="flex flex-col gap-2.5">
       <a
@@ -250,7 +251,7 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
       <>
         <Note>This night is for members and their guests. Join or log in to RSVP.</Note>
         {auth.user?.has_membership ? (
-          <ButtonLink to="/account#membership" size="lg" variant="outline" className="w-full">
+          <ButtonLink to="/members/settings/membership" size="lg" variant="outline" className="w-full">
             See my membership
           </ButtonLink>
         ) : (
@@ -286,9 +287,9 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
   } else if (rsvp.state === 'restricted') {
     body = (
       <>
-        <Note>RSVPs are paused on your account. Your account page explains why.</Note>
-        <ButtonLink to="/account/notices" size="lg" variant="outline" className="w-full">
-          See my account
+        <Note>RSVPs are paused on your account. Your notices in Settings explain why.</Note>
+        <ButtonLink to="/members/settings/guidelines" size="lg" variant="outline" className="w-full">
+          See my notices
         </ButtonLink>
       </>
     )

@@ -4,6 +4,8 @@ Both are read on most requests and change rarely, so each is cached in full and
 the cache entry is dropped whenever a row is saved or deleted (signals below).
 """
 
+import re
+
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
@@ -42,8 +44,30 @@ def redirect_map():
     return {**table, **BUILTIN_REDIRECTS}
 
 
+# The account page moved into the member app's Settings. The sign-in pages
+# (login, register, verify, forgot, reset) stay under /account.
+ACCOUNT_MOVES = {
+    "/account": "/members/settings",
+    "/account/notices": "/members/settings/guidelines",
+    "/account/export": "/members/settings/privacy/export",
+}
+RECEIPT_PATH = re.compile(r"^/account/receipts/(\d+)/?$")
+
+
+def account_move(path):
+    """Where an old /account address lives now, keeping receipt numbers."""
+    trimmed = path.rstrip("/") or "/"
+    if trimmed in ACCOUNT_MOVES:
+        return ACCOUNT_MOVES[trimmed]
+    match = RECEIPT_PATH.match(path)
+    return f"/members/settings/membership/receipts/{match.group(1)}" if match else None
+
+
 def redirect_for(path):
     """The new address for an old one. "/old/*" in the table matches everything under /old/."""
+    moved = account_move(path)
+    if moved:
+        return moved
     path = normalise_path(path)
     table = redirect_map()
     if path in table:

@@ -1,4 +1,4 @@
-import { enterTwoStepCode, expect, fixtures, personPage, test } from './support'
+import { enterWebsiteCode, expect, fixtures, personPage, test } from './support'
 
 test.describe('The owner', () => {
   test('logs in, lands on the dashboard with real numbers, then the inbox and the feed', async ({ browser, baseURL }) => {
@@ -9,11 +9,8 @@ test.describe('The owner', () => {
     await page.getByLabel('Password').fill(password)
     await page.getByRole('button', { name: 'Log in' }).click()
 
-    // Straight to the staff section, which asks for the two-step login first.
-    await expect(page).toHaveURL(/\/members\/staff$/)
-    await expect(page.getByRole('heading', { name: 'Confirm it is you' })).toBeVisible()
-    await page.getByRole('link', { name: 'Continue' }).click()
-    await enterTwoStepCode(page, owner.totp_secret)
+    // The authenticator code at sign-in, then straight to the staff section, already unlocked.
+    await enterWebsiteCode(page, owner.totp_secret)
 
     // The dashboard, with numbers and bars rather than an empty page.
     await expect(page).toHaveURL(/\/members\/staff$/)
