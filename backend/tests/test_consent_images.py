@@ -26,7 +26,48 @@ def test_factory_builds_the_four_fields_once():
         "hero_image_alt",
         "hero_image_faces_visible",
         "hero_image_consent_confirmed",
+        # Public images also record their size, for srcset and layout.
+        "hero_image_width",
+        "hero_image_height",
     }
+
+
+def test_private_images_get_no_size_variants():
+    from apps.core.private_media import private_storage
+
+    mixin = consented_image(
+        "avatar", upload_to="avatars", storage=private_storage, alt_required=False
+    )
+    names = {field.name for field in mixin._meta.get_fields()}
+    assert "avatar_width" not in names
+    assert mixin._meta.get_field("avatar").variant_widths == ()
+
+
+@pytest.mark.django_db
+def test_public_uploads_get_variants_and_sizes(settings, tmp_path):
+    from io import BytesIO
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+
+    from apps.core.consent_images import consent_image_payload
+    from apps.education.models import Opportunity
+
+    settings.MEDIA_ROOT = tmp_path
+    buffer = BytesIO()
+    Image.new("RGB", (2000, 1000), (80, 20, 30)).save(buffer, format="JPEG")
+    item = Opportunity(title="Class", slug="class", summary="s", body="b", is_published=True)
+    item.hero_image = SimpleUploadedFile("hero.jpg", buffer.getvalue(), content_type="image/jpeg")
+    item.hero_image_alt = "A red square"
+    item.save()
+    assert (item.hero_image_width, item.hero_image_height) == (2000, 1000)
+    stem = item.hero_image.name.rsplit(".", 1)[0]
+    for width in (640, 1280):
+        with Image.open(tmp_path / f"{stem}-{width}w.webp") as variant:
+            assert variant.size == (width, width // 2)
+    payload = consent_image_payload(item, "hero_image")
+    assert payload["width"] == 2000 and payload["height"] == 1000
+    assert payload["srcset"].count("w,") == 2 and payload["srcset"].endswith(" 2000w")
 
 
 def test_every_image_model_uses_the_pattern():

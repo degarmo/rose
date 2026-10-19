@@ -79,7 +79,7 @@ def test_post_shape_and_author_display_name_only(make_post, make_user, api_clien
     assert set(data) == {"slug", "caption_html", "published_at", "author", "images", "event", "cta"}
     assert data["author"] == "editor_one"
     assert len(data["images"]) == 3
-    assert set(data["images"][0]) == {"url", "alt"}
+    assert set(data["images"][0]) == {"url", "alt", "width", "height", "srcset"}
     assert "editor@example.org" not in str(data)
 
 

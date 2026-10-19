@@ -82,6 +82,10 @@ export function ImageFrame({
     content = (
       <img
         src={remote.url}
+        srcSet={remote.srcset ?? undefined}
+        sizes={remote.srcset ? sizes : undefined}
+        width={remote.width ?? undefined}
+        height={remote.height ?? undefined}
         alt={remote.alt || alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"

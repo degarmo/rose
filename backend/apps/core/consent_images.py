@@ -18,7 +18,11 @@ from functools import cache
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from .images import RandomizedUploadTo, SanitizedImageField
+from .images import RandomizedUploadTo, SanitizedImageField, variant_name
+
+# Narrower copies made of every public image, for srcset. Member images are
+# private and watermarked per viewer, so they get none.
+PUBLIC_VARIANT_WIDTHS = (640, 1280)
 
 ALT_REQUIRED = "Describe the image for people using screen readers."
 CONSENT_REQUIRED = (
@@ -94,7 +98,10 @@ def consented_image(field, upload_to, required=False, storage=None, alt_required
         "blank": not required,
         "help_text": "Metadata is stripped and the file renamed on upload.",
     }
-    if storage is not None:
+    public = storage is None
+    if public:
+        image_kwargs["variant_widths"] = PUBLIC_VARIANT_WIDTHS
+    else:
         image_kwargs["storage"] = storage
     image_field = SanitizedImageField(**image_kwargs)
     image_field.consent_alt_required = alt_required
@@ -119,18 +126,42 @@ def consented_image(field, upload_to, required=False, storage=None, alt_required
             help_text="Tick only when everyone visible has given written consent.",
         ),
     }
+    if public:
+        attrs[f"{field}_width"] = models.PositiveIntegerField(null=True, blank=True, editable=False)
+        attrs[f"{field}_height"] = models.PositiveIntegerField(
+            null=True, blank=True, editable=False
+        )
     class_name = f"Consented{''.join(part.title() for part in field.split('_'))}"
     return type(class_name, (ConsentImageMixin,), attrs)
 
 
 def consent_image_payload(obj, field, request=None):
-    """Serializer render block: `{url, alt}` or None when withheld."""
+    """Serializer render block: `{url, alt, width, height, srcset}` or None when withheld.
+
+    width, height and srcset are null for images stored before sizes were recorded.
+    """
     if not obj.image_is_displayable(field):
         return None
-    url = getattr(obj, field).url
+    image = getattr(obj, field)
+
+    def absolute(url):
+        return request.build_absolute_uri(url) if request else url
+
+    width = getattr(obj, f"{field}_width", None)
+    height = getattr(obj, f"{field}_height", None)
+    srcset = None
+    if width:
+        widths = [w for w in getattr(image.field, "variant_widths", ()) if w < width]
+        candidates = [
+            f"{absolute(image.storage.url(variant_name(image.name, w)))} {w}w" for w in widths
+        ]
+        srcset = ", ".join([*candidates, f"{absolute(image.url)} {width}w"])
     return {
-        "url": request.build_absolute_uri(url) if request else url,
+        "url": absolute(image.url),
         "alt": getattr(obj, f"{field}_alt"),
+        "width": width,
+        "height": height,
+        "srcset": srcset,
     }
 
 

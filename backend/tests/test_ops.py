@@ -194,3 +194,31 @@ def test_old_backups_are_pruned(private_root, settings):
     os.utime(private_root / "backups/old.dump.age", (past, past))
     assert backups.prune() == 1
     assert media.exists("backups/new.dump.age")
+
+
+# verify_restore
+
+
+def test_verify_restore_passes_and_writes_counts(tmp_path, make_user):
+    import json
+
+    make_user()
+    out = StringIO()
+    counts_file = tmp_path / "counts.json"
+    call_command("verify_restore", write_counts=str(counts_file), stdout=out)
+    assert "Restore verified" in out.getvalue()
+    counts = json.loads(counts_file.read_text())
+    assert counts["accounts_user"] == 1
+    call_command("verify_restore", counts_file=str(counts_file), stdout=StringIO())
+
+
+def test_verify_restore_reports_missing_rows(tmp_path, make_user):
+    import json
+
+    make_user()
+    counts_file = tmp_path / "counts.json"
+    counts_file.write_text(json.dumps({"accounts_user": 5}))
+    out = StringIO()
+    with pytest.raises(CommandError, match="problems found"):
+        call_command("verify_restore", counts_file=str(counts_file), stdout=out)
+    assert "accounts_user: 5 rows before, 1 after" in out.getvalue()

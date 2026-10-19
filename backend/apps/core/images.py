@@ -106,10 +106,10 @@ def open_clean(source):
     return clean
 
 
-def encode_webp(image, max_dimension=MAX_DIMENSION):
+def encode_webp(image, max_dimension=MAX_DIMENSION, max_width=None):
     """Resize (never upscale) and encode as WebP with no metadata attached."""
     resized = image.copy()
-    resized.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+    resized.thumbnail((max_width or max_dimension, max_dimension), Image.Resampling.LANCZOS)
     buffer = BytesIO()
     resized.save(buffer, format="WEBP", quality=WEBP_QUALITY, method=6, exif=b"", xmp=b"")
     return buffer.getvalue(), resized.size
@@ -119,6 +119,12 @@ def sanitize_image(source, max_dimension=MAX_DIMENSION):
     """Return a metadata-free WebP ContentFile with a random name."""
     data, _ = encode_webp(open_clean(source), max_dimension=max_dimension)
     return ContentFile(data, name=random_filename())
+
+
+def variant_name(name, width):
+    """`events/abc.webp` -> `events/abc-640w.webp`: the smaller copies sit beside the original."""
+    stem = name.rsplit(".", 1)[0]
+    return f"{stem}-{width}w.webp"
 
 
 @deconstructible
@@ -134,11 +140,34 @@ class RandomizedUploadTo:
 
 
 class SanitizedImageField(models.ImageField):
-    """ImageField that strips metadata and re-encodes new uploads on save."""
+    """ImageField that strips metadata and re-encodes new uploads on save.
+
+    With `variant_widths` (public images), it also stores narrower copies beside
+    the original for srcset, and records the original's size in
+    `<name>_width` / `<name>_height` so pages can reserve the space.
+    """
+
+    def __init__(self, *args, variant_widths=(), **kwargs):
+        self.variant_widths = tuple(variant_widths)
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        if self.variant_widths:
+            kwargs["variant_widths"] = self.variant_widths
+        return name, path, args, kwargs
 
     def pre_save(self, model_instance, add):
         file = getattr(model_instance, self.attname)
         if file and not file._committed:
-            cleaned = sanitize_image(file.file)
-            file.save(cleaned.name, cleaned, save=False)
+            clean = open_clean(file.file)
+            data, (width, height) = encode_webp(clean)
+            file.save(random_filename(), ContentFile(data), save=False)
+            if self.variant_widths:
+                setattr(model_instance, f"{self.name}_width", width)
+                setattr(model_instance, f"{self.name}_height", height)
+                for variant in self.variant_widths:
+                    if variant < width:
+                        copy, _ = encode_webp(clean, max_width=variant)
+                        file.storage.save(variant_name(file.name, variant), ContentFile(copy))
         return super().pre_save(model_instance, add)

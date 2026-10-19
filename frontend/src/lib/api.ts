@@ -27,6 +27,10 @@ export type OpportunityLevel = 'beginner' | 'intermediate' | 'advanced' | 'all'
 export interface RemoteImage {
   url: string
   alt: string
+  /** Set for public images: the original's size and narrower copies for srcset. */
+  width?: number | null
+  height?: number | null
+  srcset?: string | null
 }
 
 export interface Opportunity {
