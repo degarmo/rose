@@ -10,7 +10,7 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 const MIN_QUERY = 3
 
 export function DirectoryPage() {
-  useDocumentMeta({ title: 'Directory', noindex: true })
+  useDocumentMeta({ title: 'Search', noindex: true })
   const [query, setQuery] = useState('')
   const trimmed = query.trim()
   const ready = trimmed.length >= MIN_QUERY
@@ -18,8 +18,8 @@ export function DirectoryPage() {
 
   return (
     <div>
-      <h1 className="text-3xl text-fg">Directory</h1>
-      <p className="mt-2 text-sm text-fg-muted">Search by display name. Only members who chose to be listed appear, and there is no browsing the full list.</p>
+      <h1 className="text-2xl text-fg">Search</h1>
+      <p className="mt-1 text-sm text-fg-muted">Search by display name. Only members who chose to be listed appear, and there is no browsing the full list.</p>
       <div className="mt-6" role="search">
         <FormField label="Display name" hint={`Type at least ${MIN_QUERY} characters.`} optionalLabel="">
           {(field) => <Input {...field} type="search" autoComplete="off" spellCheck={false} value={query} onChange={(e) => setQuery(e.target.value)} />}
@@ -30,11 +30,14 @@ export function DirectoryPage() {
         {state.status === 'error' && <ErrorState title="Search did not work" onRetry={state.retry} />}
         {ready && state.status === 'success' && state.data.results.length === 0 && <p className="text-sm text-fg-subtle">Nobody listed matches that.</p>}
         {state.status === 'success' && state.data.results.length > 0 && (
-          <ul className="flex flex-col divide-y divide-border">
+          <ul className="flex flex-col">
             {state.data.results.map((member) => (
               <li key={member.handle}>
-                <Link to={`/members/u/${encodeURIComponent(member.handle)}`} className="flex min-h-14 items-center gap-3 py-2 text-fg hover:text-accent">
-                  <Avatar member={member} />
+                <Link
+                  to={`/members/u/${encodeURIComponent(member.handle)}`}
+                  className="-mx-2 flex min-h-14 items-center gap-3 rounded-lg px-2 py-2 text-sm font-semibold text-fg hover:bg-primary-deep"
+                >
+                  <Avatar member={member} size="md" />
                   {member.handle}
                 </Link>
               </li>

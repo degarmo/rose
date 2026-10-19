@@ -56,7 +56,7 @@ export function Modal({
           variant === 'sheet'
             ? 'h-full w-full px-6 pb-10 pt-6'
             : cn(
-                'max-h-[92dvh] w-full overflow-y-auto rounded-2xl border border-border p-6 sm:p-8',
+                'max-h-[92dvh] w-full overflow-y-auto rounded-card border border-border p-6 sm:p-8',
                 size === 'wide' ? 'max-w-5xl' : 'max-w-lg',
               ),
         )}

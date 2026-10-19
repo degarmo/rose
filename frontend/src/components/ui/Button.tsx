@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { cn } from '@/lib/cn'
 import { isExternalUrl } from '@/lib/format'
 
-export type ButtonVariant = 'primary' | 'ghost' | 'link'
+export type ButtonVariant = 'primary' | 'ghost' | 'secondary' | 'link'
 export type ButtonSize = 'md' | 'lg'
 
 const base =
@@ -11,9 +11,11 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    'rounded-full bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-deep shadow-[0_0_0_1px_rgb(194_155_98/0.25)_inset]',
+    'rounded-control bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-deep shadow-[0_0_0_1px_rgb(194_155_98/0.25)_inset]',
   ghost:
-    'rounded-full border border-border-strong text-fg hover:border-highlight hover:text-accent active:bg-surface-raised',
+    'rounded-control border border-border-strong text-fg hover:border-highlight hover:text-accent active:bg-surface-raised',
+  /** A filled, quieter button: grey in the members area. */
+  secondary: 'rounded-control bg-primary-deep text-fg hover:bg-border',
   link: 'text-accent underline decoration-highlight/60 underline-offset-[6px] hover:decoration-highlight hover:text-fg',
 }
 

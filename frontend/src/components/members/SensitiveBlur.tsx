@@ -13,12 +13,12 @@ export function SensitiveBlur({ blurred, children }: { blurred: boolean; childre
       </div>
       {hidden && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-ink-950/50 p-6 text-center">
-          <EyeOff aria-hidden="true" className="size-6 text-highlight" />
-          <p className="text-sm text-fg">Marked sensitive by the author</p>
+          <EyeOff aria-hidden="true" className="size-6 text-white" />
+          <p className="text-sm font-semibold text-white">Marked sensitive by the author</p>
           <button
             type="button"
             onClick={() => setRevealed(true)}
-            className="min-h-11 rounded-full border border-highlight/60 px-5 text-sm text-fg hover:bg-primary"
+            className="min-h-11 rounded-lg border border-white/70 px-5 text-sm font-semibold text-white hover:bg-white/15"
           >
             View
           </button>

@@ -10,7 +10,7 @@ export function Card({ interactive = false, as: Tag = 'div', className, ...rest 
   return (
     <Tag
       className={cn(
-        'relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface',
+        'relative flex flex-col overflow-hidden rounded-card border border-border bg-surface',
         interactive &&
           'transition-[border-color,transform] duration-500 ease-velvet hover:-translate-y-0.5 hover:border-border-strong focus-within:border-border-strong',
         className,

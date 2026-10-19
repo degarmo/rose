@@ -85,7 +85,7 @@ export function Carousel({ images, label, protect = false }: CarouselProps) {
             type="button"
             onClick={() => go(index - 1)}
             disabled={index === 0}
-            className="absolute left-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink-950/70 text-fg backdrop-blur transition-opacity disabled:opacity-0"
+            className="absolute left-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink-950/70 text-cream-100 backdrop-blur transition-opacity disabled:opacity-0"
           >
             <ChevronLeft aria-hidden="true" className="size-5" />
             <span className="sr-only">Previous image</span>
@@ -94,7 +94,7 @@ export function Carousel({ images, label, protect = false }: CarouselProps) {
             type="button"
             onClick={() => go(index + 1)}
             disabled={index === count - 1}
-            className="absolute right-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink-950/70 text-fg backdrop-blur transition-opacity disabled:opacity-0"
+            className="absolute right-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink-950/70 text-cream-100 backdrop-blur transition-opacity disabled:opacity-0"
           >
             <ChevronRight aria-hidden="true" className="size-5" />
             <span className="sr-only">Next image</span>

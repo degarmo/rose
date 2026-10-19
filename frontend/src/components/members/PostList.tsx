@@ -18,7 +18,7 @@ export function PostList({ loader, listKey, empty }: PostListProps) {
 
   return (
     <div>
-      <ul className="flex flex-col gap-5">
+      <ul className="mx-auto flex max-w-[470px] flex-col gap-5">
         {posts.map((post) => (
           <li key={post.id}>
             <PostCard post={post} onChange={(next) => update(post.id, next)} />

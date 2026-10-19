@@ -337,3 +337,12 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 219. The sidebar stays on the left at every width (an icon rail on tablets and phones), as asked, rather than moving to a bottom tab bar on phones.
 220. Items and badges follow permissions: a door volunteer sees Home, Door desk, Notifications, Images, Dashboard and All sections; badges are counts only. "Recent actions" becomes the last card in the home column.
 
+### Members area look
+
+221. Only the logged-in members area (`/members/*`) takes the photo-app look. The public website and the account page keep the site's own design. An earlier attempt restyled every page; it was reverted at the owner's request.
+222. The look is scoped through CSS variables on an `.ig-app` root, not separate components. Colours, fonts and corner shapes are tokens, and `.ig-app` redefines them, so the public site renders exactly as before. Three corner tokens (`--radius-control`, `--radius-card`, `--radius-field`) were added for this; their public values equal the old classes.
+223. The sidebar stays on the left at every width (a rail on tablets and phones), like the staff admin and as asked for there, rather than a bottom tab bar on phones. Leave stays near the top of it on every page. **(privacy)** The Settings menu also ends with "Leave this site now".
+224. Blue is #0067d1 and red is #d61f3a (light) or #ff3040 (dark), chosen to pass WCAG AA contrast, instead of copying any app's exact colours. Muted text is 4.74:1 in light and 8.83:1 in dark; input borders are 3.26:1. The "Rose" name is set in a script typeface; no other company's logo, name or wordmark is used.
+225. The appearance choice (automatic, light or dark) is a per-browser convenience in localStorage, guarded for private windows and never sent to the server.
+226. The loading state and the no-access 404 keep the public look. **(privacy)** Someone without feed access must not be able to tell the members area exists.
+227. The composer's sidebar button reads "Create" (its tooltip says "New post"); the old floating button is gone.

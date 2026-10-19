@@ -85,7 +85,8 @@ Import from `@/components/ui`.
 <ButtonLink to="https://example.org" variant="link">External</ButtonLink>
 ```
 
-- Variants: `primary` (oxblood pill, one per view where possible), `ghost` (outlined pill, secondary action), `link` (underlined text with a brass underline).
+- Variants: `primary` (oxblood pill, one per view where possible), `ghost` (outlined pill, secondary action), `secondary` (filled with `primary-deep`; the grey button of the members area), `link` (underlined text with a brass underline).
+- Corners come from the `--radius-control`, `--radius-card` and `--radius-field` tokens (`rounded-control` and so on). They are pills, 1 rem and 0.75 rem on the public site; the members area squares them off.
 - Sizes: `md` (44 px) and `lg` (48 px).
 - `ButtonLink` uses the router for paths starting with `/` and a plain anchor with `rel="noopener noreferrer"` for `https:` and `mailto:` links.
 - Disabled buttons use the native `disabled` attribute. Add `aria-disabled` when the label explains why (see Join).
@@ -291,7 +292,13 @@ development-only sandbox checkout. The agreement box must be scrolled to the end
 
 ## Members area (`components/members`)
 
-A quieter variant of the site chrome for `/members/*`: a slim header with the wordmark, an Account link and the compact Leave control, then four tabs (Feed, Directory, Notifications with a `Bell` unread badge, Profile). A floating `Plus` button opens the composer; on large screens it sits above the floating Leave control. Content is a single column, `max-w-2xl`.
+The logged-in members area (`/members/*`) has a photo-app look of its own; the public site and `/account` keep the site's design.
+
+- **Scope.** `MembersLayout` puts `.ig-app` on its root. `index.css` redefines the colour, font and corner tokens inside `.ig-app` only: white or black canvas, the system font, blue `primary` (#0067d1), grey `primary-deep`, hairline borders, 8 px corners. The shared components (Button, Card, Modal, fields) pick this up through the tokens, so no component forks. Image placeholders turn plain grey there.
+- **Appearance.** Light or dark follows the device. Settings > Appearance cycles Automatic, Light and Dark, kept in this browser only (`members-appearance` in localStorage, via `components/members/appearance.ts`), and set as `data-theme` on the same root.
+- **Sidebar** (`MembersSidebar`, nav "Members"). It is fixed on the left at every width: 245 px with labels from the `wide` breakpoint (79 rem, 1264 px), a 73 px icon rail from `md`, and 56 px on phones. From the top: the "Rose" logo (an R mark on the rail), **Leave** in red (always in view), Home, Search, Create (opens the composer; disabled while posting is paused), Notifications (heart with a red unread count) and Profile (the member's avatar). **Settings** (gear) sits at the bottom left and opens upwards: Your account, Appearance, Community guidelines, Back to the website, Log out, Leave this site now. The menu closes on outside click, Escape and navigation.
+- **Content** is one centred column (630 px; posts 470 px). The Feed has Following and Everyone text tabs. Search, Notifications and the post page use plain rows. A profile is a large avatar beside the handle, its buttons, bio and join month, then a Posts tab over a three-column grid.
+- **Unchanged look:** while loading, and for anyone without access (who gets the site's ordinary 404), the page looks like the rest of the site, so nothing hints that the area exists.
 
 ### PostCard
 
@@ -299,7 +306,7 @@ A quieter variant of the site chrome for `/members/*`: a slim header with the wo
 <PostCard post={post} onChange={(next) => update(post.id, next)} />
 ```
 
-Avatar, handle, relative time (or "Mar 2026" for anything older than a week), the image carousel with image protection, the caption with a More toggle after three lines, a like button (optimistic) and a comment link. The overflow menu offers Report, Mute and Block to viewers, and Edit and Delete to the author; Block and Delete confirm first. `onChange(null)` removes the card from its list.
+A borderless post with a hairline under it: avatar, handle · relative time (or "Mar 2026" for anything older than a week), the image carousel with image protection, then a heart (optimistic like) and a speech bubble (comments), the like count for the author only, the caption led by the handle in bold with a "more" toggle after two lines, and "View all N comments". The overflow menu offers Report, Mute and Block to viewers, and Edit and Delete to the author; Block and Delete confirm first. `onChange(null)` removes the card from its list.
 
 ### SensitiveBlur
 

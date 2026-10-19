@@ -56,7 +56,7 @@ function Comments({ post }: { post: FeedPost }) {
 
   return (
     <section aria-labelledby="comments" className="mt-6">
-      <h2 id="comments" className="text-2xl text-fg">
+      <h2 id="comments" className="text-base text-fg">
         Comments
       </h2>
       {state.status === 'loading' && <LoadingState label="Loading comments" />}
@@ -69,11 +69,11 @@ function Comments({ post }: { post: FeedPost }) {
               <Avatar member={comment.author} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm">
-                  <span className="font-medium text-fg">{comment.author.handle}</span>{' '}
+                  <span className="font-semibold text-fg">{comment.author.handle}</span>{' '}
                   <span className="text-fg-subtle">{postedLabel(comment.posted, relativeDate)}</span>
                 </p>
                 <div
-                  className="mt-0.5 break-words leading-relaxed text-fg-muted [&_a]:text-accent [&_a]:underline"
+                  className="mt-0.5 break-words text-sm leading-relaxed text-fg [&_a]:text-accent [&_a]:underline"
                   // Sanitised on the server.
                   dangerouslySetInnerHTML={{ __html: comment.body_html }}
                 />
@@ -127,7 +127,7 @@ export function PostPage() {
   const post = override?.id === id ? override : state.status === 'success' ? state.data : null
 
   return (
-    <div>
+    <div className="mx-auto max-w-[470px]">
       <ButtonLink to="/members/feed" variant="link" className="mb-3">
         <ArrowLeft aria-hidden="true" className="size-4" />
         Feed

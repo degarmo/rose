@@ -37,7 +37,7 @@ export function Toggle({ label, hint, checked, onChange, disabled }: ToggleProps
         />
         <span
           aria-hidden="true"
-          className={cn('absolute top-1 size-5 rounded-full bg-fg transition-transform duration-300', checked ? 'translate-x-6' : 'translate-x-1')}
+          className={cn('absolute top-1 size-5 rounded-full bg-knob shadow-sm transition-transform duration-300', checked ? 'translate-x-6' : 'translate-x-1')}
         />
       </span>
     </div>

@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react'
+import { Grid3x3, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ErrorState, LoadingState } from '@/components/content/States'
@@ -30,10 +30,10 @@ function PostGrid({ handle, version }: { handle: string; version: number }) {
   )
   return (
     <div>
-      <ul className="grid grid-cols-3 gap-0.5 sm:gap-1">
+      <ul className="grid grid-cols-3 gap-1">
         {base.map((post: FeedPost) => (
           <li key={post.id}>
-            <Link to={`/members/p/${post.id}`} className="relative block aspect-square overflow-hidden bg-surface-raised" aria-label={`Open post from ${post.posted.at ?? post.posted.month}`}>
+            <Link to={`/members/p/${post.id}`} className="relative block aspect-square overflow-hidden bg-surface-sunken hover:opacity-90" aria-label={`Open post from ${post.posted.at ?? post.posted.month}`}>
               {post.images[0] ? (
                 <ImageFrame remote={post.blur ? null : post.images[0]} alt="" ratio="1/1" placeholder="velvet" reveal={false} protect className={post.blur ? 'blur-xl' : undefined} />
               ) : (
@@ -79,44 +79,58 @@ export function MemberProfilePage() {
 
   return (
     <div>
-      <header className="flex items-start gap-4">
+      <header className="flex items-start gap-5 px-2 pb-6 sm:gap-16 sm:px-8">
         <Avatar member={profile} size="lg" />
-        <div className="min-w-0 flex-1">
-          <h1 className="break-all text-2xl leading-tight text-fg sm:text-3xl">{profile.handle}</h1>
-          <p className="mt-1 text-sm text-fg-subtle">Joined {joinedLabel(profile.joined)}</p>
-          {profile.bio && <p className="mt-3 leading-relaxed text-fg-muted">{profile.bio}</p>}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {profile.is_self ? (
-              <Button variant="ghost" onClick={() => setDialog('settings')}>
-                <Settings aria-hidden="true" className="size-4" />
-                Edit profile
-              </Button>
-            ) : (
-              profile.relationship && (
-                <>
-                  <Button variant={profile.relationship.following ? 'ghost' : 'primary'} onClick={() => void relate('follow', !profile.relationship?.following)}>
-                    {profile.relationship.following ? 'Following' : 'Follow'}
-                  </Button>
-                  <Button variant="ghost" onClick={() => void relate('mute', !profile.relationship?.muted)}>
-                    {profile.relationship.muted ? 'Unmute' : 'Mute'}
-                  </Button>
-                </>
-              )
-            )}
+        <div className="min-w-0 flex-1 pt-1 sm:pt-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <h1 className="break-all text-xl font-normal text-fg">{profile.handle}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              {profile.is_self ? (
+                <Button variant="secondary" onClick={() => setDialog('settings')}>
+                  <Settings aria-hidden="true" className="size-4" />
+                  Edit profile
+                </Button>
+              ) : (
+                profile.relationship && (
+                  <>
+                    <Button
+                      variant={profile.relationship.following ? 'secondary' : 'primary'}
+                      onClick={() => void relate('follow', !profile.relationship?.following)}
+                    >
+                      {profile.relationship.following ? 'Following' : 'Follow'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void relate('mute', !profile.relationship?.muted)}
+                    >
+                      {profile.relationship.muted ? 'Unmute' : 'Mute'}
+                    </Button>
+                  </>
+                )
+              )}
+              {!profile.is_self && (
+                <OverflowMenu
+                  label="Profile options"
+                  items={[
+                    { label: 'Report profile', onSelect: () => setDialog('report') },
+                    { label: `Block ${profile.handle}`, onSelect: () => setDialog('block'), danger: true },
+                  ]}
+                />
+              )}
+            </div>
           </div>
-          {!profile.is_self && <p className="mt-2 text-xs text-fg-subtle">Follows are private. Nobody sees who follows whom.</p>}
+          {profile.bio && <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-fg">{profile.bio}</p>}
+          <p className="mt-2 text-sm text-fg-muted">Joined {joinedLabel(profile.joined)}</p>
+          {!profile.is_self && <p className="mt-1 text-xs text-fg-subtle">Follows are private. Nobody sees who follows whom.</p>}
         </div>
-        {!profile.is_self && (
-          <OverflowMenu
-            label="Profile options"
-            items={[
-              { label: 'Report profile', onSelect: () => setDialog('report') },
-              { label: `Block ${profile.handle}`, onSelect: () => setDialog('block'), danger: true },
-            ]}
-          />
-        )}
       </header>
-      <div className="mt-8">
+      <div className="border-t border-border">
+        <p className="-mt-px flex justify-center">
+          <span className="inline-flex min-h-12 items-center gap-1.5 border-t border-fg text-xs font-semibold uppercase tracking-widest text-fg">
+            <Grid3x3 aria-hidden="true" className="size-3.5" />
+            Posts
+          </span>
+        </p>
         <PostGrid handle={profile.handle} version={postsVersion} />
       </div>
       {profile.is_self && <ProfileSettings open={dialog === 'settings'} onClose={() => setDialog(null)} />}

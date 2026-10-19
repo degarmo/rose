@@ -45,7 +45,7 @@ export function OverflowMenu({ items, label }: { items: MenuItem[]; label: strin
       {open && (
         <ul
           id={menuId}
-          className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-border-strong bg-surface-raised py-1 shadow-2xl shadow-black/50"
+          className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl bg-surface-raised py-1 shadow-[var(--ig-shadow)] ring-1 ring-border"
         >
           {items.map((item) => (
             <li key={item.label}>

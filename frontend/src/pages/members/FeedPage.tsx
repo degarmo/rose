@@ -15,7 +15,7 @@ export function FeedPage() {
     <div>
       <h1 className="sr-only">Member feed</h1>
       {me.post_block_reason === 'guidelines' && (
-        <p className="mb-4 rounded-xl border border-highlight/40 bg-primary-deep/40 p-4 text-sm text-fg">
+        <p className="mx-auto mb-4 max-w-[470px] rounded-lg bg-primary-deep p-4 text-sm text-fg">
           The guidelines have changed.{' '}
           <Link to="/members/join-feed?guidelines=1" className="underline underline-offset-4">
             Read and accept them
@@ -24,9 +24,9 @@ export function FeedPage() {
         </p>
       )}
       {me.post_block_reason === 'cooldown' && (
-        <p className="mb-4 rounded-xl border border-border p-4 text-sm text-fg-muted">Posting is paused on your account for a little while. You can still read and like.</p>
+        <p className="mx-auto mb-4 max-w-[470px] rounded-lg bg-primary-deep p-4 text-sm text-fg-muted">Posting is paused on your account for a little while. You can still read and like.</p>
       )}
-      <div role="tablist" aria-label="Feed" className="mb-5 grid grid-cols-2 rounded-full border border-border p-1">
+      <div role="tablist" aria-label="Feed" className="mx-auto mb-6 flex max-w-[470px] justify-center gap-10 border-b border-border">
         {(['following', 'everyone'] as const).map((value) => (
           <button
             key={value}
@@ -35,8 +35,8 @@ export function FeedPage() {
             aria-selected={tab === value}
             onClick={() => setParams(value === 'everyone' ? {} : { tab: value }, { replace: true })}
             className={cn(
-              'min-h-10 rounded-full text-sm transition-colors',
-              tab === value ? 'bg-primary text-on-primary' : 'text-fg-muted hover:text-fg',
+              '-mb-px min-h-11 border-b px-1 text-sm font-semibold transition-colors',
+              tab === value ? 'border-fg text-fg' : 'border-transparent text-fg-muted hover:text-fg',
             )}
           >
             {value === 'following' ? 'Following' : 'Everyone'}

@@ -46,7 +46,7 @@ test.describe('Member feed', () => {
 
     // A photo post, with something covered before it ever leaves the device.
     await poster.goto('/members/feed')
-    await poster.getByRole('button', { name: 'New post' }).click()
+    await poster.getByRole('button', { name: 'Create' }).click()
     await poster.locator('#composer-files').setInputFiles(PHOTO)
     await poster.getByRole('button', { name: 'Next' }).click()
     const surface = poster.getByTestId('redaction-surface')
@@ -100,7 +100,7 @@ test.describe('Member feed', () => {
     await expect(poster.getByText('Hidden while we review a report')).toBeVisible()
 
     // A text post, then the friend blocks the poster: it disappears for them.
-    await poster.getByRole('button', { name: 'New post' }).click()
+    await poster.getByRole('button', { name: 'Create' }).click()
     await poster.getByRole('button', { name: 'Write a text post' }).click()
     await poster.getByRole('textbox', { name: /^Caption/ }).fill(second)
     await poster.getByRole('button', { name: 'Post', exact: true }).click()
