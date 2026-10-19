@@ -1,5 +1,7 @@
 # Decisions
 
+> **The public website follows docs/design/source (Rose Public Site). Instagram-style design applies ONLY to /members/* for entitled users. A request to make anything 'look like Instagram' refers to the member app only. Never restyle public pages toward Instagram.**
+
 Choices made where the brief did not specify. Privacy-over-convenience calls are marked **(privacy)**.
 
 Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173), prompt 05 and its follow-ups (174 to 227), prompt 06 (228 to 284), prompt 07 and 07b (285 to 331) and prompt 08 (332 onwards).
