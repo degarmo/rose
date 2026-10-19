@@ -9,6 +9,9 @@ import { LeaveIcon, RoseMark } from './primitives'
 import { igButtonClasses } from './ui'
 
 const STORY_MS = 5000
+// 8px padding, the circle (64px on phones, 66px wider), 4px gap, a 16px label, 8px padding:
+// the tabs below sit 8px under the labels, and the loading placeholder is the same height.
+const TRAY_HEIGHT = 'h-[100px] md:h-[102px]'
 
 const GROUP_ICONS: Record<string, LucideIcon> = {
   tonight: CalendarDays,
@@ -27,7 +30,10 @@ function Circle({ group }: { group: StoryGroup }) {
   return (
     <span
       aria-hidden="true"
-      className={cn('inline-flex size-[66px] items-center justify-center rounded-full p-[3px]', group.seen ? 'bg-border' : 'bg-primary')}
+      className={cn(
+        'inline-flex size-16 items-center justify-center rounded-full p-[3px] md:size-[66px]',
+        group.seen ? 'bg-border' : 'bg-primary',
+      )}
     >
       <span className="inline-flex size-full items-center justify-center rounded-full bg-canvas p-[2px]">
         <span className="relative inline-flex size-full items-center justify-center overflow-hidden rounded-full bg-surface text-fg">
@@ -46,16 +52,16 @@ export function StoriesTray() {
 
   if (state.status !== 'success' || state.data.results.length === 0) {
     // Keep the tray's height while it loads, so the feed below does not jump.
-    return state.status === 'loading' ? <div aria-hidden="true" className="mb-4 h-[110px]" /> : null
+    return state.status === 'loading' ? <div aria-hidden="true" className={TRAY_HEIGHT} /> : null
   }
   const groups = state.data.results
 
   return (
-    <section aria-label="Stories" className="mb-4 h-[110px]">
+    <section aria-label="Stories" className={TRAY_HEIGHT}>
       <ul className="flex gap-4 overflow-x-auto px-2 py-2 [scrollbar-width:none]">
         {groups.map((group, index) => (
           <li key={group.id} className="shrink-0">
-            <button type="button" onClick={() => setOpen(index)} className="flex w-[66px] flex-col items-center gap-1">
+            <button type="button" onClick={() => setOpen(index)} className="flex w-16 flex-col items-center gap-1 md:w-[66px]">
               <Circle group={group} />
               <span className="w-full truncate text-center text-xs text-fg">
                 {group.title}

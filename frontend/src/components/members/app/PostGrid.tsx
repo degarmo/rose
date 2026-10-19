@@ -42,7 +42,7 @@ function Tile({ post, ids }: { post: FeedPost; ids: string[] }) {
             dangerouslySetInnerHTML={{ __html: latest.caption_html }}
           />
         )}
-        {latest.images.length > 1 && <Copy aria-hidden="true" className="absolute right-2 top-2 size-5 text-white drop-shadow" strokeWidth={2} />}
+        {latest.images.length > 1 && <Copy aria-hidden="true" className="absolute right-2 top-2 size-5 text-white drop-shadow-[0_0_2px_rgb(0_0_0/0.6)]" strokeWidth={2} />}
         {/* A soft overlay on hover with a mouse; never counts. */}
         <span aria-hidden="true" className="absolute inset-0 bg-black/0 transition-colors duration-150 md:group-hover:bg-black/25" />
       </Link>

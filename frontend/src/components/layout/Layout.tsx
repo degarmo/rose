@@ -3,7 +3,6 @@ import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { isPrivatePath } from '@/lib/useDocumentMeta'
 import { Footer } from './Footer'
 import { Header } from './Header'
-import { QuickExit } from './QuickExit'
 
 export function Layout() {
   const { pathname } = useLocation()
@@ -21,10 +20,6 @@ export function Layout() {
         <Outlet />
       </main>
       <Footer />
-      {/* Phones get the Leave control in the fixed header instead, clear of page content. */}
-      <div className="hidden xl:block">
-        <QuickExit />
-      </div>
       <ScrollRestoration />
     </div>
   )

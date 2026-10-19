@@ -116,22 +116,40 @@ export function MemberProfilePage() {
 
   return (
     <div className="mx-auto w-full max-w-[935px] md:px-5 md:pt-8">
-      <header className="flex flex-col gap-4 px-4 pb-6 pt-4 md:flex-row md:items-start md:gap-0 md:px-0 md:pb-11 md:pt-0">
-        <div className="md:flex md:w-[290px] md:shrink-0 md:justify-center">
+      {/*
+        Phones: avatar and post count side by side, then the name, bio and join date, then
+        the buttons filling the width. From 768px: the avatar on the left, and the name with
+        its buttons, the count and the bio stacked beside it.
+      */}
+      <header
+        className={cn(
+          'grid grid-cols-[77px_1fr] px-4 pb-6 pt-4 [grid-template-areas:"avatar_stats"_"name_name"_"about_about"_"actions_actions"]',
+          'md:grid-cols-[290px_auto_1fr] md:px-0 md:pb-11 md:pt-0 md:[grid-template-areas:"avatar_name_actions"_"avatar_stats_stats"_"avatar_about_about"]',
+        )}
+      >
+        <div className="[grid-area:avatar] md:row-span-3 md:justify-self-center">
           <Avatar member={profile} size="profile" />
         </div>
-        <section className="min-w-0 flex-1" aria-label="About">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <h1 className="break-all text-xl font-normal text-fg">{profile.handle}</h1>
-            <div className="flex flex-wrap items-center gap-2">{buttons}</div>
-          </div>
-          <p className="mt-4 text-base text-fg md:mt-5">
-            <span className="font-semibold">{profile.post_count}</span> {profile.post_count === 1 ? 'post' : 'posts'}
-          </p>
-          {profile.bio && <p className="mt-3 whitespace-pre-line break-words text-fg">{profile.bio}</p>}
+        <h1 className="mt-3 break-all text-sm font-semibold text-fg [grid-area:name] md:mt-0 md:self-center md:text-xl md:font-normal">
+          {profile.handle}
+        </h1>
+        <p className="flex flex-col items-center self-center justify-self-center text-fg [grid-area:stats] md:mt-5 md:flex-row md:gap-1 md:self-start md:justify-self-start md:text-base">
+          <span className="text-base font-semibold">{profile.post_count}</span>{' '}
+          <span>{profile.post_count === 1 ? 'post' : 'posts'}</span>
+        </p>
+        <section aria-label="About" className="min-w-0 [grid-area:about] md:mt-3">
+          {profile.bio && <p className="whitespace-pre-line break-words text-fg">{profile.bio}</p>}
           <p className="mt-1 text-fg-muted">Joined {joinedLabel(profile.joined)}</p>
           {!profile.is_self && <p className="mt-1 text-xs text-fg-muted">Follows are private. Nobody sees who follows whom.</p>}
         </section>
+        <div
+          className={cn(
+            'mt-4 grid gap-2 [grid-area:actions] md:ml-5 md:mt-0 md:flex md:items-center md:self-center',
+            profile.is_self ? 'grid-cols-2' : 'grid-cols-[1fr_1fr_auto]',
+          )}
+        >
+          {buttons}
+        </div>
       </header>
 
       <Tabs profile={profile} saved={saved} />

@@ -28,7 +28,7 @@ from apps.feed.models import Announcement, FeedImage, FeedPost, Guidelines
 from apps.journal.models import Post as JournalPost
 from apps.journal.models import PostImage as JournalImage
 from apps.memberships.models import MembershipAgreement, Tier
-from apps.pages.management.commands.demo_media import gradient_image
+from apps.pages.management.commands.demo_media import sample_image
 from apps.pages.management.commands.seed_demo import DEMO_CONTENT_DIR
 from apps.pages.models import SiteSettings
 from apps.pages.site_content import load, read_files
@@ -45,6 +45,12 @@ SHOWCASE_CAPTIONS = [
     "Rain on the window, music on low.",
     "A small ritual: one lamp, one chair, one evening to myself.",
     "Textures I keep coming back to.",
+    "Rain on the window and the good chair by it.",
+    "Fresh flowers for the front room.",
+    "Morning light before anyone else is up.",
+    "New table linen, very pleased with it.",
+    "Notes from the Thursday class, written up.",
+    "Two candles, one book, no rush.",
 ]
 DESK_PERMISSIONS = ("view_membership", "change_membership", "view_payment")
 
@@ -188,6 +194,7 @@ class Command(BaseCommand):
         viewer = member("e2e_night_owl")
         authors = [member(name) for name in SHOWCASE_AUTHORS]
         posts = []
+        picture_index = 0
         for index, caption in enumerate(SHOWCASE_CAPTIONS):
             author = ([viewer] + authors)[index % 4]
             created = now - timedelta(hours=index * 5 + 2)
@@ -199,14 +206,17 @@ class Command(BaseCommand):
                 first_published_at=created,
             )
             FeedPost.objects.filter(pk=post.pk).update(created_at=created)
-            for position in range((1, 2, 1, 3, 1, 1)[index]):
+            # Twelve posts, sixteen different pictures: no tile repeats in the feed or grids.
+            for position in range((1, 2, 1, 3, 1, 1)[index % 6]):
+                picture = sample_image(picture_index, width=720)
+                picture_index += 1
                 FeedImage.objects.create(
                     post=post,
                     position=position,
-                    image=gradient_image(index * 5 + position, size=720),
-                    image_alt="Abstract candlelight",
-                    width=720,
-                    height=720,
+                    image=picture.file,
+                    image_alt=picture.alt,
+                    width=picture.width,
+                    height=picture.height,
                 )
             posts.append(post)
         for index, post in enumerate(posts):
@@ -235,11 +245,9 @@ class Command(BaseCommand):
                 },
             )
             post.images.all().delete()
+            picture = sample_image(30 + index)
             JournalImage.objects.create(
-                post=post,
-                image=gradient_image(30 + index),
-                image_alt="Abstract candlelight",
-                sort_order=0,
+                post=post, image=picture.file, image_alt=picture.alt, sort_order=0
             )
 
         Announcement.objects.filter(title__startswith="[e2e]").delete()

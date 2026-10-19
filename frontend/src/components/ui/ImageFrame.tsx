@@ -110,7 +110,10 @@ export function ImageFrame({
         className,
       )}
     >
-      {content ?? <div aria-hidden="true" className={cn('absolute inset-0', `texture-${placeholder}`)} />}
+      {/* The texture stays underneath, so a frame whose image is still loading (or lazily
+          waiting below the fold) is never a blank, page-coloured square. */}
+      <div aria-hidden="true" className={cn('absolute inset-0', `texture-${placeholder}`)} />
+      {content}
     </div>
   )
 }

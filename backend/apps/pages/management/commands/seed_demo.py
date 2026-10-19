@@ -22,7 +22,7 @@ from apps.journal.models import Post, PostImage
 from apps.pages.models import FAQItem, SiteSettings
 from apps.pages.site_content import load, read_files
 
-from .demo_media import gradient_image
+from .demo_media import sample_image
 
 # Placeholder page copy for development and tests: the words the pages show
 # until the club's own copy is loaded with load_site_content.
@@ -533,10 +533,8 @@ class Command(BaseCommand):
             if created or not post.images.exists():
                 post.images.all().delete()
                 for order in range(image_count):
+                    picture = sample_image(index * 3 + order)
                     PostImage.objects.create(
-                        post=post,
-                        image=gradient_image(index * 3 + order),
-                        image_alt="Abstract candlelight in deep red and brass",
-                        sort_order=order,
+                        post=post, image=picture.file, image_alt=picture.alt, sort_order=order
                     )
         return len(JOURNAL_POSTS)

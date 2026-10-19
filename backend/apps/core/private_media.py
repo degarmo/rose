@@ -90,8 +90,13 @@ def viewer_tag(viewer_id):
 
 
 def watermark_name(source_name, viewer_id, label):
-    """An object key that reveals neither the viewer nor the image."""
-    label_part = _digest("label", source_name, viewer_id, label)[:32]
+    """An object key that reveals neither the viewer nor the image.
+
+    It includes the watermark style, so changing the opacity or spacing renders new copies.
+    """
+    from .watermark import style_key
+
+    label_part = _digest("label", source_name, viewer_id, label, style_key())[:32]
     return f"{watermark_dir(source_name)}{viewer_tag(viewer_id)}-{label_part}.webp"
 
 

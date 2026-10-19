@@ -145,6 +145,8 @@ export function Header() {
           </ul>
           <MyFeedLink className="ml-1 inline-flex min-h-11 items-center gap-2 px-2.5 text-sm tracking-wide text-fg-muted transition-colors duration-300 hover:text-fg" />
           <AccountMenu className="ml-2" />
+          {/* In the header at every width, so it never floats over the page. */}
+          <QuickExit variant="compact" className="ml-3" />
         </nav>
         <div className="flex items-center gap-2 xl:hidden">
           <QuickExit variant="compact" />

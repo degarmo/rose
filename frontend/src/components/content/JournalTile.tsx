@@ -23,7 +23,7 @@ export function JournalTile({ post, onOpen }: JournalTileProps) {
     >
       <ImageFrame remote={cover} alt="" ratio="1/1" placeholder="velvet" reveal={false} sizes="33vw" />
       {post.images.length > 1 && (
-        <Layers aria-hidden="true" className="absolute right-2 top-2 size-5 text-fg drop-shadow sm:right-3 sm:top-3" />
+        <Layers aria-hidden="true" className="absolute right-2 top-2 size-5 text-white drop-shadow sm:right-3 sm:top-3" />
       )}
       <span
         aria-hidden="true"

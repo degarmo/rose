@@ -146,6 +146,7 @@ The only way to render imagery.
 - `remote` takes an API image, which the server has already checked against the same rule. Public uploads come with `width`, `height` and a `srcset` (640, 1280 and the original), which the frame passes to the browser with `sizes`.
 - Manifest images load from the public bucket in production (the server puts its address in a `rose-site-images` meta tag) and from `/images` in development.
 - `placeholder` sets the texture used until a real image exists: `velvet`, `candle`, `silk`, `leather`, `shadow`, `architecture` or `rose`.
+- The texture always sits under the image, so a frame whose picture is still loading (or waiting lazily below the fold) shows the texture, never a blank square the colour of the page.
 - `ratio` (`1/1`, `4/5`, `4/3`, `3/2`, `16/9`, `21/9`) reserves space so nothing shifts on load. `fill` makes it cover its positioned parent instead.
 - Use `alt=""` for decorative imagery, which is almost all of it.
 - `priority` loads eagerly; use it only above the fold. `reveal={false}` turns off the scroll reveal.
@@ -208,7 +209,7 @@ toast.show({ tone: 'error', title: 'Your message was not sent', message: 'Please
 
 ### Layout components (`components/layout`)
 
-- **QuickExit**: the Leave control. Variants `floating` (large screens), `compact` (phone header) and `inline` (footer, menu). It must appear on every page.
+- **QuickExit**: the Leave control. Variants `compact` (in the header at every width), `inline` (footer, menu) and `floating` (the age gate and the member app's loading screen, which have no header). It must appear on every page. It is never floated over page content.
 - **AgeGate**: renders instead of the app until age is confirmed.
 - **Header / Footer / Layout**: shared chrome. Navigation items live in `navigation.ts` as single links and groups (Visit: Plan Your Visit, Guests, FAQ; Get Involved: Volunteer, Donate, Rentals). The desktop nav appears from `xl`, with each group as a `NavDropdown`; below that the menu sheet lists the groups as headed sections. "Join" reads "Membership" for anyone whose account has, or has had, a membership (`Account.has_membership`). Header, footer and the Leave control are hidden when printing, so a receipt prints alone.
 - **NavDropdown**: a disclosure button and a list of links. Enter, Space or Arrow Down opens it and focuses the first link; arrows, Home and End move; Escape closes and returns focus; Tab away or a click outside closes. Tested in `NavDropdown.test.tsx`.
@@ -365,9 +366,9 @@ so nothing hints that the app exists.
 ### Screens
 
 - **Home** (`pages/members/FeedPage`): the stories tray, then Following and Everyone tabs (`GET /api/members/home/`), with journal posts shown as the club's "Rose" account, interleaved by date.
-- **Stories** (`app/Stories`): staff-made circles only (Tonight, This week, Journal, News). Unseen circles get a rose ring, seen ones grey, tracked per member. The viewer is full screen with a progress bar per item; tap the left third or the right of the screen, or use the arrow keys; the button at the bottom (RSVP, Learn more) opens the website page.
+- **Stories** (`app/Stories`): staff-made circles only (Tonight, This week, Journal, News), 64px with the ring on phones and 66px wider; the tabs sit 8px under their labels. Unseen circles get a rose ring, seen ones grey, tracked per member. The viewer is full screen with a progress bar per item; tap the left third or the right of the screen, or use the arrow keys; the button at the bottom (RSVP, Learn more) opens the website page.
 - **Post detail** (`app/PostDetail`): on tablets and desktops a modal over the current page (`?post=<id>`), the media as large as fits on the left and a 335px panel on the right (header, scrolling caption and comments, action row, likes and time, comment box pinned at the bottom). Escape or a click outside closes it; the arrow keys step through the list it was opened from. On phones, the page `/members/p/:id`.
-- **Profile** (`pages/members/MemberProfilePage`): avatar 150px on the left (desktop) or 77px on top (phones), the name, Edit profile and Settings (your own) or Follow, Mute and options (others), **posts count only**, the bio, then Posts and, on your own profile only, Saved (`/members/u/:handle/saved`; `/members/saved` redirects there).
+- **Profile** (`pages/members/MemberProfilePage`): one grid whose areas move with the width. Phones: the 77px avatar with the posts count (a number over "posts") centred beside it, then the name (600), bio and join date, then the buttons side by side filling the width. From 768px: avatar 150px on the left, the name, Edit profile and Settings (your own) or Follow, Mute and options (others), **posts count only**, the bio, then Posts and, on your own profile only, Saved (`/members/u/:handle/saved`; `/members/saved` redirects there).
 - **Grids** (`app/PostGrid`): three columns of 3:4 tiles with 2px gaps, edge to edge on phones, a `Copy` icon on multi-photo posts and a soft dark overlay on hover with a mouse (never counts). Explore (`/members/explore`) shows Everyone posts this way.
 - **Create** (`app/CreatePost`): a centred modal on tablets and desktops, a full-screen sheet on phones. Select, then Crop & redact, then Details (order and describe, caption, sensitive and comments toggles, the consent attestation), then Share. The header has Back (or Close), the step title and Next (Share on the last step, disabled until the attestation is ticked when there are photos).
 - **Settings** (`/members/settings`): Edit profile, Appearance, Always show sensitive posts, Show me in search, Blocked, Step away from the feed, Export my data, Leave and erase, and a link to the website account page.

@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.pages.management.commands.demo_media import gradient_image
+from apps.pages.management.commands.demo_media import sample_image
 
 from .models import (
     Block,
@@ -82,15 +82,16 @@ def _post(author, caption, images, age, sensitive=False, status=FeedPost.Status.
     )
     FeedPost.objects.filter(pk=post.pk).update(created_at=created)
     for position in range(images):
+        picture = sample_image(seed * 7 + position, width=720)
         FeedImage.objects.create(
             post=post,
             position=position,
-            image=gradient_image(seed * 7 + position, size=720),
-            image_alt="Abstract candlelight",
+            image=picture.file,
+            image_alt=picture.alt,
             image_faces_visible=True,
             image_consent_confirmed=True,
-            width=720,
-            height=720,
+            width=picture.width,
+            height=picture.height,
         )
     return post
 

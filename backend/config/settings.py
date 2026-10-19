@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 import environ
 from celery.schedules import crontab
 from csp.constants import NONE, SELF
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 REPO_DIR = BASE_DIR.parent
@@ -39,6 +40,8 @@ env = environ.Env(
     CONTACT_RETENTION_DAYS=(int, 365),
     FEED_ENABLED=(bool, True),
     FEED_WATERMARK=(bool, True),
+    FEED_WATERMARK_OPACITY=(float, 0.06),
+    FEED_WATERMARK_SPACING=(float, 0.34),
     FEED_PREMODERATION_POSTS=(int, 3),
     FEED_MAX_POSTS_PER_DAY=(int, 10),
     FEED_MAX_COMMENTS_PER_HOUR=(int, 60),
@@ -350,6 +353,14 @@ CONTACT_RETENTION_DAYS = env("CONTACT_RETENTION_DAYS")
 # Kill switch: false makes every feed path answer 404 (docs/ops/incident.md).
 FEED_ENABLED = env("FEED_ENABLED")
 FEED_WATERMARK = env("FEED_WATERMARK")
+# How strongly the viewer's name shows (0 to 1), and how far apart the marks are, as a
+# share of the image width: 0.34 gives about three marks across.
+FEED_WATERMARK_OPACITY = env("FEED_WATERMARK_OPACITY")
+FEED_WATERMARK_SPACING = env("FEED_WATERMARK_SPACING")
+if not 0 < FEED_WATERMARK_OPACITY <= 1:
+    raise ImproperlyConfigured("FEED_WATERMARK_OPACITY must be above 0 and at most 1.")
+if not 0.1 <= FEED_WATERMARK_SPACING <= 1:
+    raise ImproperlyConfigured("FEED_WATERMARK_SPACING must be between 0.1 and 1.")
 FEED_PREMODERATION_POSTS = env("FEED_PREMODERATION_POSTS")
 FEED_MAX_POSTS_PER_DAY = env("FEED_MAX_POSTS_PER_DAY")
 FEED_MAX_COMMENTS_PER_HOUR = env("FEED_MAX_COMMENTS_PER_HOUR")

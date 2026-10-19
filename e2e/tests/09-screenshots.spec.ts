@@ -1,7 +1,6 @@
-import { mkdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import type { Page } from '@playwright/test'
-import { apiLogin, confirmAge, expect, fixtures, PHOTO, seriousA11yViolations, test } from './support'
+import { screenshotFolder, useShotViewport } from './screenshots'
+import { apiLogin, confirmAge, expect, fixtures, PHOTO, test } from './support'
 
 /**
  * Prompt 07 screenshots, saved to docs/screenshots/07/ at 390x844 and 1440x900, with
@@ -9,38 +8,11 @@ import { apiLogin, confirmAge, expect, fixtures, PHOTO, seriousA11yViolations, t
  * the width, a 470px feed column, no follower counts, no like count for non-authors,
  * the quick exit in view, no sideways scrolling, and no serious or critical axe findings.
  */
-const OUT = fileURLToPath(new URL('../../docs/screenshots/07/', import.meta.url))
-mkdirSync(OUT, { recursive: true })
+const snap = screenshotFolder('07')
 
 test.skip(process.env.E2E_SMOKE === '1', 'Screenshots use the end-to-end fixtures.')
 
-function width(info: { project: { name: string } }) {
-  return info.project.name === 'phone' ? 390 : 1440
-}
-
-async function prepare(page: Page, info: { project: { name: string } }) {
-  if (info.project.name === 'desktop') await page.setViewportSize({ width: 1440, height: 900 })
-}
-
-async function settle(page: Page) {
-  await page.waitForLoadState('networkidle')
-  await page.evaluate(() => document.fonts.ready)
-  await page.waitForTimeout(400)
-}
-
-async function noSidewaysScroll(page: Page) {
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-}
-
-async function snap(page: Page, name: string, info: { project: { name: string } }, fullPage = false) {
-  // Park the pointer in an empty corner, so no hover state shows.
-  if (info.project.name === 'desktop') await page.mouse.move(1439, 899)
-  await settle(page)
-  await noSidewaysScroll(page)
-  // Every screen, dialog and step shown here is also checked with axe.
-  expect(await seriousA11yViolations(page), name).toEqual([])
-  await page.screenshot({ path: `${OUT}${name}-${width(info)}.png`, fullPage })
-}
+const prepare = useShotViewport
 
 /** Checks shared by every member app screen. */
 async function appChecks(page: Page, info: { project: { name: string } }) {

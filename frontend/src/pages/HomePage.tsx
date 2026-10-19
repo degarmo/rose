@@ -1,8 +1,7 @@
 import { ArrowRight, HandCoins, HandHeart, KeyRound } from 'lucide-react'
-import { useNavigate } from 'react-router'
 import { Copy, CopyHeading } from '@/components/content/Copy'
 import { EventCard } from '@/components/content/EventCard'
-import { JournalTile } from '@/components/content/JournalTile'
+import { JournalStrip } from '@/components/content/JournalStrip'
 import { OpportunityCard } from '@/components/content/OpportunityCard'
 import { Reveal } from '@/components/content/Reveal'
 import { ErrorState, SkeletonCards, EmptyState } from '@/components/content/States'
@@ -16,7 +15,6 @@ import { useDocumentMeta } from '@/lib/useDocumentMeta'
 const FEATURED_COUNT = 3
 
 const UPCOMING_COUNT = 3
-const JOURNAL_COUNT = 6
 
 function UpcomingEvents() {
   const state = useAsync(() => api.events(), 'home-events')
@@ -32,34 +30,6 @@ function UpcomingEvents() {
         <Reveal as="li" key={event.id} delay={index as 0 | 1 | 2}>
           <EventCard event={event} />
         </Reveal>
-      ))}
-    </ul>
-  )
-}
-
-function JournalStrip() {
-  const navigate = useNavigate()
-  const state = useAsync(() => api.journal(), 'home-journal')
-  if (state.status === 'loading') {
-    return (
-      <div aria-hidden="true" className="grid grid-cols-3 gap-0.5 sm:gap-1 lg:grid-cols-6">
-        {Array.from({ length: JOURNAL_COUNT }, (_, index) => (
-          <div key={index} className="aspect-square animate-pulse bg-surface" />
-        ))}
-      </div>
-    )
-  }
-  if (state.status === 'error') return <ErrorState title="The journal did not load" onRetry={state.retry} />
-  const posts = state.data.posts.slice(0, JOURNAL_COUNT)
-  if (posts.length === 0) {
-    return <EmptyState title="The first posts are on their way" message="Check back soon." />
-  }
-  return (
-    <ul className="grid grid-cols-3 gap-0.5 sm:gap-1 lg:grid-cols-6">
-      {posts.map((post) => (
-        <li key={post.slug}>
-          <JournalTile post={post} onOpen={(open) => navigate(`/journal/${open.slug}`)} />
-        </li>
       ))}
     </ul>
   )

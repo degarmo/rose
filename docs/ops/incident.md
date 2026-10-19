@@ -61,8 +61,9 @@ shared image link almost at once.
 
 ## 4. Understand
 
-- Which data: feed images (the visible watermark names the viewing account and
-  the date), profile details, RSVPs, membership status, contact messages?
+- Which data: feed images (the faint watermark names the viewing account and
+  the date; raise the image's contrast in any photo editor to read it), profile
+  details, RSVPs, membership status, contact messages?
 - Which people: whose data, and which account viewed or exported it (audit log,
   watermark)?
 - How: a member's screenshot, a compromised account, a staff mistake, a software
