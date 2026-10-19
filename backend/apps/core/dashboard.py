@@ -27,6 +27,7 @@ class Section:
     stats: list
     links: list = field(default_factory=list)
     rows: list = field(default_factory=list)
+    icon: str = "layout-grid"
 
 
 @dataclass
@@ -34,6 +35,19 @@ class Attention:
     label: str
     count: int
     url: str
+
+
+# The round "avatar" icon on each card (icons from static/core/icons.svg).
+SECTION_ICONS = {
+    "Membership": "users",
+    "Income": "wallet",
+    "Events": "calendar-days",
+    "Accounts": "user-round",
+    "Member feed": "heart",
+    "Messages": "send",
+    "Images": "images",
+    "System": "server",
+}
 
 
 def money(cents):
@@ -63,6 +77,8 @@ def build_dashboard(user, now=None):
     sections.append(images_section(attention))
     if user.is_superuser:
         sections.append(system_section(now, attention))
+    for section in sections:
+        section.icon = SECTION_ICONS.get(section.title, section.icon)
     return {"attention": [item for item in attention if item.count], "sections": sections}
 
 

@@ -331,3 +331,9 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 
 217. The admin home page shows a dashboard: a "Needs attention" list (open feed reports, first posts awaiting review, unhandled concerns, online payments waiting for an ID check, hidden images, failed payment events, an overdue backup) and cards of totals for membership, income, events, accounts, the feed, messages, images and, for superusers, the system. **(privacy)** It shows totals only, never a name, email or who did what. Each card appears only to staff holding the permission its own admin page needs; income follows the membership view permission, because the Membership summary already shows revenue to the same people. Upcoming events show places taken with a `<meter>`, so no inline style is needed under the CSP. Zero-count attention items are left out.
 
+### Staff admin look
+
+218. The staff admin takes the layout and feel of a photo-sharing app, as asked: a fixed left sidebar with outline icons and plain labels (Home, Door desk, Messages, Notifications, Create, Events, Moderation, Images, Dashboard, All sections), red count badges and a red notification dot, the current page in bold, a light or dark palette, the system font, and post-style cards in one centred column. **Settings** (gear) is at the bottom left, opening a menu upwards with site settings, password, appearance, the public site and log out. It keeps the site's own "Rose" name; no other company's logo, name or wordmark is used. Django's own sidebar is switched off.
+219. The sidebar stays on the left at every width (an icon rail on tablets and phones), as asked, rather than moving to a bottom tab bar on phones.
+220. Items and badges follow permissions: a door volunteer sees Home, Door desk, Notifications, Images, Dashboard and All sections; badges are counts only. "Recent actions" becomes the last card in the home column.
+

@@ -322,3 +322,18 @@ A full-screen sheet in four steps: choose photos, cover anything identifying, or
 ## Testing
 
 Component tests live next to their components (`*.test.tsx`) and use `renderWithProviders()` from `src/test/render.tsx`, which supplies the router, auth context and toasts. Run them with `npm test`.
+
+## Staff admin
+
+The admin (Django) has its own look, in `backend/apps/core/static/core/ig-admin.css` and
+`templates/admin/base_site.html`: a clean photo-app style with a white (or black, in dark
+appearance) canvas, the system font, hairline borders and blue primary buttons. A fixed
+sidebar on the left holds outline icons (Lucide, built into
+`static/core/icons.svg`) with plain labels; the current page is bold, a red number on an
+icon counts what is waiting, a red dot means "something needs you". It is 245 px wide
+with labels from 1264 px, a 73 px icon rail below that and a 56 px rail on phones,
+always on the left. **Settings** (gear) sits at the bottom left and opens its menu
+upwards. The home page is one centred column of post-style cards. Nothing uses inline
+styles or scripts, so the strict CSP stays as it is. The site's own name is used; no
+other brand's logo or name.
+

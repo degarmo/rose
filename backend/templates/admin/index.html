@@ -3,57 +3,67 @@
 
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/dashboard.css' %}">{% endblock %}
 
+{% block coltype %}colM{% endblock %}
+{% block content_title %}{% endblock %}
+
 {% block content %}
-<div class="dashboard">
+<div class="ig-dashboard">
   {% if dashboard.attention %}
-  <section class="dashboard-attention" aria-labelledby="attention-heading">
-    <h2 id="attention-heading">Needs attention</h2>
-    <ul>
+  <section id="needs-attention" class="ig-post dashboard-attention" aria-labelledby="attention-heading">
+    <header class="ig-post-head">
+      <span class="ig-avatar ig-avatar-alert"><svg class="ig-icon" aria-hidden="true"><use href="{% static 'core/icons.svg' %}#heart"></use></svg></span>
+      <div><h2 id="attention-heading">Needs attention</h2><p class="ig-post-sub">Right now</p></div>
+    </header>
+    <ul class="dashboard-attention-list">
       {% for item in dashboard.attention %}
       <li><a href="{{ item.url }}"><strong>{{ item.count }}</strong> {{ item.label }}</a></li>
       {% endfor %}
     </ul>
   </section>
   {% else %}
-  <p class="dashboard-clear">Nothing needs attention right now.</p>
+  <p id="needs-attention" class="dashboard-clear">You're all caught up. Nothing needs attention right now.</p>
   {% endif %}
 
-  <div class="dashboard-grid">
-    {% for section in dashboard.sections %}
-    <section class="dashboard-card" aria-labelledby="section-{{ forloop.counter }}">
-      <h2 id="section-{{ forloop.counter }}">{{ section.title }}</h2>
-      <dl class="dashboard-stats">
-        {% for stat in section.stats %}
-        <div>
-          <dt>{{ stat.label }}</dt>
-          <dd><span class="dashboard-value">{{ stat.value }}</span>{% if stat.hint %} <span class="dashboard-hint">{{ stat.hint }}</span>{% endif %}</dd>
-        </div>
-        {% endfor %}
-      </dl>
-      {% if section.rows %}
-      <h3>Coming up</h3>
-      <ul class="dashboard-events">
-        {% for row in section.rows %}
-        <li>
-          <a href="{{ row.url }}">{{ row.title }}</a>
-          <span class="dashboard-hint">{{ row.when|date:"D M j, g:i a" }}</span>
-          {% if row.capacity %}
-          <meter min="0" max="{{ row.capacity }}" value="{{ row.going }}" high="{{ row.capacity }}" aria-label="{{ row.going }} of {{ row.capacity }} places taken">{{ row.going }} of {{ row.capacity }}</meter>
-          <span class="dashboard-hint">{{ row.going }} of {{ row.capacity }}</span>
-          {% else %}
-          <span class="dashboard-hint">{{ row.going }} going, no limit</span>
-          {% endif %}
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-      {% if section.links %}
-      <p class="dashboard-links">{% for label, url in section.links %}<a href="{{ url }}">{{ label }}</a>{% endfor %}</p>
-      {% endif %}
-    </section>
-    {% endfor %}
-  </div>
+  {% for section in dashboard.sections %}
+  <article class="ig-post dashboard-card" aria-labelledby="section-{{ forloop.counter }}">
+    <header class="ig-post-head">
+      <span class="ig-avatar"><svg class="ig-icon" aria-hidden="true"><use href="{% static 'core/icons.svg' %}#{{ section.icon }}"></use></svg></span>
+      <div><h2 id="section-{{ forloop.counter }}">{{ section.title }}</h2><p class="ig-post-sub">Totals</p></div>
+    </header>
+    <dl class="dashboard-stats">
+      {% for stat in section.stats %}
+      <div>
+        <dt>{{ stat.label }}</dt>
+        <dd><span class="dashboard-value">{{ stat.value }}</span>{% if stat.hint %} <span class="dashboard-hint">{{ stat.hint }}</span>{% endif %}</dd>
+      </div>
+      {% endfor %}
+    </dl>
+    {% if section.rows %}
+    <h3>Coming up</h3>
+    <ul class="dashboard-events">
+      {% for row in section.rows %}
+      <li>
+        <a href="{{ row.url }}">{{ row.title }}</a>
+        <span class="dashboard-hint">{{ row.when|date:"D M j, g:i a" }}</span>
+        {% if row.capacity %}
+        <meter min="0" max="{{ row.capacity }}" value="{{ row.going }}" high="{{ row.capacity }}" aria-label="{{ row.going }} of {{ row.capacity }} places taken">{{ row.going }} of {{ row.capacity }}</meter>
+        <span class="dashboard-hint">{{ row.going }} of {{ row.capacity }}</span>
+        {% else %}
+        <span class="dashboard-hint">{{ row.going }} going, no limit</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if section.links %}
+    <footer class="dashboard-links">{% for label, url in section.links %}<a href="{{ url }}">{{ label }}</a>{% endfor %}</footer>
+    {% endif %}
+  </article>
+  {% endfor %}
   <p class="dashboard-note">Totals only. Who did what is never shown here.</p>
 </div>
-{{ block.super }}
+<div id="all-sections">
+  <h2 class="ig-section-title">All sections</h2>
+  {{ block.super }}
+</div>
 {% endblock %}

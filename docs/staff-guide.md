@@ -16,6 +16,19 @@ Keep them in a password manager or somewhere locked, never in a photo.
 
 You are logged out when you close the browser, and after 12 hours anyway.
 
+## Finding your way
+
+The menu down the left side works like a photo app: **Home**, **Door desk**,
+**Messages** (contact form), **Notifications** (a red dot means something needs
+you), **Create** (a new journal post), **Events**, **Moderation**, **Images**,
+**Dashboard** (membership numbers and income) and **All sections**. A red number on
+an icon is how many things are waiting there. You only see the items your role
+allows. On a tablet or phone the menu shrinks to icons only; hold your finger or
+mouse over an icon to see its name.
+
+**Settings** is the gear at the bottom left. It has site settings, your password,
+light or dark appearance, a link to the public site, and **Log out**.
+
 ## The home page
 
 After you log in you see a dashboard: **Needs attention** at the top (reports to review,

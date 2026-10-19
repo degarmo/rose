@@ -6,6 +6,7 @@ from django.template.response import TemplateResponse
 from django.urls import path
 
 from . import admin_auth
+from .admin_nav import build_nav
 from .consent_images import consent_image_field_names, consent_image_models
 from .dashboard import build_dashboard
 from .manifest import STATUS_LABELS, entry_status, find_entry, image_file, load_manifest
@@ -15,6 +16,14 @@ class RoseAdminSite(admin.AdminSite):
     site_header = "Rose administration"
     site_title = "Rose"
     index_title = "Site content"
+    # Our own Instagram-style sidebar (admin/base_site.html) replaces Django's.
+    enable_nav_sidebar = False
+
+    def each_context(self, request):
+        context = super().each_context(request)
+        if context.get("has_permission"):
+            context["ig_nav"] = build_nav(request)
+        return context
 
     def has_permission(self, request):
         """Staff only, and only after the two-step check (apps.core.admin_auth)."""

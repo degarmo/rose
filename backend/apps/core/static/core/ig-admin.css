@@ -1,0 +1,612 @@
+/*
+ * Staff admin look: a clean, photo-app style. White (or black) canvas, a fixed
+ * sidebar on the left with outline icons and plain labels, post-style cards,
+ * blue primary buttons. Settings (gear) sits at the bottom left.
+ *
+ * Sidebar: 245px with labels from 1264px wide, a 73px icon rail below that, and
+ * a 56px rail on phones. It is always on the left.
+ */
+
+:root,
+html[data-theme="light"] {
+  --ig-bg: #ffffff;
+  --ig-fg: #000000;
+  --ig-secondary: #737373;
+  --ig-border: #dbdbdb;
+  --ig-hover: #f2f2f2;
+  --ig-elevated: #ffffff;
+  --ig-input: #fafafa;
+  --ig-blue: #0095f6;
+  --ig-blue-hover: #1877f2;
+  --ig-link: #00376b;
+  --ig-red: #ff3040;
+  --ig-selected: #e0f1ff;
+  --ig-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ig-bg: #000000;
+    --ig-fg: #f5f5f5;
+    --ig-secondary: #a8a8a8;
+    --ig-border: #363636;
+    --ig-hover: #1a1a1a;
+    --ig-elevated: #262626;
+    --ig-input: #121212;
+    --ig-link: #e0f1ff;
+    --ig-selected: #0b2133;
+    --ig-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  }
+}
+
+html[data-theme="dark"] {
+  --ig-bg: #000000;
+  --ig-fg: #f5f5f5;
+  --ig-secondary: #a8a8a8;
+  --ig-border: #363636;
+  --ig-hover: #1a1a1a;
+  --ig-elevated: #262626;
+  --ig-input: #121212;
+  --ig-link: #e0f1ff;
+  --ig-selected: #0b2133;
+  --ig-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* Map the palette onto Django admin's own variables, in every theme. */
+:root,
+html[data-theme="light"],
+html[data-theme="dark"],
+html[data-theme="auto"] {
+  --font-family-primary: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --body-bg: var(--ig-bg);
+  --body-fg: var(--ig-fg);
+  --body-quiet-color: var(--ig-secondary);
+  --body-medium-color: var(--ig-secondary);
+  --body-loud-color: var(--ig-fg);
+  --primary: var(--ig-bg);
+  --primary-fg: var(--ig-fg);
+  --secondary: var(--ig-bg);
+  --accent: var(--ig-fg);
+  --header-color: var(--ig-fg);
+  --header-branding-color: var(--ig-fg);
+  --header-bg: var(--ig-bg);
+  --header-link-color: var(--ig-fg);
+  --breadcrumbs-fg: var(--ig-secondary);
+  --breadcrumbs-link-fg: var(--ig-fg);
+  --breadcrumbs-bg: var(--ig-bg);
+  --link-fg: var(--ig-link);
+  --link-hover-color: var(--ig-fg);
+  --link-selected-fg: var(--ig-fg);
+  --hairline-color: var(--ig-border);
+  --border-color: var(--ig-border);
+  --error-fg: #ed4956;
+  --darkened-bg: var(--ig-input);
+  --selected-bg: var(--ig-hover);
+  --selected-row: var(--ig-selected);
+  --button-fg: #ffffff;
+  --button-bg: var(--ig-blue);
+  --button-hover-bg: var(--ig-blue-hover);
+  --default-button-bg: var(--ig-blue);
+  --default-button-hover-bg: var(--ig-blue-hover);
+  --close-button-bg: var(--ig-secondary);
+  --close-button-hover-bg: var(--ig-fg);
+  --delete-button-bg: #ed4956;
+  --delete-button-hover-bg: #c13545;
+  --object-tools-fg: #ffffff;
+  --object-tools-bg: var(--ig-blue);
+  --object-tools-hover-bg: var(--ig-blue-hover);
+}
+
+body {
+  background: var(--ig-bg);
+  color: var(--ig-fg);
+  font-size: 14px;
+}
+
+/* --- Layout -------------------------------------------------------------- */
+
+body.ig-shell #container {
+  padding-left: 245px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+body.ig-shell .main,
+body.ig-shell nav[aria-label="Breadcrumbs"] {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+body.ig-shell div.breadcrumbs {
+  background: none;
+  color: var(--ig-secondary);
+  padding: 20px 32px 0;
+  font-size: 13px;
+}
+
+body.ig-shell div.breadcrumbs a {
+  color: var(--ig-fg);
+}
+
+body.ig-shell #content {
+  padding: 16px 32px 48px;
+}
+
+#content h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ig-fg);
+}
+
+/* --- Sidebar ------------------------------------------------------------- */
+
+.ig-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: 245px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px 20px;
+  background: var(--ig-bg);
+  border-right: 1px solid var(--ig-border);
+  box-sizing: border-box;
+}
+
+.ig-logo {
+  display: flex;
+  align-items: center;
+  height: 73px;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  color: var(--ig-fg);
+  text-decoration: none;
+}
+
+.ig-logo:link,
+.ig-logo:visited,
+.ig-logo:hover,
+.ig-logo:focus {
+  color: var(--ig-fg);
+  text-decoration: none;
+}
+
+.ig-logo-word {
+  font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", "Apple Chancery", cursive;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ig-logo-mark {
+  display: none;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--ig-fg);
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 28px;
+  text-align: center;
+}
+
+.ig-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.ig-items li {
+  list-style: none;
+  padding: 0;
+}
+
+.ig-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--ig-fg);
+  font-size: 16px;
+  line-height: 20px;
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.ig-item:link,
+.ig-item:visited {
+  color: var(--ig-fg);
+}
+
+.ig-item:hover,
+.ig-item:focus-visible {
+  background: var(--ig-hover);
+  color: var(--ig-fg);
+  text-decoration: none;
+}
+
+.ig-item:focus-visible {
+  outline: 2px solid var(--ig-blue);
+  outline-offset: 0;
+}
+
+.ig-item.is-active {
+  font-weight: 700;
+}
+
+.ig-item.is-active .ig-icon {
+  stroke-width: 2.6;
+}
+
+.ig-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.ig-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+.ig-item:hover .ig-icon {
+  transform: scale(1.05);
+  transition: transform 0.15s ease-out;
+}
+
+.ig-badge {
+  position: absolute;
+  background: var(--ig-red);
+  color: #ffffff;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.ig-badge-count {
+  left: 13px;
+  bottom: -7px;
+  min-width: 12px;
+  height: 18px;
+  padding: 0 3px;
+  border: 2px solid var(--ig-bg);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  box-sizing: content-box;
+}
+
+.ig-badge-dot {
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--ig-bg);
+  border-radius: 50%;
+}
+
+/* --- Settings (bottom left) ---------------------------------------------- */
+
+.ig-settings {
+  position: relative;
+  margin-top: auto;
+}
+
+.ig-settings > summary {
+  list-style: none;
+}
+
+.ig-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ig-settings[open] > summary {
+  font-weight: 700;
+}
+
+.ig-settings[open] > summary .ig-icon {
+  stroke-width: 2.6;
+}
+
+.ig-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: 266px;
+  padding: 8px;
+  background: var(--ig-elevated);
+  border-radius: 16px;
+  box-shadow: var(--ig-shadow);
+  box-sizing: border-box;
+  z-index: 60;
+}
+
+.ig-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ig-menu li {
+  list-style: none;
+  padding: 0;
+}
+
+.ig-menu-who {
+  margin: 4px 16px 8px;
+  color: var(--ig-secondary);
+  font-size: 13px;
+}
+
+.ig-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ig-fg);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.ig-menu-row:link,
+.ig-menu-row:visited,
+.ig-menu-row:hover,
+.ig-menu-row:focus {
+  color: var(--ig-fg);
+  text-decoration: none;
+}
+
+.ig-menu-row:hover,
+.ig-menu-row:focus-visible {
+  background: var(--ig-hover);
+}
+
+.ig-menu-row .ig-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* The appearance switch shows its current state in words. */
+.ig-menu .theme-toggle {
+  margin: 0;
+  height: auto;
+  vertical-align: baseline;
+}
+
+.ig-menu .theme-toggle svg.ig-icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+}
+
+.ig-menu .theme-toggle [class^="theme-label-when"] {
+  display: none;
+}
+
+html[data-theme="auto"] .ig-menu .theme-label-when-auto,
+html[data-theme="light"] .ig-menu .theme-label-when-light,
+html[data-theme="dark"] .ig-menu .theme-label-when-dark,
+html:not([data-theme]) .ig-menu .theme-label-when-auto {
+  display: inline;
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+  overflow: visible;
+}
+
+.ig-menu-logout {
+  margin: 8px -8px -8px;
+  padding: 8px;
+  border-top: 6px solid var(--ig-hover);
+}
+
+/* --- Admin pieces, restyled ---------------------------------------------- */
+
+.module,
+fieldset.module,
+.inline-group {
+  background: var(--ig-bg);
+  border: 1px solid var(--ig-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background: var(--ig-bg);
+  color: var(--ig-fg);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ig-border);
+}
+
+.module h2 a,
+.module caption a {
+  color: var(--ig-fg);
+}
+
+#changelist-filter {
+  border-radius: 8px;
+}
+
+thead th,
+tfoot td {
+  background: var(--ig-input);
+  color: var(--ig-secondary);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+input[type="search"],
+input[type="tel"],
+textarea,
+select,
+.vTextField {
+  background: var(--ig-input);
+  border: 1px solid var(--ig-border);
+  border-radius: 6px;
+  color: var(--ig-fg);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--ig-secondary);
+}
+
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button,
+.object-tools a {
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.object-tools a {
+  border-radius: 8px;
+}
+
+ul.messagelist li {
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+/* --- Login and the two-step check ---------------------------------------- */
+
+body.login {
+  background: var(--ig-bg);
+}
+
+body.login #container {
+  border: 1px solid var(--ig-border);
+  border-radius: 8px;
+  max-width: 350px;
+  margin: 48px auto;
+  background: var(--ig-bg);
+}
+
+body.login #header {
+  background: none;
+  justify-content: center;
+  padding: 32px 24px 8px;
+}
+
+body.login #site-name a,
+body.login #header #site-name a {
+  font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", "Apple Chancery", cursive;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--ig-fg);
+}
+
+body.login .submit-row input {
+  width: 100%;
+  background: var(--ig-blue);
+}
+
+/* --- Narrower screens: an icon rail, still on the left ------------------- */
+
+@media (max-width: 1263px) {
+  body.ig-shell #container {
+    padding-left: 73px;
+  }
+
+  .ig-sidebar {
+    width: 73px;
+    padding: 8px 12px 20px;
+  }
+
+  .ig-logo {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .ig-logo-word,
+  .ig-label {
+    display: none;
+  }
+
+  .ig-logo-mark {
+    display: block;
+  }
+
+  .ig-item {
+    justify-content: center;
+    gap: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  body.ig-shell #container {
+    padding-left: 56px;
+  }
+
+  .ig-sidebar {
+    width: 56px;
+    padding: 4px 4px 12px;
+  }
+
+  .ig-logo {
+    height: 56px;
+  }
+
+  .ig-items {
+    gap: 2px;
+  }
+
+  .ig-item {
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .ig-menu {
+    position: fixed;
+    left: 60px;
+    bottom: 12px;
+    width: min(266px, calc(100vw - 72px));
+  }
+
+  body.ig-shell div.breadcrumbs {
+    padding: 12px 16px 0;
+  }
+
+  body.ig-shell #content {
+    padding: 12px 16px 40px;
+  }
+}
