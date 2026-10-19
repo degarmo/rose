@@ -69,7 +69,8 @@ party sizes, never emails. Tick people in as they arrive.
 
 ## The door desk
 
-Use it on the tablet at the door: **Door desk** on the staff home page.
+Use it on the tablet at the door: **Door desk** on the staff home page. This guide is also
+in the admin: the **Staff guide** link at the bottom of the public site (shown only to staff).
 
 1. **Find the person**: type their reference code (like `R7K-42Q`, with or
    without the dash) or display name, or press **Scan QR** and point the camera
@@ -87,6 +88,90 @@ Use it on the tablet at the door: **Door desk** on the staff home page.
    - **Refund**: in the payments list, type the amount and press Refund.
 4. **Show signature name** reveals the full name someone typed when they signed
    the agreement. Only use it when you truly need it; every use is recorded.
+
+### Guests at the door
+
+A guest signs up online (from the **Guests** page) and arrives with a reference code.
+
+1. Search for the code or their display name. Guest passes say **Guest pass**.
+2. Under **Guest visit**: check their photo ID (tick the box only if there is no ID check on
+   file yet), pick cash or card, check the amount and press **Record payment, in for tonight**.
+3. The pass ends by itself the next day. When they come back, find the same code and do
+   **Guest visit** again: no new sign-up, and no new ID check.
+
+**Convert to member**: open it on their card and let them scan the code with their own
+phone. They choose a membership and sign there, in their own account. Then search for them
+again and use **Record payment and activate**; their ID check carries over.
+
+### Recording a donation at the door
+
+Open **Record donation** at the top of the door desk. Choose cash, card or check, type the
+amount, and optionally a name to record (leave it blank for Anonymous) and an email for an
+acknowledgement. The acknowledgement is emailed with a plain subject and the address is
+then forgotten.
+
+## Rentals
+
+**Rental inquiries** > **Pipeline view** shows every open request by status, soonest first.
+A red **Clash** means the requested time overlaps a published event or another booking.
+
+- Open an inquiry to read it. **Move to** changes its status (In discussion, Quoted,
+  Declined, Cancelled); every change is recorded.
+- **Mark confirmed** opens a page where you can also **add a private placeholder to the
+  calendar**. It holds the time so nobody double-books it, and it is never shown on the site.
+  Declining or cancelling later removes it.
+- Photoshoot requests are only accepted once the person has promised everyone photographed
+  will consent and no other guests or members will appear. Hold them to it.
+- Ninety days after a request is declined or cancelled, its contact details are deleted
+  automatically. Do not copy them anywhere else.
+
+## Volunteers
+
+**Volunteer signups** lists everyone who offered to help. Filter by interest or status on
+the right. Use the actions menu to mark people contacted, active or inactive. **Export CSV**
+downloads a list without email addresses; only an administrator can add them, and every
+download is recorded. Delete the file when you are done with it.
+
+## Donations
+
+**Donations** lists every gift. Nothing here can be edited or deleted: a correction is a
+refund recorded by the payment provider. Gifts show as Anonymous unless the donor chose to
+show their display name, and no list of donors is ever published.
+
+**Open** next to a gift shows its acknowledgement, using the wording in **Acknowledgement
+wording** (with the club's legal name and EIN from Site settings). Print it, or email it if
+the donor left an address and it was not sent yet.
+
+## Newsletters
+
+1. **Email list** > **Newsletters** > **Add newsletter**. Write the subject, the preheader
+   (the grey line inboxes show after the subject) and the body.
+2. **Keep the subject and preheader neutral.** They show on lock screens and shared
+   computers. Never the club's name, what happens here, or anything you would not want a
+   housemate to see. The **inbox preview** at the top of the page shows, as you type, exactly
+   how the sender, subject and preheader will look in an inbox.
+3. Save, then **Send test to me**: it goes only to your own address.
+4. To send: tick the box and press **Send**, or set the status to Scheduled with a time.
+   It goes only to people who confirmed their address. Opens and clicks are never tracked.
+
+You cannot add people to the list yourself: everyone confirms their own address. If
+someone asks to be removed, select them in **Subscribers** and use **Unsubscribe the
+selected people**.
+
+## Editing the words on the site
+
+**Pages** > **Page copy** holds every heading and paragraph on the public pages, by page
+and key (for example `home` / `hero.title`). Change the text and save; the site shows it
+within a minute. "Formatted" values allow paragraphs, lists, bold, italics and links; plain
+values keep their line breaks. **Staff profiles** and **FAQ items** are edited the same way.
+
+### Approving draft content
+
+The copy from the old website was drafted into files marked "draft - needs club approval".
+A board member reads each file and its notes, corrects it, and changes its status to
+"approved". An administrator then loads it at **Page copy** > **Load site content**: upload
+the files, check what would change, then tick **Write the changes**. Drafts are refused on
+the live site unless an administrator deliberately allows them, which is recorded.
 
 ## Moderation queue
 

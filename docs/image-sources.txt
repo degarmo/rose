@@ -27,3 +27,81 @@
 # https://images.unsplash.com/photo-XXXXXXXXXXXX?w=2400 | home-hero | unsplash | Unsplash License | Photographer Name | faces=no | consent=no
 # https://images.pexels.com/photos/0000000/pexels-photo-0000000.jpeg | home-closing | pexels | Pexels License | Photographer Name | faces=no | consent=no
 # https://www.example.org/path/to/interior.jpg | home-interior | org-site | Owned by the organization | | faces=no | consent=no
+
+# ---------------------------------------------------------------------------
+# The previous site's images (captured 2026-10-18). NOT YET CONFIRMED.
+#
+# Every line below is commented out. Before removing the leading "# " from one:
+#   1. The club confirms it owns the image or has the right to reuse it. Images
+#      whose file name starts with 11062b_ or a 32-character id are Wix stock and
+#      are licensed for use on Wix sites only: do not reuse them.
+#   2. Set faces= and consent= truthfully. They default to faces=yes consent=no,
+#      which keeps an image hidden until review_images marks it safe.
+#   3. Give it a name the site uses (see the list above) or add a new one.
+# Images with text baked in (event posters, the Events By Type tiles) need their
+# words in the page copy instead; never rely on text inside an image.
+# ---------------------------------------------------------------------------
+# page (every page, header) | logo | alt: updatedroselogo.png | Site logo
+# https://static.wixstatic.com/media/bd1bc6_7639324a4b3d4e4c9ee6b4296f0f5c13~mv2.png | old-updatedroselogo-png | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page (every page, favicon and share image) | icon | alt: (none) | Site icon
+# https://static.wixstatic.com/media/1e25f4_caabdda7d176474fb1fc25ff395b68ee~mv2.png | old-site-icon | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page (every page, footer) | payment badge | alt: (none) | We Accept VISA / MasterCard badge
+# https://static.wixstatic.com/media/bd1bc6_29f988d0c8f04a37a44cd2589fdd517a~mv2.png | old-we-accept-visa-mastercard-badge | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page / | background | alt: (none) | before heading: WELCOME
+# https://static.wixstatic.com/media/bd1bc6_e875599b534e40c4abb73cd350e98028~mv2.jpg | old-before-heading-welcome | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page / | content (text baked into image) | alt: (none) | "Events By Type" gallery (Wix Pro Gallery), home page
+# https://static.wixstatic.com/media/bd1bc6_73de81b2338049ddba608ac2f18134a6~mv2.png | old-events-by-type-gallery-wix-pro-gallery-h | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page / | content (text baked into image) | alt: (none) | "Events By Type" gallery (Wix Pro Gallery), home page
+# https://static.wixstatic.com/media/bd1bc6_a13750f1fe914c8bbbdf0de1d4605185~mv2.png | old-events-by-type-gallery-wix-pro-gallery-h | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page / | content (text baked into image) | alt: (none) | "Events By Type" gallery (Wix Pro Gallery), home page
+# https://static.wixstatic.com/media/bd1bc6_2446e5bd54e64310b00fd36773b151ce~mv2.png | old-events-by-type-gallery-wix-pro-gallery-h | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page / | content (text baked into image) | alt: (none) | "Events By Type" gallery (Wix Pro Gallery), home page
+# https://static.wixstatic.com/media/bd1bc6_b14a86ae2ef84c2681c7874345203e94~mv2.png | old-events-by-type-gallery-wix-pro-gallery-h | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page / | background | alt: (none) | after heading: Events By Type; before heading: THE CLUB IS OPEN
+# https://static.wixstatic.com/media/11062b_0472df79ade34a5d8116526e9fa4925bf000.jpg | old-after-heading-events-by-type-before-head | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page / | background | alt: (none) | hero slideshow (non-active slide; from Wix page JSON, not in server-rendered HTML). Slide 
+# https://static.wixstatic.com/media/bd1bc6_9863f3e337014ce3ab481e09a1916ff7~mv2.jpg | old-hero-slideshow-non-active-slide-from-wix | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page / | background | alt: (none) | hero slideshow (non-active slide; from Wix page JSON, not in server-rendered HTML). Slide 
+# https://static.wixstatic.com/media/bd1bc6_df5e2afd374c41fc9a34cdeeea042242~mv2.jpg | old-hero-slideshow-non-active-slide-from-wix | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /staff | decorative/unlabelled | alt: (none) | after heading: Our Staff Members; before heading: SUBSCRIBE To stay up to date on all the 
+# https://static.wixstatic.com/media/c2d1eac44ea045b39fa0156aeb2d29e8.jpg | old-after-heading-our-staff-members-before-h | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /calendar | content | alt: Tied To The Rose | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_62d10c70514b4c438d27fea23e1cf62b~mv2.jpg | old-tied-to-the-rose | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /calendar | content | alt: Doctor Feel Good | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_15b035a58cad4f08b3617acc39a956c5~mv2.png | old-doctor-feel-good | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /calendar | content | alt: Rope Jam | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_e2695d2e922b46f19516cc476a5a50f6~mv2.png | old-rope-jam | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /calendar | content | alt: So, you think you're a Dominant? | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_c615d1d88a4642a880b8baf3b19bb674~mv2.jpg | old-so-you-think-you-re-a-dominant | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /calendar | content | alt: Brat Takeover: Mischief Edition | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_5375ccf0181b431ea13ccbb945530cf3~mv2.png | old-brat-takeover-mischief-edition | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /calendar | content | alt: Halloween at the Rose | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_98f7cd40a0f84466945af61f70a90166~mv2.jpg | old-halloween-at-the-rose | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /calendar | content | alt: Kink 101: Lifestyle Foundations | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_125c4d2c38524ed69305497ee0d8676d~mv2.jpg | old-kink-101-lifestyle-foundations | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /calendar | content | alt: First Friday November | after heading: Upcoming Events; before heading: SUBSCRIBE To stay up to date on all the Ki
+# https://static.wixstatic.com/media/bd1bc6_4c8d353f122b4365a0132d1d425f6402~mv2.jpg | old-first-friday-november | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /educational | background | alt: Teacher on Board | before heading: CLASS SCHEDULE
+# https://static.wixstatic.com/media/11062b_b67bf74a7b394949a46c0e36bcf18fa1~mv2.jpg | old-teacher-on-board | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /educational | background | alt: Group of Activists | education hero slideshow slide background (non-active slide; from Wix page JSON)
+# https://static.wixstatic.com/media/11062b_940450b10c814008b711c13422ae4499~mv2.jpeg | old-group-of-activists | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /educational | background | alt: Screenshot 2023-02-05 204356.png | education hero slideshow slide background (non-active slide; from Wix page JSON)
+# https://static.wixstatic.com/media/bd1bc6_5ac031a7060946799f25b15cf463c366~mv2.png | old-screenshot-2023-02-05-204356-png | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /educational | background | alt: Female Performer | education hero slideshow slide background (non-active slide; from Wix page JSON)
+# https://static.wixstatic.com/media/df0d5a6d8c074e68ac689e46e4889b20.jpg | old-female-performer | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /directions | content | alt: Roseentrance1.png | after heading: Hours: Thursdays: 7pm to 12am Educational Classes - No alcohol Fridays and 
+# https://static.wixstatic.com/media/bd1bc6_cedcc4d6cd5d46fcbb347a1e82aec2fb~mv2.png | old-roseentrance1-png | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /directions | content | alt: Roseentrance2.png | after heading: Hours: Thursdays: 7pm to 12am Educational Classes - No alcohol Fridays and 
+# https://static.wixstatic.com/media/bd1bc6_c9d6886d0d054bbe977fd690874a07e2~mv2.png | old-roseentrance2-png | org-site | Owned by the organization (to confirm) | | faces=yes | consent=no
+# page /what-to-expect | background | alt: Gay Teens | after heading: What to expect your first time; before heading: General Rules
+# https://static.wixstatic.com/media/11062b_9fda1d7f61524090a35295509487e15b~mv2.jpg | old-gay-teens | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /what-to-expect | background | alt: Good Vibes | after heading: Membership Terms and Conditions; before heading: SUBSCRIBE To stay up to da
+# https://static.wixstatic.com/media/11062b_83a42f1c3e7541c0b9fc8c94982f3151~mv2.jpg | old-good-vibes | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /faq | content | alt: Queer Prom | after heading: We Have The Answers; before heading: OUR FAQ IS RIGHT HERE FOR YOU
+# https://static.wixstatic.com/media/11062b_62e2c32782e046b196f7af01fa638037~mv2.jpg | old-queer-prom | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /donate | content | alt: Don't Speak | before heading: Hey There, We appreciate your donation more than you know. -The Rose Staff
+# https://static.wixstatic.com/media/11062b_e69f852fb1ce478b90a7320c3372fdd2~mv2.jpeg | old-don-t-speak | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /donate | background | alt: (none) | after heading: Hey There, We appreciate your donation more than you know. -The Rose Staff;
+# https://static.wixstatic.com/media/11062b_6f4f22d3a32f4cfd92739f410f2d4038f000.jpg | old-after-heading-hey-there-we-appreciate-yo | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no
+# page /contact-us | background | alt: Light and Shadow Portrait | before heading: Your Experience Matters.
+# https://static.wixstatic.com/media/11062b_e08d4f3a09894187b48d9203232e7cc3~mv2.jpg | old-light-and-shadow-portrait | org-site | Wix stock: licensed for Wix sites only | | faces=yes | consent=no

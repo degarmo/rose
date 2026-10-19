@@ -1,12 +1,12 @@
 # Payments
 
-Membership payments go through a small provider-agnostic layer in
-`backend/apps/memberships/providers/`. Two providers ship:
+Membership payments and online donations go through a small provider-agnostic
+layer in `backend/apps/memberships/providers/`. Two providers ship:
 
 | Key | Class | Online | Where it runs |
 | --- | --- | --- | --- |
 | `manual` | `ManualProvider` | No | Always. Payment in person at the door, recorded by staff on the door desk. |
-| `sandbox` | `SandboxProvider` | Yes | Development and tests only. A fake hosted checkout at `/dev/checkout/<token>` with Pay, Fail and Cancel buttons that post signed fake webhooks to the real webhook endpoint. Constructing it with `DEBUG` off raises `ImproperlyConfigured`. |
+| `sandbox` | `SandboxProvider` | Yes | Development and tests only. A fake hosted checkout at `/dev/checkout/<token>` with Pay, Fail and Cancel buttons that post signed fake webhooks to the real webhook endpoint. Constructing it with `DEBUG` off raises `ImproperlyConfigured`, except in the end-to-end test stack (`DJANGO_ENV=e2e`), which is never deployed; the deployment checks refuse it in staging and production either way. |
 
 A real processor is one more class and one more key in `PAYMENT_PROVIDERS`.
 
@@ -19,6 +19,7 @@ class PaymentProvider(ABC):
     online: bool        # True: hosted checkout and webhooks
 
     def create_checkout(self, membership, success_url, cancel_url) -> CheckoutSession: ...
+    def create_one_time_checkout(self, amount_cents, purpose, success_url, cancel_url) -> CheckoutSession: ...
     def parse_webhook(self, request) -> list[ProviderEvent]: ...
     def cancel_subscription(self, membership) -> None: ...
     def resume_subscription(self, membership) -> None: ...
@@ -28,6 +29,12 @@ class PaymentProvider(ABC):
 - `create_checkout` starts a hosted checkout for `membership.tier.price_cents`. Pass
   `membership.reference_code` to the processor as metadata (or client reference), so its
   events can be matched back. Return `CheckoutSession(redirect_url, provider_ref)`.
+- `create_one_time_checkout` starts a hosted checkout for a single payment that is not
+  a membership: today, online donations. `purpose` is our own reference for what it pays
+  for (for example `donation:DON-7KQ29X`). Send it to the processor as metadata or client
+  reference, and return it as `ProviderEvent.purpose` on every event about that payment.
+  The product name at the processor is the neutral word before the colon ("Donation").
+  `manual` raises `ProviderError`: in-person gifts are recorded on the door desk.
 - `parse_webhook` verifies the signature using the processor's own scheme and raises
   `WebhookVerificationError` if it is missing or wrong. It returns normalised
   `ProviderEvent`s (below). It must not change any data.
@@ -59,6 +66,13 @@ The adapter maps each processor event onto one of five types. The service finds 
 membership by `membership_ref` (our reference code) or, failing that, by
 `subscription_ref`, so events may arrive in any order.
 
+Events that carry a `purpose` instead are stored and deduplicated in exactly the same
+way, then handed to the handler registered for the purpose's prefix
+(`PURPOSE_HANDLERS` in `providers/service.py`; `donation` goes to
+`apps.donations.services.apply_provider_event`). For a donation, `payment_succeeded`
+records a `Donation`, `payment_failed` records a failed row, and `refunded` records a
+refund row pointing at the original; `checkout_completed` needs nothing.
+
 | `ProviderEvent.type` | Typical processor event | What the service does |
 | --- | --- | --- |
 | `checkout_completed` | checkout session completed | Marks the membership as online (`source=provider`, `provider`), stores customer and subscription references, turns auto-renew on for subscriptions. |
@@ -68,7 +82,7 @@ membership by `membership_ref` (our reference code) or, failing that, by
 | `refunded` | charge refunded | Records a refund `Payment` pointing at the original (found by `payment_ref`). |
 
 Fields: `event_id` (the processor's unique id; required), `membership_ref`,
-`customer_ref`, `subscription_ref`, `payment_ref`, `amount_cents`, and `payload` (a small
+`purpose`, `customer_ref`, `subscription_ref`, `payment_ref`, `amount_cents`, and `payload` (a small
 dict of non-sensitive fields kept for staff to read in Admin > Webhook events; never card
 data).
 
@@ -92,6 +106,7 @@ rejected with 400 and nothing is stored. Unknown or offline provider keys are 40
 | `MEMBERSHIP_PENDING_EXPIRY_DAYS` | `30` | How long an unpaid reference code stays open. |
 | `MEMBERSHIP_REMINDER_DAYS` | `(14, 3)` | In code. Renewal reminders for active memberships that do not renew automatically. |
 | `PAYMENT_WEBHOOK_RATE_LIMIT` | `120/m` | In code. Per hashed client IP. |
+| `DONATION_MINIMUM_CENTS`, `DONATION_MAXIMUM_CENTS`, `DONATION_PRESETS_CENTS` | `500`, `1000000`, `2500, 5000, 10000, 25000` | In code. Online gifts outside the range are refused with a message. |
 
 ## Billing descriptor and receipt names
 
@@ -130,6 +145,11 @@ switching a real processor on.
       period end.
 - [ ] A door desk refund of an online payment reaches the processor and adds a refund row.
 - [ ] The statement descriptor and any processor email are neutral.
+- [ ] An online donation goes to the hosted checkout, is recorded only when the webhook
+      arrives (as Anonymous unless the donor asked to show their display name), and a
+      requested acknowledgement is emailed under a neutral subject.
+- [ ] Sending the same donation webhook twice records one gift.
+- [ ] A refund of an online gift arrives as a new refund row.
 - [ ] With DEBUG off, the sandbox is absent: `/api/payments/sandbox/...` and
       `/api/payments/webhook/sandbox/` are 404 and the join page offers only the in-person
       method (`tests/test_payment_webhooks.py`, `tests/test_membership_join.py`).

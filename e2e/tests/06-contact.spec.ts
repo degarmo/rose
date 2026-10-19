@@ -27,9 +27,11 @@ test.describe('Contact @smoke', () => {
   test('the bot trap field is out of sight and out of reach', async ({ page, baseURL }) => {
     await confirmAge(page.context(), baseURL!)
     await page.goto('/contact')
-    const honeypot = page.locator('input[name="website"]')
+    // The footer's email sign-up has its own trap; this checks the contact form's.
+    const form = page.getByRole('form', { name: 'Contact form' })
+    const honeypot = form.locator('input[name="website"]')
     await expect(honeypot).toHaveAttribute('tabindex', '-1')
-    await expect(page.locator('[aria-hidden="true"]:has(input[name="website"])')).toHaveCount(1)
+    await expect(form.locator('[aria-hidden="true"]:has(input[name="website"])')).toHaveCount(1)
     const box = await honeypot.boundingBox()
     expect(box!.x + box!.width).toBeLessThan(0) // positioned off-screen
     await expect(page.getByRole('textbox', { name: 'Website' })).toHaveCount(0)

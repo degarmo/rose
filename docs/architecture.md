@@ -37,12 +37,16 @@ security and restores are in `docs/ops/`.
 | `templates/admin/` | Admin additions: Image review, door list, Repeat weekly form, feed moderation, the membership Door desk and Membership summary, and the index shortcuts. |
 | `apps/core` | `AuditLog` (append-only record of moderation, door desk, export, private-data, staff-security and operations actions, with the `audit()` helper), `SeedMarker`, `checks.py` (deployment safety checks), `dashboard.py` (totals for the admin home page, shown by permission), `spa.py` (serves the built app), `storage.py` (public and private S3 backends), `admin_auth.py` (two-step staff login), `logging.py` (JSON logs and the privacy scrubber, optional Sentry), `backups.py` and `tasks.py` (encrypted nightly backup), commands `migrate_media_to_storage`, `send_test_email`, `verify_restore` and `e2e_fixtures`, and shared helpers: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface: a stream locally, a 60-second signed redirect on S3; stored watermarked copies), `watermark.py` (per-viewer tiled watermark), `images.py` (upload checks, EXIF/GPS stripping, random names, size variants), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py` (health check, staging gate, final header policy), `views.py`. |
 | `apps/accounts` | `User` (email login, `display_name`, private `legal_name`, `phone`, `email_verified_at`, `session_epoch`), `Profile`, registration, verification, login lockout, password reset and change, display-name change, sign out everywhere, account deletion, session rules (`middleware.py`, `sessions.py`, privilege-change signals) and the optional breached-password check (`breach.py`). Email tasks in `tasks.py`. |
-| `apps/pages` | `SiteSettings`, `SocialLink`, `FAQItem`; `seed_demo` command and its generated placeholder art (`demo_media.py`). |
+| `apps/pages` | `SiteSettings` (now with the giving details and the staff-only legal name and EIN), `SocialLink`, `FAQItem`, `StaffProfile`, `PageContent` (editable page copy), `Redirect` (old site addresses). `content.py` (cached copy and redirect reads), `middleware.py` (301s before the app's fallback), `site_content.py` and the `load_site_content` command (YAML drafts), `demo_content/` (placeholder copy for development and tests), `seed_demo` and its generated art. |
 | `apps/education` | `Opportunity` (uses the consented image pattern). |
 | `apps/contact` | `ContactMessage`, content-free staff notification, `anonymize_messages_from()`. |
 | `apps/events` | `Event`, `RSVP`, `AttendeeExport`; `access.can_rsvp()`, `services.py` (capacity and waitlist under a row lock), `tasks.py` (RSVP emails, reminders, retention purge), `ics.py`, `recurrence.py` (Repeat weekly), admin door list and CSV export. |
 | `apps/journal` | Staff-written public posts: `Post` and `PostImage` (1 to 10 images, consented image pattern), cursor-paginated API. |
 | `apps/feed` | The opt-in member feed. `access.py` (who may see and post), `visibility.py` (what one member may see), `services.py` (posting, likes, comments, follows, blocks, mutes, reports, moderation, erase, export), `tasks.py` (image processing, erase, export, expiry), `api.py` (404-first base view), `views.py` under `/api/members/`, `account_views.py` under `/api/account/feed/`, admin moderation queue. |
+| `apps/rentals` | `RentalInquiry`; `services.py` (clash check, status changes, the private calendar hold), neutral emails, admin pipeline and confirm page, retention task. |
+| `apps/volunteers` | `VolunteerSignup`; neutral emails, admin filters and the logged CSV export, retention task. |
+| `apps/donations` | `Donation` (append-only), `DonationCheckout` (a started online gift), `Acknowledgement`, `AcknowledgementTemplate`; `services.py` (online checkout through the payment layer, provider events, gifts at the door, acknowledgements), printable acknowledgement page, retention task. |
+| `apps/newsletter` | The email list: `Subscriber`, `Suppression`, `Newsletter`; `services.py` (double opt-in, one-click leaving, batched sending with no tracking), the inbox preview, sending and suppression tasks. |
 | `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access), `join.py`, `desk.py` (door desk actions), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
 
@@ -52,9 +56,15 @@ security and restores are in `docs/ops/`.
 | --- | --- | --- |
 | GET | `/healthz` | `ok` (200) when the database and Redis answer, `unavailable` (503) otherwise. No details. |
 | GET | `/api/csrf/` | `{csrfToken}`; the cookie itself is HttpOnly. |
-| GET | `/api/site-settings/`, `/api/faqs/` | Site content. |
+| GET | `/api/site-settings/`, `/api/faqs/`, `/api/staff/` | Site content. Staff profiles are published ones only, with no account behind them. |
+| GET | `/api/content/<page>/` | A page's editable copy. Cached on the server until it changes; `Cache-Control: public, max-age=60`. |
 | GET | `/api/education/opportunities/[<slug>/]` | `?category=&level=` filters. |
 | POST | `/api/contact/` | Rate limited, honeypot. |
+| POST | `/api/rentals/inquiries/` | Rate limited, honeypot. Answers with a fixed message. |
+| GET, POST | `/api/volunteer/options/`, `signup/` | The roles and times; a sign-up (rate limited, honeypot, linked to the account if signed in). |
+| GET, POST | `/api/donations/options/`, `checkout/` | How to give; start an online gift (rate limited). Never anything about who has given. |
+| POST | `/api/newsletter/subscribe/`, `confirm/`, `unsubscribe/` | Double opt-in. Subscribing answers the same for every address. |
+| GET, POST | `/api/newsletter/unsubscribe/<token>/` | RFC 8058 one-click: POST unsubscribes without cookies or CSRF; GET only redirects to the page. |
 | GET, PATCH | `/api/account/session/` | Who is signed in (`user: null` if nobody); PATCH changes display name. The only endpoint that returns an email, and only the caller's own. |
 | POST | `/api/account/register/`, `verify-email/`, `verify-email/resend/`, `login/`, `logout/`, `sign-out-everywhere/`, `password-reset/`, `password-reset/confirm/`, `password/`, `delete/` | Account actions. Every write is rate limited (docs/ops/security.md). |
 | GET | `/api/account/rsvps/` | The caller's own upcoming RSVPs. |
@@ -86,6 +96,11 @@ security and restores are in `docs/ops/`.
 | `memberships.tasks.deliver_sandbox_events` | Development only | Posts the sandbox checkout's signed webhooks through the real endpoint. |
 | `feed.tasks.purge_old_watermarks` | Beat, daily | Deletes watermarked copies older than 7 days (the bucket's lifecycle rule does the same). |
 | `contact.tasks.purge_old_messages` | Beat, daily | Deletes handled contact messages after `CONTACT_RETENTION_DAYS` (365). |
+| `newsletter.tasks.send_newsletter`, `send_scheduled_newsletters` | On Send; beat, every 5 minutes | Batches of 100 to confirmed, unsuppressed subscribers. |
+| `newsletter.tasks.purge_subscribers` | Beat, daily | Unsubscribed for 30 days becomes a hash-only suppression record; unconfirmed sign-ups go after 7 days. |
+| `rentals.tasks.purge_closed_inquiries` | Beat, daily | See the retention table. |
+| `volunteers.tasks.purge_old_signups` | Beat, daily | See the retention table. |
+| `donations.tasks.purge_donation_contacts` | Beat, daily | Unfinished online gifts after 7 days; unsent acknowledgement addresses after 30. |
 | `core.tasks.nightly_backup` | Beat, 03:15 Chicago | `pg_dump`, encrypted with the age public key, uploaded to `backups/` in the private bucket (docs/ops/restore.md). |
 
 ## Member feed
@@ -229,6 +244,8 @@ flowchart LR
 | `components/members` | Members area: quieter `MembersLayout`, `PostCard`, `Composer`, `RedactionEditor`, `SensitiveBlur`, `OverflowMenu`, `ReportDialog`, `ProfileSettings`. Loaded as a separate chunk only when a members route is visited. |
 | `lib/redact.ts`, `lib/membersApi.ts`, `lib/useCursorList.ts` | Canvas redaction pipeline; members API client; cursor pagination with infinite scroll. |
 | `lib/api.ts` | Typed API client; keeps the CSRF token in memory and refreshes it from session responses. |
+| `lib/pageContent.ts`, `components/content/Copy.tsx` | Editable page copy: `usePageContent(page)`, then `<Copy>` and `<CopyHeading>` render a key (formatted or plain) with a skeleton while it loads. |
+| `components/layout/NavDropdown.tsx`, `SubscribeForm.tsx` | Keyboard-accessible header dropdowns; the footer's email sign-up. |
 | `lib/calendar.ts`, `lib/events.ts`, `lib/format.ts` | Month grid maths, RSVP state labels, Chicago-time formatting, safe `next` paths, URL fragment parsing. |
 | `**/*.test.tsx`, `test/` | Vitest + Testing Library. |
 
@@ -239,6 +256,9 @@ flowchart LR
 **Prompt 4: paid membership.** Built; see "Membership and payments" above. A real
 processor is one adapter class (see `docs/payments.md`).
 
+**Prompt 6: parity with the old site.** Built; see "Guests, rentals, volunteers, giving and the
+email list" above, the data retention table, and `docs/content.md` for the copy workflow.
+
 **Prompt 5: hardening and deploy.** Built: single-origin hosting, S3 storage with signed
 private delivery, two Render environments, deployment safety checks, staff two-factor,
 session rules, header policy, upload checks, rate limits on every write, scrubbed JSON
@@ -246,6 +266,54 @@ logs, email through anymail, encrypted nightly backups with a tested restore, CI
 browser tests. See `docs/ops/`. Handled contact messages now expire after a year; the
 audit log and the attendee export log are kept, because they are the record of who saw
 or exported what (decision 199).
+
+## Guests, rentals, volunteers, giving and the email list (prompt 6)
+
+- **Guests** are a `Tier` with `is_guest_pass` (one day, nothing online), joined through the
+  normal flow with payment at the door only. The door desk's **Guest visit** checks ID if none
+  is on file, takes payment and opens the pass for one day; the lifecycle ends it the next day
+  without grace or email. A returning guest reopens the same pass. **Convert to member** shows a
+  QR code for `/join`, which the guest opens on their own phone.
+- **Rentals** come from `/rentals` into a staff pipeline (Admin > Rental inquiries > Pipeline
+  view) that warns when a requested time overlaps a published event or another booking's hold.
+  Confirming can add a private `Event` hold that can never be published.
+- **Volunteers** sign up at `/get-involved/volunteer`; staff filter and export them, with the
+  export logged and emails only for a superuser who asks.
+- **Donations**: in person on the door desk, by check, or online through
+  `PaymentProvider.create_one_time_checkout` (see `docs/payments.md`). Gifts are append-only,
+  anonymous unless the donor chooses otherwise, and acknowledged from staff-edited wording.
+- **Email list**: the footer sign-up, double opt-in, staff-written newsletters sent in batches
+  with one-click unsubscribe headers and no tracking.
+- **Page copy** lives in `PageContent` and is edited in the admin; drafted copy from the old site
+  is loaded from `/content/*.yaml` (`load_site_content`, or Page copy > Load site content).
+- **Redirects** from the old site's addresses are served as 301s by middleware before the app.
+
+## Data retention
+
+| App | What | Kept for | How |
+| --- | --- | --- | --- |
+| accounts | Account, profile | Until the person deletes it | Deletion removes the profile, RSVPs, volunteer sign-ups and feed data, and detaches memberships, payments and gifts. |
+| contact | Handled messages | `CONTACT_RETENTION_DAYS` (365) | `contact.tasks.purge_old_messages`; unhandled ones wait for staff. |
+| events | RSVPs | `RSVP_RETENTION_DAYS` (30) after the event | `events.tasks.purge_expired_rsvps`; only counts remain. |
+| events | Attendee export log | Kept | The record of who exported what. |
+| feed | Posts, images, comments | Until the author erases them or leaves | Opting out hides; "Leave and erase" and account deletion delete. |
+| feed | Watermarked copies | 7 days | `feed.tasks.purge_old_watermarks`. |
+| feed | Exports | 24 hours, single use | `feed.tasks.purge_expired_exports`. |
+| memberships | Memberships, payments, ID checks | Kept (financial records) | Detached from the person when the account is deleted; the signature goes with the account. |
+| memberships | Unpaid reference codes | `MEMBERSHIP_PENDING_EXPIRY_DAYS` (30) | Lifecycle expires them. |
+| rentals | Declined and cancelled inquiries | Contact details `RENTAL_RETENTION_DAYS` (90) after closing | `rentals.tasks.purge_closed_inquiries` keeps only type, date and status. |
+| rentals | Inquiries never concluded | 90 days after their last requested date | Same task, same result. |
+| rentals | Confirmed bookings | Kept | The record of the booking; contact details go when the account is deleted. |
+| volunteers | New or inactive sign-ups | `VOLUNTEER_RETENTION_DAYS` (365) untouched | `volunteers.tasks.purge_old_signups`; active volunteers are kept. |
+| donations | Gifts | Kept (financial records) | Append-only; anonymous unless the donor chose otherwise. |
+| donations | Started online gifts | 7 days | `donations.tasks.purge_donation_contacts`. |
+| donations | Acknowledgement address | Until sent, at most 30 days | Cleared on sending, or by the same task. |
+| newsletter | Unconfirmed sign-ups | 7 days | `newsletter.tasks.purge_subscribers`. |
+| newsletter | Unsubscribed addresses | 30 days, then a salted hash and the date | Same task. |
+| newsletter | Newsletters | Kept | Staff-written content, no recipients stored. |
+| pages | Page copy, staff profiles, redirects | Until staff change them | Public content. |
+| core | Audit log | Kept | Append-only; the record of who saw, changed or exported what. |
+| core | Backups | `BACKUP_RETENTION_DAYS` (30) | Pruned by the backup task. |
 
 ## Privacy checklist
 
@@ -281,7 +349,30 @@ Check every change against this list.
 - [ ] **Tokens stay out of logs.** Verification, reset and cancel links put their tokens in
       the URL fragment, which browsers never send to the server.
 - [ ] **Minimum data.** No IP or user agent stored with messages; deleting an account
-      deletes the profile and RSVPs and strips identity from contact messages.
+      deletes the profile, RSVPs and volunteer sign-ups and strips identity from contact
+      messages and rental inquiries.
+
+### Guests, rentals, volunteers, giving and the email list
+
+- [ ] **Guest passes are paid at the door** and grant nothing online; the ID check is the same
+      as for members (`desk.guest_visit`).
+- [ ] **No form echoes what was sent.** Rental, volunteer, contact and email-list endpoints
+      answer with fixed messages; staff notices contain no content.
+- [ ] **Private rental holds are never public.** `Event.is_private_hold` cannot be published and
+      is excluded from every public query (`tests/test_rentals.py`).
+- [ ] **No public donor list, ever.** Gifts are anonymous unless the donor asks; no endpoint
+      returns a donor (`test_no_api_route_reveals_a_donor`). Legal name and EIN are staff-only.
+- [ ] **Donations are immutable** like payments; acknowledgement subjects are neutral and the
+      address is forgotten once sent.
+- [ ] **Email list is double opt-in** with no enumeration, one-click unsubscribe headers, a
+      footer link, no open or click tracking (`anymail` defaults and per message), and
+      hash-only suppression 30 days after leaving.
+- [ ] **Exports are logged**, and contact emails are included only when a superuser asks,
+      logged separately (memberships, volunteers).
+- [ ] **Retention runs on beat** for every app in the table above.
+- [ ] **Drafted copy never names the club in the repository.** `/content` is gitignored except
+      the path-only redirect table; drafts are refused in production unless allowed, and that
+      is logged.
 
 ### Member feed rules
 

@@ -141,6 +141,14 @@ The only way to render imagery.
 
 Small uppercase pill. Tones: `neutral`, `rose`, `brass`. Use it for metadata, not actions.
 
+### Checkbox
+
+```tsx
+<Checkbox name="photoshoot_acknowledged" label="Everyone photographed will consent..." checked={value} error={error} required onChange={...} />
+```
+
+A native checkbox with its label, an optional hint and an error, wired with `aria-describedby`. Use it for promises and opt-ins; checkbox groups (the volunteer form) are a `fieldset` with a `legend`.
+
 ### Input, Textarea, Select
 
 ```tsx
@@ -184,11 +192,30 @@ toast.show({ tone: 'error', title: 'Your message was not sent', message: 'Please
 
 - **QuickExit**: the Leave control. Variants `floating` (large screens), `compact` (phone header) and `inline` (footer, menu). It must appear on every page.
 - **AgeGate**: renders instead of the app until age is confirmed.
-- **Header / Footer / Layout**: shared chrome. Navigation items live in `navigation.ts`. The desktop nav appears from `xl`; below that the menu sheet is used. "Join" reads "Membership" for anyone whose account has, or has had, a membership (`Account.has_membership`). Header, footer and the Leave control are hidden when printing, so a receipt prints alone.
+- **Header / Footer / Layout**: shared chrome. Navigation items live in `navigation.ts` as single links and groups (Visit: Plan Your Visit, Guests, FAQ; Get Involved: Volunteer, Donate, Rentals). The desktop nav appears from `xl`, with each group as a `NavDropdown`; below that the menu sheet lists the groups as headed sections. "Join" reads "Membership" for anyone whose account has, or has had, a membership (`Account.has_membership`). Header, footer and the Leave control are hidden when printing, so a receipt prints alone.
+- **NavDropdown**: a disclosure button and a list of links. Enter, Space or Arrow Down opens it and focuses the first link; arrows, Home and End move; Escape closes and returns focus; Tab away or a click outside closes. Tested in `NavDropdown.test.tsx`.
+- **SubscribeForm**: the footer's email list sign-up. One field, a honeypot, and the same "check your inbox" answer for every address. States: idle, sending (button disabled), sent, error (inline, announced politely).
+- **Footer**: wordmark, tagline and the sign-up; address, email and social links from site settings; the navigation groups; the nonprofit line, Privacy, the staff-only Staff guide link and the Leave control.
 - **AccountMenu**: "Log in" (with a `next` back to the current page), or the display name with a Lucide `User` icon and a small menu (My account, Log out). Closes on outside click, Escape and navigation.
 - **AuthProvider / useAuth**: session state from `/api/account/session/`. `applySession()` takes the session returned by login, logout and account changes. Nothing is stored in browser storage.
 
 ## Content components (`components/content`)
+
+### Copy and CopyHeading
+
+```tsx
+const copy = usePageContent('visit')
+<PageHero copy={copy} image="visit-hero.webp" placeholder="shadow" />
+<CopyHeading copy={copy} prefix="expect" id="expect" />
+<Copy copy={copy} k="id.body" lines={3} className="mt-4 text-fg-muted" />
+{copy.items('steps').map((n) => <Copy key={n} copy={copy} k={`steps.${n}.title`} as="h3" />)}
+```
+
+Every heading and paragraph on a public page is staff-editable copy (`docs/content.md`). `Copy` renders one key: formatted values (already sanitised on the server) as HTML, with prose styles on block elements and accent italics inside headings; plain values keep their line breaks. While the page's copy loads it shows a skeleton of `lines` lines; a missing key renders nothing. Pages hold no stand-in text. `CopyHeading` is a `SectionHeading` fed from `${prefix}.eyebrow/title/lede`, and `PageHero` takes `copy` the same way.
+
+### StaffCard
+
+`<StaffCard person={profile} />` shows a volunteer's display name, role and bio, with their photo only when the API sent one (consent rule), otherwise a monogram. `compact` drops the bio, for the strip on About. Never an email or account detail.
 
 ### EventCard and DateBlock
 

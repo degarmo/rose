@@ -2,7 +2,7 @@
 
 Choices made where the brief did not specify. Privacy-over-convenience calls are marked **(privacy)**.
 
-Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173) and prompt 05 (174 onwards).
+Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173), prompt 05 and its follow-ups (174 to 227) and prompt 06 (228 onwards).
 
 ## Prompt 01
 
@@ -346,3 +346,92 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 225. The appearance choice (automatic, light or dark) is a per-browser convenience in localStorage, guarded for private windows and never sent to the server.
 226. The loading state and the no-access 404 keep the public look. **(privacy)** Someone without feed access must not be able to tell the members area exists.
 227. The composer's sidebar button reads "Create" (its tooltip says "New post"); the old floating button is gone.
+
+## Prompt 06
+
+### Guests
+
+228. A guest night pass is a `Tier` with `is_guest_pass`, and `Tier.clean()` holds it to the brief: a one-time pass lasting exactly 1 day with all three entitlement flags off. No separate guest model.
+229. **(privacy)** Guest passes are paid at the door only. Joining with a guest tier and an online method is refused, and the join page offers only the in-person method for it, so a guest never meets a payment processor.
+230. A returning guest's earlier pass (expired after the night) is opened again by **Guest visit**, so they keep their account, their reference code and their ID check. A guest who signs up again instead gets a new code, and their ID check still carries over (`has_id_check` looks at the person, not the pass).
+231. A guest pass simply ends at the end of its day: the daily lifecycle moves it straight to expired, with no grace period, no email and no renewal reminders.
+232. **(privacy)** "Convert to member" on the door desk shows a QR code for `/join`, which the guest opens on their own phone in their own account. They read and sign the agreement themselves, so their typed name never passes through a staff tablet. Joining a membership closes an open guest pass (cancelled if unpaid, expired if it was running); the ID check carries over, so the desk can activate straight away.
+233. The Membership summary leaves guest passes out of the membership counts (status, tier, new, renewed, expired) but keeps their payments in revenue. Guest visits by month count successful guest-pass payments, one per evening.
+234. The guest tier never appears among the memberships on `/join`. `/join?tier=<slug>` preselects a tier; the Guests page uses it to go straight to the agreement.
+
+### Rentals
+
+235. The time, length and party size are required by the form but nullable in the model, so the retention purge can clear them.
+236. A clash is any overlap between the requested time and a published event or another booking's private hold, on either the first or the second choice. Without a start time the whole day counts. Unpublished events do not count.
+237. **(privacy)** The calendar placeholder is an `Event` with a new `is_private_hold` flag: `save()` forces it unpublished, `clean()` refuses publishing it, and `published()` excludes holds, so no list, calendar, detail, ICS or journal link can ever show it. It is removed when the inquiry is declined, cancelled or moved off confirmed.
+238. Status is read-only on the inquiry form. It changes only through the pipeline actions, the status form on the inquiry page and the confirm page, and each change writes an audit entry with the old and new status. Other edits are audited by field name only, never their values.
+239. **(privacy)** The requester gets a neutral "We received your request"; staff get "New request received" with an admin link and nothing about who asked or what for, like contact messages.
+240. **(privacy)** Retention: declined and cancelled inquiries keep only type, date and status `RENTAL_RETENTION_DAYS` (90) after they closed. Inquiries never concluded (new, in discussion, quoted) are treated the same 90 days after their last requested date. Confirmed bookings are kept as the record of the booking.
+241. Deleting an account strips the contact details from that person's inquiries. A confirmed booking keeps its calendar hold, because the room is still booked.
+
+### Volunteers
+
+242. Interests and availability are JSON lists of choice keys; the admin filters use `contains`.
+243. Sign-ups get a neutral "Thank you for your note" and staff a content-free "New note received". Rate limited to 5 an hour per IP, with the same honeypot as contact.
+244. **(privacy)** Sign-ups that went nowhere (new or inactive, untouched for `VOLUNTEER_RETENTION_DAYS`, 365) are deleted; active volunteers are kept. Deleting an account deletes that person's sign-ups.
+245. **(privacy)** The form does not ask for a reference check, which the old form did. Coordinators ask for one when they reply, so the site never stores references for people who never volunteer.
+
+### Donations
+
+246. `Donation` is append-only exactly like `Payment`: failed attempts and refunds are new rows. An online gift is recorded only when the provider's webhook confirms it; until then it is a short-lived `DonationCheckout`, deleted after 7 days.
+247. **(privacy)** A gift is linked to an account only when a signed-in donor ticks "show my display name". Otherwise it is "Anonymous" with no account link at all. Donors are never listed anywhere public.
+248. **(privacy)** An address for an acknowledgement is kept apart from the gift (`Acknowledgement`) and cleared the moment it is sent; an unsent one is cleared after 30 days. Acknowledgements go out automatically after an online or desk gift when wording exists; otherwise staff print or send them later. The subject comes from the wording, "Thank you for your gift" by default.
+249. **(privacy)** The legal name and EIN are staff-only site settings, used only on acknowledgements. The nonprofit line, who checks are payable to and the mailing address are public, on the Donate page.
+250. Recording a gift needs the door desk permission, so door volunteers can take cash, card or a check without wider admin access. It is audited in a new Donations category.
+251. Online giving appears whenever an online provider is configured (in practice a real processor, or the sandbox in development). Gifts are $5 to $10,000 online; presets are $25, $50, $100 and $250. The maximum keeps unusually large gifts as a conversation.
+252. One-time payments use a new `create_one_time_checkout(amount_cents, purpose, success_url, cancel_url)` on the provider interface. `purpose` ("donation:DON-XXXXXX") travels to the processor and back on `ProviderEvent.purpose`, and the existing event service routes it through a small registry (`PURPOSE_HANDLERS`) after storing and deduplicating it as usual.
+253. The sandbox provider may run in the end-to-end stack (`DJANGO_ENV=e2e`) as well as with DEBUG on, so the browser tests can pay online. That environment is never deployed, and the deployment checks still refuse the sandbox in staging and production.
+
+### Email list
+
+254. **(privacy)** Each subscriber's token is stored as is, because every newsletter needs it to build that person's unsubscribe link. Page links carry it in the URL fragment; the RFC 8058 one-click address must carry it in the path, so the log scrubber removes it there. A token only confirms or unsubscribes one address.
+255. Signing up again with a confirmed address sends nothing; a pending or unsubscribed address gets a fresh confirmation with a new token. The answer on screen is identical in every case, and sign-ups are limited per IP and per (hashed) address.
+256. **(privacy)** Sign-ups never confirmed are deleted after 7 days.
+257. **(privacy)** Suppression records are a salted hash of the address and the date. Confirming a new sign-up removes an old suppression, because that is a fresh opt-in; sending always skips suppressed addresses as well.
+258. Newsletters are draft, scheduled or sent, with a `send_started_at` lock so one can never go out twice. **Send** schedules it for now and queues the worker; a beat task every 5 minutes starts scheduled ones.
+259. Sending uses batches of 100 per connection, one message per person (each has its own unsubscribe link and headers).
+260. **(privacy)** Staff cannot add subscribers in the admin: everyone on the list confirmed it themselves. Staff can unsubscribe or delete people, which is audited.
+
+### Staff, page copy and content
+
+261. `StaffProfile` lives in the pages app and uses the consent image pattern. The optional account link is staff-only and never serialized.
+262. `PageContent` holds one value per page and dotted key (`hero.title`, `steps.1.body`), plain or formatted (sanitised like event bodies). Lists are numbered keys. `/api/content/<page>/` is read-only, cached on the server until a value changes, and sent with `Cache-Control: public, max-age=60`.
+263. What moved out of React: headings, ledes, paragraphs and list items on public pages. Interface text stays in code: button and link labels, form labels and validation, status and error messages, empty states, and page titles and descriptions for the browser. While copy loads, pages show skeletons, never stand-in text.
+264. The placeholder copy that used to be written into React now lives in `backend/apps/pages/demo_content/` (marked "placeholder - development only"), loaded by `seed_demo` and `e2e_fixtures`. It is development data, not a fallback; production shows the club's own copy.
+265. **(privacy)** `/content` is gitignored like `prompts/`, and kept out of the Docker image, because it names the organisation. Only `content/redirects.yaml` is committed: it holds paths only, and the tests check every mapping. Production loads the copy by uploading the files on a superuser-only admin page (Page copy > Load site content), which runs the same loader with the same draft guard and audit entries.
+266. The loader matches rows by slug (or page and key, or old path), never deletes, validates only the fields a file sets, and writes nothing unless every file loads. Every committed load is audited; loading drafts in production also writes a separate audit entry.
+267. Tier entries change the price only when one is given; a tier that does not exist yet needs a name, an interval and a price.
+268. `FAQItem` gained an optional unique `slug` so the loader can update questions in place.
+269. FAQ moved to its own `/faq` page (the old site had one), and Plan Your Visit links to it. A new `/house-rules` page carries the rules that were PDFs on the old site; Guests and Visit link to it.
+
+### Redirects
+
+270. `/gallery` goes to `/journal` from a built-in rule, so it works whether or not the redirect table is loaded, and the single-page app redirects it too.
+271. `Redirect` rows are matched case-insensitively without a trailing slash; an old path ending in `/*` covers everything under it (the old site's 755 event pages, bookings and services). Redirects never apply to the API, the admin, media or static files. Old PDFs map to the pages that replace them.
+272. Not mapped, so they reach the normal not-found page: the empty shop, Wix system and template pages, the members' login pages, and paths that are the same on both sites.
+
+### Navigation and footer
+
+273. Dropdowns use the disclosure pattern (a button that shows a list of links), not an ARIA menu, which suits site navigation better. Arrow keys, Home and End move through the links; Escape closes and returns focus; leaving with Tab or a click outside closes. The phone menu shows the same groups as headed sections.
+274. **(privacy)** The footer's staff guide link comes from a new self-only `staff_guide_url` on the signed-in session, set only for staff, so the admin's address never reaches anyone else's browser. The guide is `docs/staff-guide.md`, rendered (and sanitised) on an admin page behind the staff login.
+275. The footer's nonprofit line comes from site settings instead of the code. Its email sign-up avoids the word "email" in its labels so it is not confused with a form's own Email field by assistive technology and tests.
+
+### Content migration
+
+276. **(privacy)** The old site publishes its street address and a phone number. The draft keeps the address (the club decides whether to keep "shared with confirmed visitors", decision 9) and leaves the phone out, because the old site shows two different numbers.
+277. **(privacy)** Consent-violation and grievance reports went to Google Forms on the old site. The new site takes them through its own contact form ("Report a concern"), which is private and sends staff no content by email; the forms are not linked.
+278. Tiers carried over: Rose, Rose +, Limited, Limited + and Trial at the published prices, plus a $15 guest night pass from the old guest plan. Not carried over: Community and First Fridays (free; open evenings need only a free account here), Single Event (only on a hidden plans page) and Staff (comped at the desk). The one-event-a-month limit of the Limited plans is kept by door staff, not the site.
+279. **(privacy)** The old staff page names nobody; names came only from a 2024 newsletter. They load unpublished, with no bios, until staff confirm them.
+280. Old images are listed in `docs/image-sources.txt`, every line commented out, with page and alt context. Images from Wix's stock library are marked as licensed for Wix sites only.
+
+### Other
+
+281. **(privacy)** `/subscribe` and `/unsubscribe` carry `noindex` and are disallowed in `robots.txt`, like the other token pages.
+282. `AuditLog` gained Rentals, Donations, Volunteers, Email list and Site content categories.
+283. The new admin pages share one stylesheet (`core/staff-tools.css`); printing an acknowledgement uses a static script, so the strict CSP stays unchanged.
+284. Forms that start from the signed-in name and email (rentals, volunteering) render once the session is known and take their first values from it, rather than copying it in an effect.

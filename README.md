@@ -171,6 +171,38 @@ never point a web server at that folder.
   Add `--commit` to import. Any problem row stops the whole import. Each person gets a neutral
   "Your account is ready" email. Email addresses are only printed with DEBUG on.
 
+## Guests, rentals, volunteers, giving and the email list
+
+- **Guests** sign up at `/guests` (a one-night guest pass, paid at the door). Door staff use
+  **Guest visit** on the door desk; **Convert to member** shows a QR code for `/join`.
+- **Rentals**: `/rentals` sends inquiries to Admin > Rental inquiries > **Pipeline view**, which
+  flags clashes with published events. Confirming can hold the date on the calendar privately.
+- **Volunteers**: `/get-involved/volunteer`; Admin > Volunteer signups, with a logged CSV export.
+- **Donations**: `/get-involved/donate` (online through the payment layer, sandbox in
+  development), **Record donation** on the door desk, printable acknowledgements in Admin >
+  Donations. Wording lives in Admin > Acknowledgement wording.
+- **Email list**: the footer sign-up (double opt-in). Staff write newsletters in Admin > Email
+  list > Newsletters, with an inbox preview and Send test to me. Run the worker and beat for
+  sending and the daily clean-ups.
+- **Demo data**: `seed_demo` (DEBUG only) adds a guest tier and guests, rental inquiries in
+  every status (one clashing with an event), volunteers, gifts by every method, subscribers in
+  every state, a sent newsletter, staff profiles and placeholder acknowledgement wording.
+
+## Site copy
+
+The words on the public pages are edited in Admin > Pages > Page copy. Placeholder copy for
+development comes with `seed_demo`. The club's own copy, drafted from the previous website, is
+in `/content` (kept out of git, like `prompts/`) and loaded with:
+
+```sh
+.venv/bin/python manage.py load_site_content            # dry run
+.venv/bin/python manage.py load_site_content --commit
+```
+
+or uploaded by a superuser at Page copy > **Load site content**. Drafts are refused in
+production unless deliberately allowed. See [docs/content.md](docs/content.md). Redirects from the
+old site's addresses are in `content/redirects.yaml` (committed: paths only).
+
 ## Adding images
 
 Images are never hotlinked. To add one:

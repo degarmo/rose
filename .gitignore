@@ -24,3 +24,8 @@ frontend/dist/
 
 # Planning notes name the organisation; keep them out of the repository.
 prompts/
+
+# Drafted site copy names the organisation; keep it out of the repository like
+# prompts/. Only the redirect table (paths, no names) is committed.
+/content/*
+!/content/redirects.yaml

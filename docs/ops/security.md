@@ -114,6 +114,11 @@ reaches the cache. Over-limit requests get HTTP 429.
 | Contact form | 5/hour per IP (invalid submissions count) |
 | Join (membership) | 10/hour per account |
 | Payment webhooks | 120/minute per IP |
+| Rental inquiry (`RENTAL_INQUIRY_RATE_LIMIT`) | 5/hour per IP, plus the default below |
+| Volunteer signup (`VOLUNTEER_RATE_LIMIT`) | 5/hour per IP, plus the default below |
+| Online donation checkout (`DONATION_RATE_LIMIT`) | 10/hour per IP, plus the default below |
+| Email list sign-up | 10/hour per IP and 3/hour per address (`NEWSLETTER_RATE_LIMIT_IP`, `_EMAIL`) |
+| Email list confirm and unsubscribe (page), one-click unsubscribe (mail apps) | 30/hour per IP |
 | Display name change, password change, delete account, sign out everywhere, RSVP (create, update, cancel), feed export and erase requests, membership checkout, cancel and auto-renew | 30/hour per endpoint per account |
 | Token links: verify email, reset password, cancel RSVP by link, export download | 30/hour per endpoint per IP |
 | Feed posts | 10/day per member (`FEED_MAX_POSTS_PER_DAY`), plus the default below |

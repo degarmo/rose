@@ -5,8 +5,30 @@ has an owner; replace `[owner]` with a name before starting.
 
 ## Content
 
-- [ ] **Real copy** for every page (home, about, visit, education, contact, join,
-      FAQs) replaces the placeholder text. Owner: [owner]
+- [ ] **Content approval, file by file.** Each draft in `/content` is read, corrected
+      (including its `notes`) and marked `status: approved` by a board member, then loaded
+      (Admin > Page copy > Load site content; docs/content.md). Owner: [owner]
+  - [ ] `site.yaml`: hours, address (street address public, or "shared with confirmed
+        visitors"?), directions, contact email, Discord link. Owner: [owner]
+  - [ ] `home.yaml` and `values.yaml`. Owner: [owner]
+  - [ ] `about.yaml`. Owner: [owner]
+  - [ ] `staff.yaml`: confirm each name and role from the 2024 newsletter, add bios, then
+        publish the profiles. Owner: [owner]
+  - [ ] `visit.yaml` and `house-rules.yaml`: settle the phone-use conflict between the
+        General Rules and the Membership Terms. Owner: [owner]
+  - [ ] `faq.yaml`. Owner: [owner]
+  - [ ] `guests.yaml`. Owner: [owner]
+  - [ ] `membership.yaml`: tier prices, the Limited plans' one-event rule, and the refund
+        policy (the old plan pages and the Membership Terms disagree). Owner: [owner]
+  - [ ] `education.yaml` and `events.yaml`. Owner: [owner]
+  - [ ] `rentals.yaml`: what is included, and rates if any are to be published.
+        Owner: [owner]
+  - [ ] `volunteer.yaml`: whether to publish the volunteer contract. Owner: [owner]
+  - [ ] `donate.yaml`, plus who checks are payable to and the mailing address in Site
+        settings. Owner: [owner]
+  - [ ] `contact.yaml` and `privacy.yaml`. Owner: [owner]
+  - [ ] `redirects.yaml` reviewed against the old site before the domain moves.
+        Owner: [owner]
 - [ ] **Site settings**: tagline, hours, neighbourhood, directions text, public
       contact email. Owner: [owner]
 - [ ] **Privacy page** reviewed and approved (what is stored, for how long, who
@@ -16,6 +38,10 @@ has an owner; replace `[owner]` with a name before starting.
 - [ ] **Image consent review**: every site image checked in Admin > Image review;
       anything with a recognisable face has written consent on file, or is kept
       hidden. Owner: [owner]
+- [ ] **Image rights and consent for the old site's images**: for each line in
+      `docs/image-sources.txt`, the club confirms it owns the image (Wix stock images
+      cannot be reused) and has written consent from anyone recognisable, before the line
+      is uncommented and fetched. Owner: [owner]
 - [ ] **Quick-exit destination** chosen (default: a weather site) and set in Site
       settings. Owner: [owner]
 
@@ -28,6 +54,10 @@ has an owner; replace `[owner]` with a name before starting.
 - [ ] **Payment processor decision**: in person only for launch, or which online
       processor (docs/payments.md lists what adding one involves). Owner: [owner]
 - [ ] **Merchant name** for receipts and bank statements (neutral). Owner: [owner]
+- [ ] **Donation acknowledgement wording reviewed by the club's accountant**, entered in
+      Admin > Acknowledgement wording, with the legal name and EIN in Site settings.
+      Owner: [owner]
+- [ ] **Guest night pass** price and description confirmed. Owner: [owner]
 - [ ] **Existing member list** prepared as CSV for `import_members`, if any.
       Owner: [owner]
 
