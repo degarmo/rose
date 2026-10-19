@@ -12,6 +12,7 @@ export const verifiedUser: Account = {
   has_membership: false,
   staff_guide_url: null,
   feed_access: false,
+  feed_controls: false,
   appearance: 'light',
 }
 export const unverifiedUser: Account = { ...verifiedUser, email_verified: false }

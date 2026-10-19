@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Outlet, ScrollRestoration, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { LoadingState } from '@/components/content/States'
+import { SiteFrame } from '@/components/layout/Layout'
 import { QuickExit } from '@/components/layout/QuickExit'
 import { ApiError } from '@/lib/api'
 import { firstMe, members, type FeedPost, type Me } from '@/lib/membersApi'
@@ -212,10 +213,11 @@ export function AppShell() {
   )
 
   if (state.status === 'denied') {
+    // The website's ordinary 404, header, footer and Leave included.
     return (
-      <div className="min-h-dvh">
+      <SiteFrame>
         <NotFoundPage />
-      </div>
+      </SiteFrame>
     )
   }
   if (!value) {

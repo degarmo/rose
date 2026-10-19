@@ -142,10 +142,13 @@ def test_staff_grant_gives_feed_entitlement(make_user):
 
 def test_account_feed_endpoints_hidden_without_entitlement(signed_in, make_user):
     client, user = signed_in()
+    # The session says there are no controls, so the account page never asks for them.
+    assert client.get("/api/account/session/").json()["user"]["feed_controls"] is False
     assert client.get("/api/account/feed/").status_code == 404
     assert client.post("/api/account/feed/join/", {}, format="json").status_code == 404
     user.profile.feed_access_granted = True
     user.profile.save()
+    assert client.get("/api/account/session/").json()["user"]["feed_controls"] is True
     body = client.get("/api/account/feed/").json()
     assert body["can_join"] is True and body["participating"] is False
     assert body["guidelines"]["version"] == Guidelines.current().version

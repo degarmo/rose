@@ -11,8 +11,25 @@ import { useAsync } from '@/lib/useAsync'
 
 type Dialog = 'step-away' | 'erase' | null
 
-/** Feed controls, or an explanation that the feed comes with membership. */
+function FeedPaywall() {
+  return (
+    <PaywallPanel
+      title="Member community"
+      benefit="The member feed, a private space to share with other members, comes with membership. It stays off until you turn it on."
+    />
+  )
+}
+
+/**
+ * Feed controls, or an explanation that the feed comes with membership. The controls are
+ * fetched only for people who have them, so nobody else's page asks the feed for a 404.
+ */
 export function FeedSection() {
+  const auth = useAuth()
+  return auth.user?.feed_controls ? <FeedControls /> : <FeedPaywall />
+}
+
+function FeedControls() {
   const auth = useAuth()
   const toast = useToast()
   const state = useAsync(() => feedAccount.get(), 'account-feed')
@@ -22,14 +39,7 @@ export function FeedSection() {
   const [busy, setBusy] = useState(false)
   const [erasing, setErasing] = useState(false)
 
-  if (state.status === 'error' && state.error instanceof ApiError && state.error.isNotFound) {
-    return (
-      <PaywallPanel
-        title="Member community"
-        benefit="The member feed, a private space to share with other members, comes with membership. It stays off until you turn it on."
-      />
-    )
-  }
+  if (state.status === 'error' && state.error instanceof ApiError && state.error.isNotFound) return <FeedPaywall />
   if (state.status !== 'success') return null
   const account = override ?? state.data
   const handle = auth.user?.display_name ?? ''

@@ -29,13 +29,15 @@ function account(overrides: Partial<FeedAccount> = {}): FeedAccount {
   }
 }
 
+const controls = { ...verifiedUser, feed_controls: true }
+
 beforeEach(() => Object.values(api).forEach((fn) => fn.mockReset()))
 
 describe('FeedSection', () => {
   it('asks for confirmation before stepping away', async () => {
     api.get.mockResolvedValue(account())
     api.stepAway.mockResolvedValue(account({ participating: false }))
-    renderWithProviders(<FeedSection />, { user: verifiedUser })
+    renderWithProviders(<FeedSection />, { user: controls })
     await userEvent.click(await screen.findByRole('button', { name: 'Step away from the feed' }))
     expect(api.stepAway).not.toHaveBeenCalled()
     const dialog = screen.getByRole('dialog', { name: 'Step away from the feed?', hidden: true })
@@ -53,7 +55,7 @@ describe('FeedSection', () => {
   it('only erases after the display name is typed exactly', async () => {
     api.get.mockResolvedValue(account())
     api.erase.mockResolvedValue(account({ participating: false, has_content: false }))
-    renderWithProviders(<FeedSection />, { user: verifiedUser })
+    renderWithProviders(<FeedSection />, { user: controls })
     await userEvent.click(await screen.findByRole('button', { name: 'Leave and erase' }))
     const dialog = screen.getByRole('dialog', { name: 'Erase everything you shared?', hidden: true })
     const confirm = within(dialog).getByRole('button', { name: 'Erase for good' })
@@ -70,10 +72,16 @@ describe('FeedSection', () => {
 
   it('explains that the community comes with membership when there is no access', async () => {
     api.get.mockRejectedValue(new ApiError(404, 'Not found.'))
-    renderWithProviders(<FeedSection />, { user: verifiedUser })
+    renderWithProviders(<FeedSection />, { user: controls })
     expect(await screen.findByRole('heading', { name: 'Member community' })).toBeInTheDocument()
     expect(screen.getByText(/comes with membership/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Become a member' })).toHaveAttribute('href', '/join')
     expect(screen.queryByRole('button', { name: 'Export my data' })).not.toBeInTheDocument()
+  })
+
+  it('does not ask the feed at all for someone without feed controls', async () => {
+    renderWithProviders(<FeedSection />, { user: verifiedUser })
+    expect(await screen.findByRole('heading', { name: 'Member community' })).toBeInTheDocument()
+    expect(api.get).not.toHaveBeenCalled()
   })
 })

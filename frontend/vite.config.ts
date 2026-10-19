@@ -38,9 +38,11 @@ export default defineConfig({
   server: {
     port: 5173,
     fs: { allow: ['.', manifestPath] },
+    // Keep the browser's Host, so the API builds image addresses on this origin rather
+    // than the backend's port, which the browser would refuse as cross-origin.
     proxy: {
-      '/api': proxyTarget,
-      '/media': proxyTarget,
+      '/api': { target: proxyTarget, changeOrigin: false },
+      '/media': { target: proxyTarget, changeOrigin: false },
     },
   },
   build: {

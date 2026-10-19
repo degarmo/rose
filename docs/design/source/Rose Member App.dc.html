@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet"><style>body{margin:0;background:#F2F0EF}a{color:#CE2156}a:hover{color:#A3123F}</style></helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:72px;font-family:Manrope,system-ui,sans-serif;color:#262626">
+<div style="display:flex;flex-direction:column;gap:6px"><div style="font-family:Fraunces,serif;font-size:40px;color:#5A0F23">Rose · Member app</div><div style="color:#737373;font-size:14px">Light, feed-first member experience. Desktop 1440×900 · Phone 390×844. Rose accent #CE2156, dividers #DBDBDB, system UI type 14/12/16, weights 400 and 600.</div></div>
+
+<!-- 1 HOME -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">01 · Home feed</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Home · desktop" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:245px 1fr;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;color:#262626">
+  <nav style="border-right:1px solid #DBDBDB;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:Fraunces,serif;font-size:28px;color:#5A0F23;padding:24px 12px 20px">Rose</div>
+    <sc-for list="{{ sideHome }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px;font-weight:{{ n.w }}" style-hover="background:#FAFAFA"><span style="display:flex;color:#262626">{{ n.icon }}</span>{{ n.label }}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px"><span style="display:flex">{{ iMenu }}</span>More</div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px;color:#737373"><span style="display:flex">{{ iLeave }}</span>Leave</div>
+  </nav>
+  <div style="display:flex;justify-content:center;gap:64px;padding-top:24px;overflow:hidden">
+    <div style="width:470px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:14px;padding:0 0 8px"><sc-for list="{{ stories }}" as="s" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:72px"><div style="width:64px;height:64px;border-radius:50%;border:2px solid {{ s.ring }};padding:3px;box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;background:{{ s.bg }}"></div></div><span style="font-size:12px">{{ s.l }}</span></div></sc-for></div>
+      <div style="display:flex;border-bottom:1px solid #DBDBDB"><div style="padding:12px 16px;font-weight:600;border-bottom:1px solid #262626;margin-bottom:-1px">Following</div><div style="padding:12px 16px;color:#737373">Everyone</div></div>
+      <dc-import name="Post Card" post="{{ p0 }}" viewer="{{ viewer }}" show-sensitive="{{ showSensitive }}" hint-size="470px,860px"></dc-import>
+      <dc-import name="Post Card" post="{{ p1 }}" viewer="{{ viewer }}" show-sensitive="{{ showSensitive }}" hint-size="470px,760px"></dc-import>
+    </div>
+    <aside style="width:320px;display:flex;flex-direction:column;gap:20px;padding-top:8px">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#F1D9DF,#D9B5BE)"></div><div style="flex:1;line-height:18px"><div style="font-weight:600">low_lamp</div><div style="color:#737373">Low Lamp</div></div><span style="color:#CE2156;font-weight:600;font-size:12px">Edit</span></div>
+      <div style="display:flex;flex-direction:column;gap:12px"><div style="font-weight:600;color:#737373">Coming up</div>
+        <sc-for list="{{ coming }}" as="e" hint-placeholder-count="3"><div style="display:flex;gap:12px;align-items:center"><div style="width:44px;height:44px;border-radius:8px;background:#FDEEF2;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1"><span style="font-size:10px;font-weight:600;color:#A3123F;text-transform:uppercase">{{ e.dow }}</span><span style="font-size:16px;font-weight:600;color:#A3123F">{{ e.day }}</span></div><div style="flex:1;line-height:18px"><div style="font-weight:600">{{ e.title }}</div><div style="color:#737373;font-size:12px">{{ e.time }}</div></div><span style="font-size:12px;font-weight:600;color:#CE2156">{{ e.cta }}</span></div></sc-for></div>
+      <div style="display:flex;flex-direction:column;gap:12px"><div style="font-weight:600;color:#737373">From the club</div>
+        <sc-for list="{{ club }}" as="k" hint-placeholder-count="2"><div style="display:flex;gap:12px;align-items:center"><div style="width:44px;height:44px;border-radius:8px;background:repeating-linear-gradient(135deg,#F7EEF1 0 6px,#FCF7F8 6px 12px)"></div><div style="flex:1;line-height:18px"><div style="font-weight:600">{{ k.t }}</div><div style="color:#737373;font-size:12px">{{ k.s }}</div></div></div></sc-for></div>
+      <div style="font-size:11px;color:#A3A3A3;display:flex;gap:8px;flex-wrap:wrap;line-height:16px"><span>About</span><span>Privacy</span><span>Guidelines</span><span>Contact</span><span>Leave</span></div>
+      <div style="font-size:11px;color:#A3A3A3">© 2026 Rose · Chicago</div>
+    </aside>
+  </div>
+</div>
+<div data-screen-label="Home · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font-family:Fraunces,serif;font-size:24px;color:#5A0F23">Rose</span><div style="display:flex;gap:20px;align-items:center"><span style="display:flex">{{ iBell }}</span><span style="display:flex;color:#737373">{{ iLeave }}</span></div></div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;gap:12px;padding:8px 16px 12px;overflow:hidden"><sc-for list="{{ stories }}" as="s" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:72px"><div style="width:64px;height:64px;border-radius:50%;border:2px solid {{ s.ring }};padding:3px;box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;background:{{ s.bg }}"></div></div><span style="font-size:12px">{{ s.l }}</span></div></sc-for></div>
+    <div style="display:flex;border-bottom:1px solid #DBDBDB"><div style="flex:1;text-align:center;padding:10px;font-weight:600;border-bottom:1px solid #262626;margin-bottom:-1px">Following</div><div style="flex:1;text-align:center;padding:10px;color:#737373">Everyone</div></div>
+    <dc-import name="Post Card" post="{{ p0 }}" viewer="{{ viewer }}" show-sensitive="{{ showSensitive }}" hint-size="390px,760px"></dc-import>
+  </div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsHome }}" as="t" hint-placeholder-count="5"><span style="display:flex;color:#262626">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+</div></section>
+
+<!-- 2 POST DETAIL -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">02 · Post detail (own post, likes visible to author)</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Post detail · desktop modal" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center">
+    <span style="position:absolute;top:16px;right:16px;color:#fff;display:flex">{{ iX }}</span>
+    <div style="display:flex;height:760px;background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+      <div style="position:relative;width:608px;background:repeating-linear-gradient(135deg,#F7EEF1 0 10px,#FCF7F8 10px 20px)"><span style="position:absolute;left:12px;bottom:12px;font:11px ui-monospace,monospace;color:#8A6B74;background:rgba(255,255,255,.7);padding:3px 6px;border-radius:4px">hands holding a teacup · linen</span><div style="position:absolute;inset:-20%;display:grid;grid-template-columns:repeat(3,1fr);align-items:center;justify-items:center;opacity:.07;transform:rotate(-20deg);font-size:12px;font-weight:600"><sc-for list="{{ wm }}" as="w" hint-placeholder-count="12"><span>@{{ w }}</span></sc-for></div></div>
+      <div style="width:335px;display:flex;flex-direction:column;border-left:1px solid #DBDBDB">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #DBDBDB"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F1D9DF,#D9B5BE)"></div><span style="font-weight:600;flex:1">low_lamp</span><span style="display:flex">{{ iMore }}</span></div>
+        <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:16px;overflow:hidden;line-height:18px">
+          <div style="display:flex;gap:12px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F1D9DF,#D9B5BE);flex:none"></div><div><span style="font-weight:600">low_lamp</span> Tea service before Thursday's class. Doors at 6:30 if you want to settle in first.<div style="font-size:12px;color:#737373;margin-top:4px">3d</div></div></div>
+          <sc-for list="{{ detailComments }}" as="cm" hint-placeholder-count="4"><div style="display:flex;gap:12px"><div style="width:32px;height:32px;border-radius:50%;background:{{ cm.av }};flex:none"></div><div style="flex:1"><span style="font-weight:600">{{ cm.h }}</span> {{ cm.t }}<div style="font-size:12px;color:#737373;margin-top:4px">{{ cm.when }} · Reply</div></div><span style="display:flex;color:#737373">{{ iHeartSm }}</span></div></sc-for>
+        </div>
+        <div style="border-top:1px solid #DBDBDB;padding:8px 16px 12px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:16px;height:40px"><span style="display:flex">{{ iHeart }}</span><span style="display:flex">{{ iComment }}</span><span style="flex:1"></span><span style="display:flex">{{ iBookmark }}</span></div>
+          <div style="font-weight:600">48 likes</div><div style="font-size:10px;text-transform:uppercase;color:#737373">3 days ago</div>
+        </div>
+        <div style="border-top:1px solid #DBDBDB;padding:12px 16px;display:flex;align-items:center;gap:8px"><span style="flex:1;color:#737373">Add a comment…</span><span style="color:#CE2156;font-weight:600">Post</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div data-screen-label="Post detail · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #DBDBDB"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px">Post</span></div>
+  <div style="flex:1;overflow:hidden"><dc-import name="Post Card" post="{{ pMine }}" viewer="{{ viewer }}" hint-size="390px,760px"></dc-import></div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsHome }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+</div></section>
+
+<!-- 3 STORY VIEWER -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">03 · Story viewer</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Story · desktop" style="position:relative;width:1440px;height:900px;background:#1A1A1A;outline:1px solid #DBDBDB;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#fff">
+  <span style="position:absolute;top:20px;left:24px;font-family:Fraunces,serif;font-size:26px;color:#fff">Rose</span><span style="position:absolute;top:22px;right:24px;display:flex">{{ iX }}</span>
+  <div style="position:relative;width:440px;height:782px;border-radius:12px;overflow:hidden;background:repeating-linear-gradient(135deg,#3A2A2F 0 12px,#2E2226 12px 24px);display:flex;flex-direction:column;padding:12px 12px 20px;box-sizing:border-box">
+    <div style="display:flex;gap:4px"><span style="flex:1;height:2px;border-radius:1px;background:#fff"></span><span style="flex:1;height:2px;border-radius:1px;background:linear-gradient(90deg,#fff 60%,rgba(255,255,255,.35) 60%)"></span><span style="flex:1;height:2px;border-radius:1px;background:rgba(255,255,255,.35)"></span><span style="flex:1;height:2px;border-radius:1px;background:rgba(255,255,255,.35)"></span></div>
+    <div style="display:flex;align-items:center;gap:10px;padding-top:12px"><div style="width:32px;height:32px;border-radius:50%;background:#5A0F23;border:1px solid rgba(255,255,255,.5)"></div><span style="font-weight:600;font-size:13px">Rose</span><span style="font-size:13px;opacity:.7">Tonight · 1h</span></div>
+    <span style="position:absolute;left:12px;top:50%;font:11px ui-monospace,monospace;color:rgba(255,255,255,.6)">late lounge · candles on linen · no faces</span>
+    <div style="flex:1"></div>
+    <div style="font-family:Fraunces,serif;font-size:32px;line-height:1.1;margin-bottom:8px">Late lounge<br>tonight, 9 pm</div>
+    <div style="font-size:14px;opacity:.85;margin-bottom:20px">Waitlist spots released at noon. Doors close at 11.</div>
+    <div style="height:44px;border-radius:8px;background:#fff;color:#262626;font-weight:600;display:flex;align-items:center;justify-content:center">RSVP</div>
+  </div>
+</div>
+<div data-screen-label="Story · phone" style="position:relative;width:390px;height:844px;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;padding:56px 12px 36px;box-sizing:border-box;background:repeating-linear-gradient(135deg,#3A2A2F 0 12px,#2E2226 12px 24px);font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#fff">
+  <div style="display:flex;gap:4px"><span style="flex:1;height:2px;border-radius:1px;background:#fff"></span><span style="flex:1;height:2px;border-radius:1px;background:linear-gradient(90deg,#fff 60%,rgba(255,255,255,.35) 60%)"></span><span style="flex:1;height:2px;border-radius:1px;background:rgba(255,255,255,.35)"></span><span style="flex:1;height:2px;border-radius:1px;background:rgba(255,255,255,.35)"></span></div>
+  <div style="display:flex;align-items:center;gap:10px;padding-top:12px"><div style="width:32px;height:32px;border-radius:50%;background:#5A0F23;border:1px solid rgba(255,255,255,.5)"></div><span style="font-weight:600;font-size:13px;flex:1">Rose <span style="font-weight:400;opacity:.7">Tonight · 1h</span></span><span style="display:flex">{{ iX }}</span></div>
+  <div style="flex:1"></div>
+  <div style="font-family:Fraunces,serif;font-size:32px;line-height:1.1;margin-bottom:8px">Late lounge<br>tonight, 9 pm</div>
+  <div style="font-size:14px;opacity:.85;margin-bottom:20px">Waitlist spots released at noon. Doors close at 11.</div>
+  <div style="height:44px;border-radius:8px;background:#fff;color:#262626;font-weight:600;display:flex;align-items:center;justify-content:center">RSVP</div>
+</div>
+</div></section>
+
+<!-- 4/5 PROFILES -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">04 · Own profile &nbsp; / &nbsp; 05 · Another member (no Saved tab, no edit buttons, no follower counts anywhere)</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Profile (own) · desktop" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:245px 1fr;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <nav style="border-right:1px solid #DBDBDB;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:Fraunces,serif;font-size:28px;color:#5A0F23;padding:24px 12px 20px">Rose</div>
+    <sc-for list="{{ sideProfile }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px;font-weight:{{ n.w }}"><span style="display:flex">{{ n.icon }}</span>{{ n.label }}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px"><span style="display:flex">{{ iMenu }}</span>More</div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px;color:#737373"><span style="display:flex">{{ iLeave }}</span>Leave</div>
+  </nav>
+  <div style="display:flex;justify-content:center;overflow:hidden"><div style="width:935px;padding-top:32px;display:flex;flex-direction:column">
+    <div style="display:flex;gap:30px;padding:0 0 32px 48px">
+      <div style="width:150px;height:150px;border-radius:50%;background:linear-gradient(135deg,#F1D9DF,#D9B5BE);flex:none;margin-right:30px"></div>
+      <div style="display:flex;flex-direction:column;gap:16px;padding-top:6px;line-height:18px">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-size:20px;font-weight:400">low_lamp</span><span style="height:32px;padding:0 16px;border-radius:8px;background:#F0F0F0;font-weight:600;display:flex;align-items:center">Edit profile</span><span style="height:32px;width:32px;border-radius:8px;background:#F0F0F0;display:flex;align-items:center;justify-content:center">{{ iSettings }}</span></div>
+        <div><span style="font-weight:600">12</span> posts</div>
+        <div><div style="font-weight:600">Low Lamp</div><div>Thursdays mostly. Tea, not whiskey. Ask me about the volunteer rota.</div><div style="color:#737373">Joined October 2026</div></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:60px;border-top:1px solid #DBDBDB;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600"><div style="padding:16px 0;border-top:1px solid #262626;margin-top:-1px;display:flex;gap:6px;align-items:center">{{ iGridSm }} Posts</div><div style="padding:16px 0;color:#737373;display:flex;gap:6px;align-items:center">{{ iBookmarkSm }} Saved</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px"><sc-for list="{{ tiles9 }}" as="t" hint-placeholder-count="9"><div style="position:relative;aspect-ratio:3/4;background:repeating-linear-gradient(135deg,#F7EEF1 0 10px,#FCF7F8 10px 20px)"><span style="position:absolute;left:8px;bottom:8px;font:11px ui-monospace,monospace;color:#8A6B74">{{ t }}</span></div></sc-for></div>
+  </div></div>
+</div>
+<div data-screen-label="Profile (own) · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font-weight:600;font-size:16px">low_lamp</span><div style="display:flex;gap:20px"><span style="display:flex">{{ iSettings }}</span><span style="display:flex;color:#737373">{{ iLeave }}</span></div></div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:28px;padding:8px 16px 12px"><div style="width:77px;height:77px;border-radius:50%;background:linear-gradient(135deg,#F1D9DF,#D9B5BE);flex:none"></div><div style="text-align:center;line-height:18px"><div style="font-weight:600;font-size:16px">12</div><div>posts</div></div></div>
+    <div style="padding:0 16px 12px;line-height:18px"><div style="font-weight:600">Low Lamp</div><div>Thursdays mostly. Tea, not whiskey. Ask me about the volunteer rota.</div><div style="color:#737373">Joined October 2026</div></div>
+    <div style="display:flex;gap:8px;padding:0 16px 16px"><span style="flex:1;height:32px;border-radius:8px;background:#F0F0F0;font-weight:600;display:flex;align-items:center;justify-content:center">Edit profile</span><span style="flex:1;height:32px;border-radius:8px;background:#F0F0F0;font-weight:600;display:flex;align-items:center;justify-content:center">Settings</span></div>
+    <div style="display:flex;border-top:1px solid #DBDBDB"><div style="flex:1;display:flex;justify-content:center;padding:12px;border-bottom:1px solid #262626">{{ iGridSm }}</div><div style="flex:1;display:flex;justify-content:center;padding:12px;color:#737373">{{ iBookmarkSm }}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px"><sc-for list="{{ tiles9 }}" as="t" hint-placeholder-count="9"><div style="position:relative;aspect-ratio:3/4;background:repeating-linear-gradient(135deg,#F7EEF1 0 10px,#FCF7F8 10px 20px)"><span style="position:absolute;left:6px;bottom:6px;font:10px ui-monospace,monospace;color:#8A6B74">{{ t }}</span></div></sc-for></div>
+  </div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+<div data-screen-label="Profile (other member) · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;gap:12px;padding:0 16px"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px;flex:1">night_owl</span><span style="display:flex">{{ iMore }}</span></div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:28px;padding:8px 16px 12px"><div style="width:77px;height:77px;border-radius:50%;background:linear-gradient(135deg,#E8C9D2,#C9A3AE);flex:none"></div><div style="text-align:center;line-height:18px"><div style="font-weight:600;font-size:16px">48</div><div>posts</div></div></div>
+    <div style="padding:0 16px 16px;line-height:18px"><div style="font-weight:600">Night Owl</div><div>Volunteer host · Fridays. Say hi at the door.</div><div style="color:#737373">Joined March 2025</div></div>
+    <div style="display:flex;border-top:1px solid #DBDBDB"><div style="flex:1;display:flex;justify-content:center;padding:12px;border-bottom:1px solid #262626">{{ iGridSm }}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px"><sc-for list="{{ tiles9b }}" as="t" hint-placeholder-count="9"><div style="position:relative;aspect-ratio:3/4;background:repeating-linear-gradient(135deg,#F3EDE6 0 10px,#FAF7F2 10px 20px)"><span style="position:absolute;left:6px;bottom:6px;font:10px ui-monospace,monospace;color:#8A7A6B">{{ t }}</span></div></sc-for></div>
+  </div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsHome }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Profile (other member) · desktop" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:245px 1fr;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <nav style="border-right:1px solid #DBDBDB;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:Fraunces,serif;font-size:28px;color:#5A0F23;padding:24px 12px 20px">Rose</div>
+    <sc-for list="{{ sideNone }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px;font-weight:{{ n.w }}"><span style="display:flex">{{ n.icon }}</span>{{ n.label }}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px"><span style="display:flex">{{ iMenu }}</span>More</div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px;color:#737373"><span style="display:flex">{{ iLeave }}</span>Leave</div>
+  </nav>
+  <div style="display:flex;justify-content:center;overflow:hidden"><div style="width:935px;padding-top:32px;display:flex;flex-direction:column">
+    <div style="display:flex;gap:30px;padding:0 0 32px 48px">
+      <div style="width:150px;height:150px;border-radius:50%;background:linear-gradient(135deg,#E8C9D2,#C9A3AE);flex:none;margin-right:30px"></div>
+      <div style="display:flex;flex-direction:column;gap:16px;padding-top:6px;line-height:18px">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-size:20px">night_owl</span><span style="display:flex">{{ iMore }}</span></div>
+        <div><span style="font-weight:600">48</span> posts</div>
+        <div><div style="font-weight:600">Night Owl</div><div>Volunteer host · Fridays. Say hi at the door.</div><div style="color:#737373">Joined March 2025</div></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;border-top:1px solid #DBDBDB;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600"><div style="padding:16px 0;border-top:1px solid #262626;margin-top:-1px;display:flex;gap:6px;align-items:center">{{ iGridSm }} Posts</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px"><sc-for list="{{ tiles9b }}" as="t" hint-placeholder-count="9"><div style="position:relative;aspect-ratio:3/4;background:repeating-linear-gradient(135deg,#F3EDE6 0 10px,#FAF7F2 10px 20px)"><span style="position:absolute;left:8px;bottom:8px;font:11px ui-monospace,monospace;color:#8A7A6B">{{ t }}</span></div></sc-for></div>
+  </div></div>
+</div>
+</div></section>
+
+<!-- 6/7 EXPLORE + SEARCH -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">06 · Explore &nbsp; / &nbsp; 07 · Search</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Explore · desktop" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:245px 1fr;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <nav style="border-right:1px solid #DBDBDB;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:Fraunces,serif;font-size:28px;color:#5A0F23;padding:24px 12px 20px">Rose</div>
+    <sc-for list="{{ sideExplore }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px;font-weight:{{ n.w }}"><span style="display:flex">{{ n.icon }}</span>{{ n.label }}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px"><span style="display:flex">{{ iMenu }}</span>More</div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px;color:#737373"><span style="display:flex">{{ iLeave }}</span>Leave</div>
+  </nav>
+  <div style="display:flex;justify-content:center;overflow:hidden;padding-top:24px"><div style="width:935px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;align-content:start"><sc-for list="{{ tiles12 }}" as="t" hint-placeholder-count="12"><div style="position:relative;aspect-ratio:1;background:repeating-linear-gradient(135deg,#F7EEF1 0 10px,#FCF7F8 10px 20px)"><span style="position:absolute;left:8px;bottom:8px;font:11px ui-monospace,monospace;color:#8A6B74">{{ t }}</span></div></sc-for></div></div>
+</div>
+<div data-screen-label="Explore · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;padding:0 16px"><div style="flex:1;height:36px;border-radius:8px;background:#EFEFEF;display:flex;align-items:center;gap:8px;padding:0 12px;color:#737373">{{ iSearchSm }} Search</div></div>
+  <div style="flex:1;overflow:hidden;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;align-content:start;padding-top:4px"><sc-for list="{{ tiles12 }}" as="t" hint-placeholder-count="12"><div style="position:relative;aspect-ratio:1;background:repeating-linear-gradient(135deg,#F7EEF1 0 10px,#FCF7F8 10px 20px)"><span style="position:absolute;left:6px;bottom:6px;font:10px ui-monospace,monospace;color:#8A6B74">{{ t }}</span></div></sc-for></div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsExplore }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Search · desktop slide-out" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:72px 1fr;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <nav style="border-right:1px solid #DBDBDB;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px;align-items:center">
+    <div style="font-family:Fraunces,serif;font-size:24px;color:#5A0F23;padding:24px 0 20px">R</div>
+    <sc-for list="{{ sideSearch }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:8px;border:{{ n.b }}"><span style="display:flex">{{ n.icon }}</span></div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px">{{ iMenu }}</div>
+    <div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;color:#737373">{{ iLeave }}</div>
+  </nav>
+  <div style="position:relative;display:flex;justify-content:center;gap:64px;padding-top:24px;overflow:hidden;opacity:.5">
+    <div style="width:470px;display:flex;flex-direction:column;gap:12px"><dc-import name="Post Card" post="{{ p0 }}" viewer="{{ viewer }}" hint-size="470px,860px"></dc-import></div>
+  </div>
+  <div style="position:absolute;left:72px;top:0;bottom:0;width:397px;background:#fff;border-right:1px solid #DBDBDB;border-radius:0 16px 16px 0;box-shadow:4px 0 24px rgba(0,0,0,.08);display:flex;flex-direction:column">
+    <div style="padding:24px 24px 0;font-size:24px;font-weight:600">Search</div>
+    <div style="margin:24px 16px;height:40px;border-radius:8px;background:#EFEFEF;display:flex;align-items:center;padding:0 16px;color:#737373">Search members</div>
+    <div style="border-top:1px solid #DBDBDB;padding:12px 24px;display:flex;justify-content:space-between"><span style="font-weight:600">Recent</span><span style="color:#CE2156;font-weight:600">Clear all</span></div>
+    <sc-for list="{{ members }}" as="m" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:12px;padding:8px 24px" style-hover="background:#FAFAFA"><div style="width:44px;height:44px;border-radius:50%;background:{{ m.av }}"></div><div style="flex:1;line-height:18px"><div style="font-weight:600">{{ m.h }}</div><div style="color:#737373">{{ m.n }}</div></div><span style="display:flex;color:#737373">{{ iXSm }}</span></div></sc-for>
+  </div>
+</div>
+<div data-screen-label="Search · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;gap:12px;padding:0 16px"><div style="flex:1;height:36px;border-radius:8px;background:#EFEFEF;display:flex;align-items:center;gap:8px;padding:0 12px">{{ iSearchSm }} <span>vel</span><span style="width:1px;height:16px;background:#262626"></span></div><span style="font-weight:600">Cancel</span></div>
+  <div style="flex:1;overflow:hidden;padding-top:8px">
+    <sc-for list="{{ members }}" as="m" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:12px;padding:8px 16px"><div style="width:44px;height:44px;border-radius:50%;background:{{ m.av }}"></div><div style="flex:1;line-height:18px"><div style="font-weight:600">{{ m.h }}</div><div style="color:#737373">{{ m.n }}</div></div></div></sc-for>
+  </div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsSearch }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+</div></section>
+
+<!-- 8 NOTIFICATIONS -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">08 · Notifications</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Notifications · desktop slide-out" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:72px 1fr;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <nav style="border-right:1px solid #DBDBDB;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px;align-items:center">
+    <div style="font-family:Fraunces,serif;font-size:24px;color:#5A0F23;padding:24px 0 20px">R</div>
+    <sc-for list="{{ sideNotif }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:8px;border:{{ n.b }}"><span style="display:flex">{{ n.icon }}</span></div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px">{{ iMenu }}</div>
+    <div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;color:#737373">{{ iLeave }}</div>
+  </nav>
+  <div style="display:flex;justify-content:center;gap:64px;padding-top:24px;overflow:hidden;opacity:.5"><div style="width:470px"><dc-import name="Post Card" post="{{ p1 }}" viewer="{{ viewer }}" hint-size="470px,760px"></dc-import></div></div>
+  <div style="position:absolute;left:72px;top:0;bottom:0;width:397px;background:#fff;border-right:1px solid #DBDBDB;border-radius:0 16px 16px 0;box-shadow:4px 0 24px rgba(0,0,0,.08);display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:24px 24px 16px;font-size:24px;font-weight:600">Notifications</div>
+    <div style="padding:8px 24px;font-weight:600">This week</div>
+    <sc-for list="{{ notifWeek }}" as="n" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;padding:8px 24px;line-height:18px"><div style="width:44px;height:44px;border-radius:50%;background:{{ n.av }};flex:none"></div><div style="flex:1"><span style="font-weight:600">{{ n.who }}</span> {{ n.t }} <span style="color:#737373">{{ n.when }}</span></div><div style="width:44px;height:44px;border-radius:4px;background:repeating-linear-gradient(135deg,#F7EEF1 0 6px,#FCF7F8 6px 12px);flex:none"></div></div></sc-for>
+    <div style="padding:16px 24px 8px;font-weight:600;border-top:1px solid #DBDBDB;margin-top:8px">Earlier</div>
+    <sc-for list="{{ notifEarlier }}" as="n" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:12px;padding:8px 24px;line-height:18px"><div style="width:44px;height:44px;border-radius:50%;background:{{ n.av }};flex:none"></div><div style="flex:1"><span style="font-weight:600">{{ n.who }}</span> {{ n.t }} <span style="color:#737373">{{ n.when }}</span></div></div></sc-for>
+  </div>
+</div>
+<div data-screen-label="Notifications · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;gap:12px;padding:0 16px"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px">Notifications</span></div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:12px 16px 4px;font-weight:600">This week</div>
+    <sc-for list="{{ notifWeek }}" as="n" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;padding:8px 16px;line-height:18px"><div style="width:44px;height:44px;border-radius:50%;background:{{ n.av }};flex:none"></div><div style="flex:1"><span style="font-weight:600">{{ n.who }}</span> {{ n.t }} <span style="color:#737373">{{ n.when }}</span></div><div style="width:44px;height:44px;border-radius:4px;background:repeating-linear-gradient(135deg,#F7EEF1 0 6px,#FCF7F8 6px 12px);flex:none"></div></div></sc-for>
+    <div style="padding:16px 16px 4px;font-weight:600;border-top:1px solid #DBDBDB;margin-top:8px">Earlier</div>
+    <sc-for list="{{ notifEarlier }}" as="n" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:12px;padding:8px 16px;line-height:18px"><div style="width:44px;height:44px;border-radius:50%;background:{{ n.av }};flex:none"></div><div style="flex:1"><span style="font-weight:600">{{ n.who }}</span> {{ n.t }} <span style="color:#737373">{{ n.when }}</span></div></div></sc-for>
+  </div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsHome }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+</div></section>
+
+<!-- 9 CREATE -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">09 · Create — Select → Crop &amp; redact → Details → Share</div>
+<div data-screen-label="Create · desktop (step 2 in context)" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="position:absolute;inset:0;display:grid;grid-template-columns:245px 1fr;opacity:.4"><nav style="border-right:1px solid #DBDBDB;padding:8px 12px"><div style="font-family:Fraunces,serif;font-size:28px;color:#5A0F23;padding:24px 12px 20px">Rose</div><sc-for list="{{ sideCreate }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px;font-weight:{{ n.w }}"><span style="display:flex">{{ n.icon }}</span>{{ n.label }}</div></sc-for></nav><div style="display:flex;justify-content:center;padding-top:24px"><div style="width:470px"><dc-import name="Post Card" post="{{ p0 }}" viewer="{{ viewer }}" hint-size="470px,860px"></dc-import></div></div></div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center">
+    <span style="position:absolute;top:16px;right:16px;color:#fff;display:flex">{{ iX }}</span>
+    <div style="width:700px;height:742px;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+      <div style="height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #DBDBDB"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px">Crop &amp; redact</span><span style="color:#CE2156;font-weight:600">Next</span></div>
+      <div style="position:relative;width:700px;height:640px;background:repeating-linear-gradient(135deg,#F3EDE6 0 10px,#FAF7F2 10px 20px);overflow:hidden">
+        <span style="position:absolute;left:12px;bottom:12px;font:11px ui-monospace,monospace;color:#8A7A6B;background:rgba(255,255,255,.7);padding:3px 6px;border-radius:4px">lounge corner · two silhouettes · candle</span>
+        <div style="position:absolute;left:120px;top:140px;width:180px;height:220px;backdrop-filter:blur(14px);background:rgba(255,255,255,.3);outline:2px dashed #CE2156;outline-offset:2px"><span style="position:absolute;left:-4px;top:-4px;width:8px;height:8px;background:#fff;border:2px solid #CE2156"></span><span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#fff;border:2px solid #CE2156"></span><span style="position:absolute;left:-4px;bottom:-4px;width:8px;height:8px;background:#fff;border:2px solid #CE2156"></span><span style="position:absolute;right:-4px;bottom:-4px;width:8px;height:8px;background:#fff;border:2px solid #CE2156"></span><span style="position:absolute;left:0;top:-24px;font-size:11px;font-weight:600;color:#CE2156">Blur</span></div>
+        <div style="position:absolute;left:430px;top:220px;width:140px;height:120px;background:#262626;outline:2px dashed #CE2156;outline-offset:2px"><span style="position:absolute;left:0;top:-24px;font-size:11px;font-weight:600;color:#CE2156">Block</span></div>
+        <div style="position:absolute;left:16px;bottom:52px;display:flex;gap:8px"><span style="height:32px;padding:0 14px;border-radius:8px;background:#262626;color:#fff;font-weight:600;display:flex;align-items:center;gap:6px">{{ iDropletSm }} Blur</span><span style="height:32px;padding:0 14px;border-radius:8px;background:rgba(255,255,255,.9);border:1px solid #DBDBDB;font-weight:600;display:flex;align-items:center;gap:6px">{{ iSquareSm }} Block</span><span style="height:32px;padding:0 14px;border-radius:8px;background:rgba(255,255,255,.9);border:1px solid #DBDBDB;font-weight:600;display:flex;align-items:center">Undo</span></div>
+        <div style="position:absolute;right:16px;bottom:52px;display:flex;gap:8px"><span style="height:32px;padding:0 12px;border-radius:8px;background:rgba(255,255,255,.9);border:1px solid #DBDBDB;font-weight:600">1:1</span><span style="height:32px;padding:0 12px;border-radius:8px;background:#262626;color:#fff;font-weight:600;display:flex;align-items:center">4:5</span></div>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;padding:0 16px;font-size:12px;color:#737373">Draw a box over anything that should not be shared. Blurred and blocked areas are applied before upload.</div>
+    </div>
+  </div>
+</div>
+<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+  <div data-screen-label="Create · step 1 Select (desktop modal)" style="width:560px;height:600px;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.18);font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+    <div style="height:42px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #DBDBDB;font-weight:600;font-size:16px">Create new post</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px"><span style="display:flex;color:#262626">{{ iImageLg }}</span><div style="font-size:20px">Drag photos here</div><div style="color:#737373;font-size:12px;text-align:center;max-width:300px">No faces without consent. You can blur or block parts of the photo in the next step.</div><span style="height:32px;padding:0 16px;border-radius:8px;background:#CE2156;color:#fff;font-weight:600;display:flex;align-items:center">Select from computer</span></div>
+  </div>
+  <div data-screen-label="Create · step 3 Details (desktop modal)" style="width:860px;height:600px;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.18);font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+    <div style="height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #DBDBDB"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px">Details</span><span style="color:#DBDBDB;font-weight:600;cursor:not-allowed">Share</span></div>
+    <div style="flex:1;display:flex">
+      <div style="position:relative;width:525px;background:repeating-linear-gradient(135deg,#F3EDE6 0 10px,#FAF7F2 10px 20px)"><div style="position:absolute;left:90px;top:120px;width:135px;height:165px;backdrop-filter:blur(14px);background:rgba(255,255,255,.3)"></div><div style="position:absolute;left:322px;top:180px;width:105px;height:90px;background:#262626"></div><span style="position:absolute;left:12px;bottom:12px;font:11px ui-monospace,monospace;color:#8A7A6B;background:rgba(255,255,255,.7);padding:3px 6px;border-radius:4px">redactions applied</span></div>
+      <div style="width:335px;border-left:1px solid #DBDBDB;display:flex;flex-direction:column;padding:16px;gap:16px;box-sizing:border-box;line-height:18px">
+        <div style="display:flex;align-items:center;gap:12px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#F1D9DF,#D9B5BE)"></div><span style="font-weight:600">low_lamp</span></div>
+        <div style="height:120px;color:#737373">Write a caption…</div>
+        <div style="border-top:1px solid #DBDBDB;padding-top:12px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:600">Sensitive</div><div style="font-size:12px;color:#737373">Blurred until a member taps View</div></div><span style="width:40px;height:22px;border-radius:11px;background:#DBDBDB;position:relative"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:600">Comments on</div><span style="width:40px;height:22px;border-radius:11px;background:#CE2156;position:relative"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+        <div style="flex:1"></div>
+        <label style="display:flex;gap:10px;align-items:flex-start;border-top:1px solid #DBDBDB;padding-top:12px"><span style="width:20px;height:20px;border-radius:4px;border:1.5px solid #CE2156;flex:none;margin-top:-1px"></span><span>Everyone identifiable in these photos agreed to them being posted here. <span style="color:#CE2156">Required</span></span></label>
+        <span style="height:32px;border-radius:8px;background:#F0F0F0;color:#A3A3A3;font-weight:600;display:flex;align-items:center;justify-content:center">Share</span>
+      </div>
+    </div>
+  </div>
+  <div data-screen-label="Create · step 4 Share (desktop modal)" style="width:560px;height:600px;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.18);font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+    <div style="height:42px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #DBDBDB;font-weight:600;font-size:16px">Post shared</div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:32px"><span style="width:72px;height:72px;border-radius:50%;border:2px solid #CE2156;display:flex;align-items:center;justify-content:center;color:#CE2156">{{ iCheckLg }}</span><div style="font-size:20px">Your post has been shared.</div><div style="color:#737373;max-width:320px">It appears to you now and to everyone after a quick look from a host, usually within an hour.</div></div>
+  </div>
+</div>
+<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+  <div data-screen-label="Create · phone step 1 Select" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+    <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="display:flex">{{ iX }}</span><span style="font-weight:600;font-size:16px">New post</span><span style="color:#CE2156;font-weight:600">Next</span></div>
+    <div style="position:relative;height:390px;background:repeating-linear-gradient(135deg,#F3EDE6 0 10px,#FAF7F2 10px 20px)"><span style="position:absolute;left:12px;bottom:12px;font:11px ui-monospace,monospace;color:#8A7A6B;background:rgba(255,255,255,.7);padding:3px 6px;border-radius:4px">selected · lounge corner</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px"><span style="font-weight:600">Recents {{ iChevSm }}</span></div>
+    <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;align-content:start"><sc-for list="{{ tiles12 }}" as="t" hint-placeholder-count="12"><div style="aspect-ratio:1;background:repeating-linear-gradient(135deg,#F7EEF1 0 8px,#FCF7F8 8px 16px)"></div></sc-for></div>
+  </div>
+  <div data-screen-label="Create · phone step 2 Crop & redact" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+    <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px">Crop &amp; redact</span><span style="color:#CE2156;font-weight:600">Next</span></div>
+    <div style="position:relative;height:487px;background:repeating-linear-gradient(135deg,#F3EDE6 0 10px,#FAF7F2 10px 20px);overflow:hidden">
+      <div style="position:absolute;left:60px;top:110px;width:110px;height:150px;backdrop-filter:blur(14px);background:rgba(255,255,255,.3);outline:2px dashed #CE2156;outline-offset:2px"><span style="position:absolute;left:0;top:-22px;font-size:11px;font-weight:600;color:#CE2156">Blur</span></div>
+      <div style="position:absolute;left:240px;top:200px;width:90px;height:80px;background:#262626;outline:2px dashed #CE2156;outline-offset:2px"><span style="position:absolute;left:0;top:-22px;font-size:11px;font-weight:600;color:#CE2156">Block</span></div>
+    </div>
+    <div style="display:flex;gap:8px;padding:16px"><span style="flex:1;height:44px;border-radius:8px;background:#262626;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">{{ iDropletSm }} Blur</span><span style="flex:1;height:44px;border-radius:8px;border:1px solid #DBDBDB;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px">{{ iSquareSm }} Block</span><span style="width:72px;height:44px;border-radius:8px;border:1px solid #DBDBDB;font-weight:600;display:flex;align-items:center;justify-content:center">Undo</span></div>
+    <div style="padding:0 16px;font-size:12px;color:#737373;line-height:16px">Draw a box over anything that should not be shared. Applied before upload.</div>
+  </div>
+  <div data-screen-label="Create · phone step 3 Details" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626;line-height:18px">
+    <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+    <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px">Details</span><span style="color:#DBDBDB;font-weight:600">Share</span></div>
+    <div style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #DBDBDB"><div style="width:64px;height:80px;background:repeating-linear-gradient(135deg,#F3EDE6 0 8px,#FAF7F2 8px 16px);flex:none"></div><div style="flex:1;color:#737373">Write a caption…</div></div>
+    <div style="padding:16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #DBDBDB"><div><div style="font-weight:600">Sensitive</div><div style="font-size:12px;color:#737373">Blurred until a member taps View</div></div><span style="width:40px;height:22px;border-radius:11px;background:#DBDBDB;position:relative"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+    <div style="padding:16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #DBDBDB"><div style="font-weight:600">Comments on</div><span style="width:40px;height:22px;border-radius:11px;background:#CE2156;position:relative"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff"></span></span></div>
+    <label style="display:flex;gap:12px;align-items:flex-start;padding:16px"><span style="width:22px;height:22px;border-radius:4px;border:1.5px solid #CE2156;flex:none"></span><span>Everyone identifiable in these photos agreed to them being posted here. <span style="color:#CE2156">Required</span></span></label>
+    <div style="flex:1"></div>
+    <div style="padding:16px"><span style="height:44px;border-radius:8px;background:#F0F0F0;color:#A3A3A3;font-weight:600;display:flex;align-items:center;justify-content:center">Share</span></div>
+  </div>
+  <div data-screen-label="Create · phone step 4 Share" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+    <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+    <div style="height:44px;display:flex;align-items:center;justify-content:flex-end;padding:0 16px"><span style="font-weight:600;color:#CE2156">Done</span></div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:32px"><span style="width:72px;height:72px;border-radius:50%;border:2px solid #CE2156;display:flex;align-items:center;justify-content:center;color:#CE2156">{{ iCheckLg }}</span><div style="font-size:20px">Your post has been shared.</div><div style="color:#737373;line-height:18px">It appears to you now and to everyone after a quick look from a host, usually within an hour.</div></div>
+  </div>
+</div></section>
+
+<!-- 10 SETTINGS -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">10 · Settings</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Settings · desktop" style="position:relative;width:1440px;height:900px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:245px 1fr;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <nav style="border-right:1px solid #DBDBDB;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:Fraunces,serif;font-size:28px;color:#5A0F23;padding:24px 12px 20px">Rose</div>
+    <sc-for list="{{ sideNone }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px;font-weight:{{ n.w }}"><span style="display:flex">{{ n.icon }}</span>{{ n.label }}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px;font-weight:600"><span style="display:flex">{{ iMenu }}</span>More</div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px;color:#737373"><span style="display:flex">{{ iLeave }}</span>Leave</div>
+  </nav>
+  <div style="display:flex;justify-content:center;padding-top:40px"><div style="width:600px"><div style="font-size:20px;font-weight:600;padding:0 0 24px">Settings</div>
+    <sc-for list="{{ settings }}" as="s" hint-placeholder-count="7"><div style="display:flex;align-items:center;gap:16px;height:56px;border-bottom:1px solid #DBDBDB;color:{{ s.c }}"><span style="display:flex">{{ s.icon }}</span><div style="flex:1;line-height:18px"><div style="font-weight:600">{{ s.l }}</div><sc-if value="{{ s.sub }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#737373">{{ s.sub }}</div></sc-if></div><sc-if value="{{ s.toggle }}" hint-placeholder-val="{{ false }}"><span style="width:40px;height:22px;border-radius:11px;background:{{ s.tbg }};position:relative"><span style="position:absolute;top:2px;left:{{ s.tx }};width:18px;height:18px;border-radius:50%;background:#fff"></span></span></sc-if><sc-if value="{{ s.value }}" hint-placeholder-val="{{ false }}"><span style="color:#737373">{{ s.value }}</span></sc-if><sc-if value="{{ s.chev }}" hint-placeholder-val="{{ true }}"><span style="display:flex;color:#737373">{{ iChev }}</span></sc-if></div></sc-for>
+  </div></div>
+</div>
+<div data-screen-label="Settings · phone" style="position:relative;width:390px;height:844px;background:#fff;border:1px solid #DBDBDB;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;gap:12px;padding:0 16px"><span style="display:flex">{{ iBack }}</span><span style="font-weight:600;font-size:16px">Settings</span></div>
+  <div style="flex:1;overflow:hidden;padding:0 16px">
+    <sc-for list="{{ settings }}" as="s" hint-placeholder-count="7"><div style="display:flex;align-items:center;gap:16px;height:56px;border-bottom:1px solid #DBDBDB;color:{{ s.c }}"><span style="display:flex">{{ s.icon }}</span><div style="flex:1;line-height:18px"><div style="font-weight:600">{{ s.l }}</div><sc-if value="{{ s.sub }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#737373">{{ s.sub }}</div></sc-if></div><sc-if value="{{ s.toggle }}" hint-placeholder-val="{{ false }}"><span style="width:40px;height:22px;border-radius:11px;background:{{ s.tbg }};position:relative"><span style="position:absolute;top:2px;left:{{ s.tx }};width:18px;height:18px;border-radius:50%;background:#fff"></span></span></sc-if><sc-if value="{{ s.value }}" hint-placeholder-val="{{ false }}"><span style="color:#737373">{{ s.value }}</span></sc-if><sc-if value="{{ s.chev }}" hint-placeholder-val="{{ true }}"><span style="display:flex;color:#737373">{{ iChev }}</span></sc-if></div></sc-for>
+  </div>
+  <div style="height:50px;border-top:1px solid #DBDBDB;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsProfile }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#262626"></span></div>
+</div>
+</div></section>
+
+<!-- 11 DARK -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">11 · Dark mode — Home feed (neutral near-black #0A0A0A, dividers #262626)</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<div data-screen-label="Home dark · desktop" style="position:relative;width:1440px;height:900px;background:#0A0A0A;outline:1px solid #262626;overflow:hidden;display:grid;grid-template-columns:245px 1fr;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;color:#FAFAFA">
+  <nav style="border-right:1px solid #262626;padding:8px 12px 20px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-family:Fraunces,serif;font-size:28px;color:#F1D9DF;padding:24px 12px 20px">Rose</div>
+    <sc-for list="{{ sideHome }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:8px;height:48px;font-weight:{{ n.w }}" style-hover="background:#141414"><span style="display:flex">{{ n.icon }}</span>{{ n.label }}</div></sc-for>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px"><span style="display:flex">{{ iMenu }}</span>More</div>
+    <div style="display:flex;align-items:center;gap:16px;padding:12px;height:48px;color:#A3A3A3"><span style="display:flex">{{ iLeave }}</span>Leave</div>
+  </nav>
+  <div style="display:flex;justify-content:center;gap:64px;padding-top:24px;overflow:hidden">
+    <div style="width:470px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:14px;padding:0 0 8px"><sc-for list="{{ storiesDark }}" as="s" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:72px"><div style="width:64px;height:64px;border-radius:50%;border:2px solid {{ s.ring }};padding:3px;box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;background:{{ s.bg }}"></div></div><span style="font-size:12px">{{ s.l }}</span></div></sc-for></div>
+      <div style="display:flex;border-bottom:1px solid #262626"><div style="padding:12px 16px;font-weight:600;border-bottom:1px solid #FAFAFA;margin-bottom:-1px">Following</div><div style="padding:12px 16px;color:#A3A3A3">Everyone</div></div>
+      <dc-import name="Post Card" post="{{ p0 }}" dark="{{ true }}" viewer="{{ viewer }}" hint-size="470px,860px"></dc-import>
+    </div>
+    <aside style="width:320px;display:flex;flex-direction:column;gap:20px;padding-top:8px">
+      <div style="display:flex;align-items:center;gap:12px"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#6B4B55,#4A343B)"></div><div style="flex:1;line-height:18px"><div style="font-weight:600">low_lamp</div><div style="color:#A3A3A3">Low Lamp</div></div><span style="color:#E0527D;font-weight:600;font-size:12px">Edit</span></div>
+      <div style="display:flex;flex-direction:column;gap:12px"><div style="font-weight:600;color:#A3A3A3">Coming up</div>
+        <sc-for list="{{ coming }}" as="e" hint-placeholder-count="3"><div style="display:flex;gap:12px;align-items:center"><div style="width:44px;height:44px;border-radius:8px;background:#2A1218;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1"><span style="font-size:10px;font-weight:600;color:#F1A6BD;text-transform:uppercase">{{ e.dow }}</span><span style="font-size:16px;font-weight:600;color:#F1A6BD">{{ e.day }}</span></div><div style="flex:1;line-height:18px"><div style="font-weight:600">{{ e.title }}</div><div style="color:#A3A3A3;font-size:12px">{{ e.time }}</div></div><span style="font-size:12px;font-weight:600;color:#E0527D">{{ e.cta }}</span></div></sc-for></div>
+      <div style="font-size:11px;color:#737373;display:flex;gap:8px;flex-wrap:wrap"><span>About</span><span>Privacy</span><span>Guidelines</span><span>Contact</span><span>Leave</span></div>
+    </aside>
+  </div>
+</div>
+<div data-screen-label="Home dark · phone" style="position:relative;width:390px;height:844px;background:#0A0A0A;border:1px solid #262626;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#FAFAFA">
+  <div style="height:48px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:600">9:41</div>
+  <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font-family:Fraunces,serif;font-size:24px;color:#F1D9DF">Rose</span><div style="display:flex;gap:20px;align-items:center"><span style="display:flex">{{ iBell }}</span><span style="display:flex;color:#A3A3A3">{{ iLeave }}</span></div></div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;gap:12px;padding:8px 16px 12px"><sc-for list="{{ storiesDark }}" as="s" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:72px"><div style="width:64px;height:64px;border-radius:50%;border:2px solid {{ s.ring }};padding:3px;box-sizing:border-box"><div style="width:100%;height:100%;border-radius:50%;background:{{ s.bg }}"></div></div><span style="font-size:12px">{{ s.l }}</span></div></sc-for></div>
+    <div style="display:flex;border-bottom:1px solid #262626"><div style="flex:1;text-align:center;padding:10px;font-weight:600;border-bottom:1px solid #FAFAFA;margin-bottom:-1px">Following</div><div style="flex:1;text-align:center;padding:10px;color:#A3A3A3">Everyone</div></div>
+    <dc-import name="Post Card" post="{{ p0 }}" dark="{{ true }}" viewer="{{ viewer }}" hint-size="390px,760px"></dc-import>
+  </div>
+  <div style="height:50px;border-top:1px solid #262626;display:flex;align-items:center;justify-content:space-around;padding:0 8px"><sc-for list="{{ tabsHome }}" as="t" hint-placeholder-count="5"><span style="display:flex">{{ t.icon }}</span></sc-for></div>
+  <div style="height:28px;display:flex;align-items:center;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#FAFAFA"></span></div>
+</div>
+</div></section>
+
+<!-- ANNOTATIONS -->
+<section style="display:flex;flex-direction:column;gap:16px"><div style="font-size:13px;font-weight:600;color:#737373;letter-spacing:.08em;text-transform:uppercase">Annotations — post card, profile header, app shell</div>
+<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+  <div style="display:flex;gap:24px;align-items:flex-start">
+    <div style="position:relative;width:470px;background:#fff;outline:1px solid #DBDBDB"><dc-import name="Post Card" post="{{ p0 }}" viewer="{{ viewer }}" hint-size="470px,860px"></dc-import>
+      <sc-for list="{{ annPost }}" as="a" hint-placeholder-count="8"><span style="position:absolute;left:{{ a.x }};top:{{ a.y }};width:20px;height:20px;border-radius:50%;background:#CE2156;color:#fff;font:600 11px system-ui;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff">{{ a.n }}</span></sc-for>
+    </div>
+    <ol style="margin:0;padding:0 0 0 20px;width:300px;font-size:13px;line-height:20px;color:#262626;display:flex;flex-direction:column;gap:6px"><sc-for list="{{ annPost }}" as="a" hint-placeholder-count="8"><li>{{ a.t }}</li></sc-for></ol>
+  </div>
+  <div style="display:flex;gap:24px;align-items:flex-start">
+    <div style="position:relative;width:390px;background:#fff;outline:1px solid #DBDBDB;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#262626">
+      <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font-weight:600;font-size:16px">low_lamp</span><div style="display:flex;gap:20px"><span style="display:flex">{{ iSettings }}</span><span style="display:flex;color:#737373">{{ iLeave }}</span></div></div>
+      <div style="display:flex;align-items:center;gap:28px;padding:8px 16px 12px"><div style="width:77px;height:77px;border-radius:50%;background:linear-gradient(135deg,#F1D9DF,#D9B5BE);flex:none"></div><div style="text-align:center;line-height:18px"><div style="font-weight:600;font-size:16px">12</div><div>posts</div></div></div>
+      <div style="padding:0 16px 12px;line-height:18px"><div style="font-weight:600">Low Lamp</div><div>Thursdays mostly. Tea, not whiskey.</div><div style="color:#737373">Joined October 2026</div></div>
+      <div style="display:flex;gap:8px;padding:0 16px 16px"><span style="flex:1;height:32px;border-radius:8px;background:#F0F0F0;font-weight:600;display:flex;align-items:center;justify-content:center">Edit profile</span><span style="flex:1;height:32px;border-radius:8px;background:#F0F0F0;font-weight:600;display:flex;align-items:center;justify-content:center">Settings</span></div>
+      <div style="display:flex;border-top:1px solid #DBDBDB"><div style="flex:1;display:flex;justify-content:center;padding:12px;border-bottom:1px solid #262626">{{ iGridSm }}</div><div style="flex:1;display:flex;justify-content:center;padding:12px;color:#737373">{{ iBookmarkSm }}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px"><sc-for list="{{ tiles3 }}" as="t" hint-placeholder-count="3"><div style="aspect-ratio:3/4;background:repeating-linear-gradient(135deg,#F7EEF1 0 10px,#FCF7F8 10px 20px)"></div></sc-for></div>
+      <sc-for list="{{ annProfile }}" as="a" hint-placeholder-count="6"><span style="position:absolute;left:{{ a.x }};top:{{ a.y }};width:20px;height:20px;border-radius:50%;background:#CE2156;color:#fff;font:600 11px system-ui;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff">{{ a.n }}</span></sc-for>
+    </div>
+    <ol style="margin:0;padding:0 0 0 20px;width:300px;font-size:13px;line-height:20px;display:flex;flex-direction:column;gap:6px"><sc-for list="{{ annProfile }}" as="a" hint-placeholder-count="6"><li>{{ a.t }}</li></sc-for></ol>
+  </div>
+  <div style="display:flex;gap:24px;align-items:flex-start">
+    <div style="position:relative;width:720px;height:450px;background:#fff;outline:1px solid #DBDBDB;overflow:hidden;display:grid;grid-template-columns:122px 1fr;font-family:system-ui,-apple-system,sans-serif;font-size:7px;color:#262626">
+      <nav style="border-right:1px solid #DBDBDB;padding:4px 6px 10px;display:flex;flex-direction:column;gap:2px"><div style="font-family:Fraunces,serif;font-size:14px;color:#5A0F23;padding:12px 6px 10px">Rose</div><sc-for list="{{ sideHome }}" as="n" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:8px;padding:6px;height:24px;font-weight:{{ n.w }}"><span style="width:12px;height:12px;border-radius:3px;border:1px solid #262626"></span>{{ n.label }}</div></sc-for><div style="flex:1"></div><div style="padding:6px">More</div><div style="padding:6px;color:#737373">Leave</div></nav>
+      <div style="display:flex;justify-content:center;gap:32px;padding-top:12px"><div style="width:235px;height:500px;background:#FDEEF2;border:1px dashed #CE2156"></div><div style="width:160px;height:300px;background:#FAFAFA;border:1px dashed #DBDBDB"></div></div>
+      <sc-for list="{{ annShell }}" as="a" hint-placeholder-count="7"><span style="position:absolute;left:{{ a.x }};top:{{ a.y }};width:20px;height:20px;border-radius:50%;background:#CE2156;color:#fff;font:600 11px system-ui;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff">{{ a.n }}</span></sc-for>
+    </div>
+    <ol style="margin:0;padding:0 0 0 20px;width:300px;font-size:13px;line-height:20px;display:flex;flex-direction:column;gap:6px"><sc-for list="{{ annShell }}" as="a" hint-placeholder-count="7"><li>{{ a.t }}</li></sc-for></ol>
+  </div>
+</div></section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;viewer&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;low_lamp&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Privacy&quot;},&quot;showSensitive&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Privacy&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const I = (h, sw = 1.8, s = 24) => React.createElement('svg', { width: s, height: s, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: sw, strokeLinecap: 'round', strokeLinejoin: 'round', dangerouslySetInnerHTML: { __html: h } });
+    const P = {
+      home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+      explore: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+      bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+      create: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+      user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
+      leave: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+      more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+      heart: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+      comment: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+      bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+      x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+      chev: '<path d="m9 18 6-6-6-6"/>', chevD: '<path d="m6 9 6 6 6-6"/>',
+      settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+      grid: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/>',
+      image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
+      check: '<path d="M20 6 9 17l-5-5"/>',
+      droplet: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+      square: '<rect width="18" height="18" x="3" y="3" rx="2"/>',
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+      eyeOff: '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+      pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+      download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+      trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>'
+    };
+    const sideItems = ['Home', 'Search', 'Explore', 'Notifications', 'Create', 'Profile'], keys = ['home', 'search', 'explore', 'bell', 'create', 'user'];
+    const side = (a) => sideItems.map((l, i) => ({ label: l, icon: I(P[keys[i]], l === a ? 2.4 : 1.8), w: l === a ? 600 : 400, b: l === a ? '1px solid #DBDBDB' : '1px solid transparent' }));
+    const tabKeys = ['home', 'search', 'create', 'explore', 'user'];
+    const tabs = (a) => tabKeys.map(k => ({ icon: I(P[k], k === a ? 2.6 : 1.8) }));
+    const viewer = this.props.viewer || 'low_lamp';
+    const avN = 'linear-gradient(135deg,#E8C9D2,#C9A3AE)', avL = 'linear-gradient(135deg,#F1D9DF,#D9B5BE)', avV = 'linear-gradient(135deg,#D9C9E8,#B3A3C9)', avQ = 'linear-gradient(135deg,#E2D8C9,#C9BBA3)', avS = 'linear-gradient(135deg,#C9D9D2,#A3BDB3)';
+    const p0 = { handle: 'night_owl', time: '2h', avatar: avN, img: 'candle on a windowsill · soft daylight', ratio: '4/5', carousel: true, liked: true, caption: "Thursday's class ran long in the best way. Thank you to everyone who stayed to practice the check-in exercise.", n: 14, comments: [{ h: 'low_lamp', t: 'the check-in exercise was so good' }, { h: 'velvet_hour', t: 'see you friday' }], ts: '2 hours ago' };
+    const p1 = { handle: 'Rose', club: true, time: '5h', avatar: '#5A0F23', img: 'linen tablecloth · roses in a glass', ratio: '1/1', caption: 'Late lounge is at waitlist. We release held spots Friday at noon. Check Events to RSVP.', n: 3, comments: [{ h: 'quiet_hours', t: 'set an alarm' }, { h: 'second_floor', t: 'first time coming, a little nervous and excited' }], ts: '5 hours ago' };
+    const p2 = { handle: 'velvet_hour', time: '1d', avatar: avV, img: 'silhouette at a window · late light', ratio: '4/5', sensitive: true, caption: 'Golden hour on the second floor.', n: 6, comments: [{ h: 'night_owl', t: 'that light' }, { h: 'soft_focus', t: 'beautiful' }], ts: 'yesterday' };
+    const pMine = { handle: 'low_lamp', time: '3d', avatar: avL, img: 'hands holding a teacup · linen', ratio: '1/1', mine: true, likes: 48, caption: "Tea service before Thursday's class. Doors at 6:30 if you want to settle in first.", n: 4, comments: [{ h: 'night_owl', t: 'saving a seat' }, { h: 'quiet_hours', t: 'what blend is this' }], ts: '3 days ago' };
+    const stories = [{ l: 'Tonight', ring: '#CE2156', bg: '#5A0F23' }, { l: 'This week', ring: '#CE2156', bg: 'repeating-linear-gradient(135deg,#F7EEF1 0 4px,#FCF7F8 4px 8px)' }, { l: 'Journal', ring: '#DBDBDB', bg: 'repeating-linear-gradient(135deg,#F3EDE6 0 4px,#FAF7F2 4px 8px)' }, { l: 'News', ring: '#DBDBDB', bg: '#F0F0F0' }];
+    const storiesDark = stories.map((s, i) => ({ ...s, ring: i < 2 ? '#CE2156' : '#404040', bg: i === 0 ? '#5A0F23' : '#1C1C1C' }));
+    const coming = [{ dow: 'Thu', day: '22', title: 'Thursday class: communication', time: '7:00 PM · Open', cta: 'RSVP' }, { dow: 'Fri', day: '23', title: 'Late lounge', time: '9:00 PM · Waitlist', cta: 'Join list' }, { dow: 'Sat', day: '24', title: 'Saturday social', time: '8:00 PM · Going', cta: 'Going' }];
+    const club = [{ t: 'New volunteer orientation dates', s: 'From the Journal · 2d' }, { t: 'Coat check is back for the season', s: 'News · 4d' }];
+    const members = [{ h: 'velvet_hour', n: 'Velvet Hour', av: avV }, { h: 'night_owl', n: 'Night Owl · Volunteer host', av: avN }, { h: 'quiet_hours', n: 'Quiet Hours', av: avQ }, { h: 'second_floor', n: 'Second Floor', av: avS }, { h: 'soft_focus', n: 'Soft Focus', av: avL }];
+    const notifWeek = [{ who: '', t: '3 people liked your post.', when: '2h', av: avN }, { who: 'night_owl', t: 'commented: "the check-in exercise was so good"', when: '5h', av: avN }, { who: 'Rose', t: 'Your post was approved and is now visible to members.', when: '1d', av: '#5A0F23' }];
+    const notifEarlier = [{ who: 'velvet_hour', t: 'liked your post.', when: '4d', av: avV }, { who: 'Rose', t: 'Late lounge waitlist opens Friday at noon.', when: '1w', av: '#5A0F23' }];
+    const settings = [
+      { l: 'Edit profile', icon: I(P.user, 1.8), c: '#262626', chev: true },
+      { l: 'Appearance', icon: I(P.sun, 1.8), c: '#262626', value: 'Light', chev: true },
+      { l: 'Always show sensitive posts', sub: 'Skip the blur and View step', icon: I(P.eyeOff, 1.8), c: '#262626', toggle: true, tbg: '#DBDBDB', tx: '2px' },
+      { l: 'Hide me from the member directory', sub: 'You can still post and comment', icon: I(P.search, 1.8), c: '#262626', toggle: true, tbg: '#CE2156', tx: '20px' },
+      { l: 'Step away from the feed', sub: 'Pause your account for a while', icon: I(P.pause, 1.8), c: '#262626', chev: true },
+      { l: 'Export my data', icon: I(P.download, 1.8), c: '#262626', chev: true },
+      { l: 'Leave and erase', sub: 'Permanently delete your account and posts', icon: I(P.trash, 1.8), c: '#C62828', chev: true }
+    ];
+    const detailComments = [{ h: 'night_owl', t: 'saving a seat', when: '3d', av: avN }, { h: 'quiet_hours', t: 'what blend is this', when: '3d', av: avQ }, { h: 'velvet_hour', t: 'the light in that room at 6 is unreal', when: '2d', av: avV }, { h: 'second_floor', t: 'first Thursday for me, see you there', when: '2d', av: avS }];
+    const tiles12 = ['rose · close', 'linen · chair', 'candle · sill', 'doorway', 'hands · teacup', 'silhouette', 'stair rail', 'petals · table', 'window light', 'coat hooks', 'glass · roses', 'curtain · dusk'];
+    const ann = (a) => a.map((t, i) => ({ n: i + 1, t: t[0], x: t[1], y: t[2] }));
+    return {
+      viewer, showSensitive: !!this.props.showSensitive, p0, p1, p2, pMine, stories, storiesDark, coming, club, members, notifWeek, notifEarlier, settings, detailComments,
+      tiles12, tiles9: tiles12.slice(0, 9), tiles9b: tiles12.slice(3, 12), tiles3: tiles12.slice(0, 3),
+      wm: Array.from({ length: 12 }, () => viewer),
+      sideHome: side('Home'), sideProfile: side('Profile'), sideExplore: side('Explore'), sideSearch: side('Search'), sideNotif: side('Notifications'), sideCreate: side('Create'), sideNone: side(''),
+      tabsHome: tabs('home'), tabsProfile: tabs('user'), tabsExplore: tabs('explore'), tabsSearch: tabs('search'),
+      iMenu: I(P.menu), iLeave: I(P.leave), iBell: I(P.bell), iX: I(P.x), iBack: I(P.back), iMore: I(P.more), iHeart: I(P.heart), iHeartSm: I(P.heart, 1.8, 14), iComment: I(P.comment), iBookmark: I(P.bookmark), iBookmarkSm: I(P.bookmark, 1.8, 16), iGridSm: I(P.grid, 1.8, 16), iSettings: I(P.settings), iChev: I(P.chev), iChevSm: I(P.chevD, 2, 14), iSearchSm: I(P.search, 1.8, 16), iXSm: I(P.x, 1.8, 16), iImageLg: I(P.image, 1.2, 72), iCheckLg: I(P.check, 2, 36), iDropletSm: I(P.droplet, 1.8, 16), iSquareSm: I(P.square, 1.8, 16),
+      annPost: ann([['Header 56px tall, 16px side padding, 12px gap. Avatar 32px circle. Handle 14/600, meta "• 2h" in #737373.', '6px', '18px'], ['Media full-bleed, 1:1 or 4:5. Watermark: viewer handle tiled 3×4, 12/600, 7% opacity, rotated −20°.', '6px', '70px'], ['Carousel dots 6px, 4px gap, 12px above action row. Active #CE2156, rest #DBDBDB.', '225px', '640px'], ['Action row 44px tall, icons 24px (1.8px stroke), 16px gap; bookmark right-aligned. Liked heart filled #CE2156.', '6px', '666px'], ['Likes line 14/600. Only "N likes" for the author; "Liked by you" or nothing for everyone else.', '6px', '712px'], ['Caption 14/400, 18px line-height, 4px row gap; "more" in #737373. Comments count then 2 recent comments.', '6px', '734px'], ['Timestamp 10px uppercase, .2px tracking, #737373.', '6px', '806px'], ['Comment field 14px placeholder, "Post" 14/600 #CE2156. Card ends with 12px padding + 1px #DBDBDB divider.', '6px', '830px']]),
+      annProfile: ann([['Top bar 44px: handle 16/600 left; Settings and Leave icons right, 20px gap, 16px side padding.', '-10px', '12px'], ['Avatar 77px circle, 16px from left; 28px gap to posts count (16/600 over 14/400). No follower/following counts.', '-10px', '60px'], ['Name 14/600, bio 14/400, "Joined October 2026" in #737373. 18px line-height, 16px side padding.', '-10px', '155px'], ['Two buttons, 32px tall, 8px radius, #F0F0F0, 14/600, 8px gap, equal width.', '-10px', '215px'], ['Tabs 48px tall, icon 16px; active has 1px #262626 underline. Other members\' profiles show Posts only.', '-10px', '262px'], ['Grid 3 columns, 2px gap, 3:4 portrait tiles.', '-10px', '320px']]),
+      annShell: ann([['Sidebar 245px, 1px #DBDBDB right border, 12px side padding.', '110px', '8px'], ['Wordmark Fraunces 28px oxblood #5A0F23, padding 24/12/20.', '20px', '30px'], ['Nav rows 48px, 12px padding, 8px radius, icon 24px + 16px gap; active 600 with 2.4px stroke. Hover #FAFAFA.', '110px', '60px'], ['More, then Leave pinned to the bottom with 20px bottom padding. Leave in #737373.', '110px', '400px'], ['Feed column 470px, 24px top padding, centered with the rail: 64px gutter between.', '280px', '8px'], ['Right rail 320px: mini profile (44px avatar), Coming up ×3, From the club ×2, 11px footer links.', '560px', '8px'], ['Phone: top bar 44px (wordmark 24px left, heart + Leave right). Bottom tabs 50px + 28px home-indicator zone.', '600px', '400px']])
+    };
+  }
+}
+</script>
+</body>
+</html>

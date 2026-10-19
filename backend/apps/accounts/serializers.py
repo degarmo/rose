@@ -31,6 +31,7 @@ class AccountSerializer(serializers.ModelSerializer):
     has_membership = serializers.SerializerMethodField()
     staff_guide_url = serializers.SerializerMethodField()
     feed_access = serializers.SerializerMethodField()
+    feed_controls = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -41,6 +42,7 @@ class AccountSerializer(serializers.ModelSerializer):
             "has_membership",
             "staff_guide_url",
             "feed_access",
+            "feed_controls",
             "appearance",
         ]
         read_only_fields = ["email", "email_verified", "appearance"]
@@ -57,6 +59,15 @@ class AccountSerializer(serializers.ModelSerializer):
         from apps.feed.access import can_view_feed
 
         return can_view_feed(user)
+
+    def get_feed_controls(self, user):
+        """Whether /account has feed controls for this person, so the page asks for them
+        only when they exist (the endpoint answers 404 otherwise)."""
+        from django.conf import settings
+
+        from apps.feed.access import feed_account_visible
+
+        return bool(settings.FEED_ENABLED and feed_account_visible(user))
 
 
 def validate_display_name_available(value, exclude_pk=None):

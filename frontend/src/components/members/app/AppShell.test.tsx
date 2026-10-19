@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext, type AuthState } from '@/components/layout/authContext'
+import { SiteSettingsContext, type SiteSettingsState } from '@/components/layout/siteSettingsContext'
 import { ToastProvider } from '@/components/ui'
 import { ApiError } from '@/lib/api'
 import { makePost, me } from '@/test/members'
@@ -25,17 +26,21 @@ const auth: AuthState = {
   logout: async () => undefined,
 }
 
+const settings = { status: 'loading', retry: () => undefined } as SiteSettingsState
+
 function renderApp(entry: string | { pathname: string; search?: string; state?: unknown }) {
   const router = createMemoryRouter(
     [{ path: '/members', element: <AppShell />, children: [{ path: 'feed', element: <p>Feed content</p> }] }],
     { initialEntries: [entry] },
   )
   render(
-    <AuthContext.Provider value={auth}>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
-    </AuthContext.Provider>,
+    <SiteSettingsContext.Provider value={settings}>
+      <AuthContext.Provider value={auth}>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </AuthContext.Provider>
+    </SiteSettingsContext.Provider>,
   )
   return router
 }
@@ -78,6 +83,9 @@ describe('AppShell', () => {
     expect(document.querySelector('.ig-app')).toBeNull()
     expect(screen.queryByRole('navigation', { name: 'Members', hidden: true })).not.toBeInTheDocument()
     expect(screen.queryByText('Feed content')).not.toBeInTheDocument()
+    // In the website's frame, so the quick exit is there as on every other page.
+    expect(screen.getAllByRole('navigation', { name: 'Main', hidden: true }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: /Leave/ }).length).toBeGreaterThan(0)
   })
 
   describe('post modal', () => {

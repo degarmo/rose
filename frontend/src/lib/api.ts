@@ -293,6 +293,8 @@ export interface Account {
   staff_guide_url: string | null
   /** The member app opens for them (entitled and joined): the header shows "My feed". */
   feed_access: boolean
+  /** The account page has feed controls for them (entitled, or with feed history). */
+  feed_controls: boolean
   appearance: Appearance
 }
 
