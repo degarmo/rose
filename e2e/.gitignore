@@ -1,4 +1,5 @@
 .fixtures.json
+.last-totp-code
 test-results/
 playwright-report/
 node_modules/

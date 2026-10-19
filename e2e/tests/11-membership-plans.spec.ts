@@ -1,8 +1,20 @@
-import { expect, fixtures, mailLink, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
+import { confirmAge, expect, fixtures, mailLink, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
 
 const PASSWORD = 'a-long-e2e-password-42'
 
+const PLANS = ['Community', 'First Fridays', 'Limited', 'Trial', 'Limited +', 'Rose', 'Rose +']
+
 test.describe('Membership plans', () => {
+  test('lists the seven plans in price order @smoke', async ({ page, baseURL }) => {
+    await confirmAge(page.context(), baseURL!)
+    const tiers = await page.request.get('/api/membership/tiers/')
+    expect(tiers.status()).toBe(200)
+    await page.goto('/membership')
+    const cards = page.getByRole('region', { name: 'Plans', exact: true }).getByRole('heading', { level: 2 })
+    await expect(cards).toHaveText(PLANS)
+    await expect(page.getByText('Membership plans did not load')).toHaveCount(0)
+  })
+
   test('from the plans page to a door activation, then one event a month', async ({ browser, baseURL }, info) => {
     const events = fixtures().viewports[info.project.name].events
     const phone = info.project.name === 'phone'

@@ -83,7 +83,9 @@ services:
 
   api:
     <<: *backend
-    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    # The project's runserver applies migrations on every start and code reload, and warns
+    # loudly about any it could not apply (apps/core/management/commands/runserver.py).
+    command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "${API_PORT:-8000}:8000"
 

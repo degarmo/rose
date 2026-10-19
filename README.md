@@ -19,9 +19,15 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    docker compose up --build
    ```
 
-   This runs Postgres, Redis, the API (migrations run on start), a Celery worker, Celery beat,
+   This runs Postgres, Redis, the API, a Celery worker, Celery beat,
    the Vite dev server, Mailpit and MinIO. The site is at http://localhost:5173, the API and
    admin at http://localhost:8000, and every email the site sends at http://localhost:8025.
+
+   With DEBUG on, `runserver` applies any unapplied migrations before it starts, and again
+   each time it reloads after a code change, so a new migration never leaves the API failing
+   on a missing column. If one cannot be applied it prints a red WARNING naming it, and it
+   warns when no membership tiers exist (run `seed_demo` or `load_site_content`).
+   `--skip-migrate` turns this off.
 
 2. **Load demo content** in a second terminal.
 

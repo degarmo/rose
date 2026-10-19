@@ -2,7 +2,7 @@ import { Check, Info, Minus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Copy, CopyHeading } from '@/components/content/Copy'
 import { PageHero } from '@/components/content/PageHero'
-import { ErrorState, LoadingState } from '@/components/content/States'
+import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
 import { SubscribeForm } from '@/components/layout/SubscribeForm'
 import { TierCard } from '@/components/membership/TierCard'
@@ -244,12 +244,20 @@ export function MembershipPage() {
     plans = <ErrorState className={cn(BAND, 'my-10 max-w-[680px]')} title="Membership plans did not load" onRetry={tiers.retry} />
   else {
     const offered = membershipTiers(tiers.data)
-    plans = (
-      <>
-        <Plans tiers={offered} current={current} />
-        {offered.length > 0 && <Compare tiers={offered} copy={copy} />}
-      </>
-    )
+    plans =
+      offered.length === 0 ? (
+        <div className={cn(BAND, 'pb-12 pt-6 lg:pb-20 [&>*]:max-w-[680px]')}>
+          <EmptyState
+            title="Membership plans are not online yet"
+            message="Come to a newcomer orientation on any Thursday and our hosts will walk you through membership in person."
+          />
+        </div>
+      ) : (
+        <>
+          <Plans tiers={offered} current={current} />
+          <Compare tiers={offered} copy={copy} />
+        </>
+      )
   }
 
   return (

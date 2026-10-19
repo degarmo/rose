@@ -1,10 +1,12 @@
 import { createHmac, randomInt } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import AxeBuilder from '@axe-core/playwright'
 import { test as base, expect, type Browser, type BrowserContext, type Page } from '@playwright/test'
 
 export const FIXTURES_FILE = fileURLToPath(new URL('../.fixtures.json', import.meta.url))
+/** The last authenticator code used, shared by every worker (phone and desktop run in turn). */
+const LAST_CODE_FILE = fileURLToPath(new URL('../.last-totp-code', import.meta.url))
 export const MAILPIT = process.env.E2E_MAILPIT_URL ?? 'http://localhost:8125'
 export const PHOTO = fileURLToPath(new URL('../fixtures/photo.jpg', import.meta.url))
 
@@ -107,16 +109,15 @@ export async function seriousA11yViolations(page: Page) {
     .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`)
 }
 
-let lastCode = ''
-
 /** A code that has not been used yet: the server refuses a code twice in its 30 seconds. */
 async function freshCode(secret: string): Promise<string> {
+  const lastCode = existsSync(LAST_CODE_FILE) ? readFileSync(LAST_CODE_FILE, 'utf8') : ''
   let code = totp(secret)
   while (code === lastCode) {
     await new Promise((resolve) => setTimeout(resolve, 1000))
     code = totp(secret)
   }
-  lastCode = code
+  writeFileSync(LAST_CODE_FILE, code)
   return code
 }
 

@@ -79,6 +79,9 @@ def test_free_is_derived_from_the_price(make_tier):
     assert not tier.is_free
 
 
+SEVEN = ["community", "first-fridays", "limited", "trial", "limited-plus", "rose", "rose-plus"]
+
+
 def test_tiers_list_from_the_lowest_price_with_sort_order_breaking_ties(client, make_tier):
     for slug, price, order in [
         ("rose-plus", 5500, 70),
@@ -90,15 +93,50 @@ def test_tiers_list_from_the_lowest_price_with_sort_order_breaking_ties(client, 
         ("limited-plus", 3500, 50),
     ]:
         make_tier(slug=slug, price_cents=price, sort_order=order)
+    response = client.get("/api/membership/tiers/")
+    assert response.status_code == 200
+    assert [tier["slug"] for tier in response.json()] == SEVEN
+    prices = [(tier["price_cents"]) for tier in response.json()]
+    assert prices == sorted(prices)
+
+    # A price change in the admin reorders the list; nothing else needs to change.
+    rose_plus = Tier.objects.get(slug="rose-plus")
+    rose_plus.price_cents = 1000
+    rose_plus.save()
     slugs = [tier["slug"] for tier in client.get("/api/membership/tiers/").json()]
     assert slugs == [
         "community",
         "first-fridays",
+        "rose-plus",
         "limited",
         "trial",
         "limited-plus",
         "rose",
-        "rose-plus",
+    ]
+
+
+def test_seed_demo_creates_the_seven_tiers(client, settings):
+    settings.DEBUG = True
+    call_command("seed_demo", stdout=StringIO())
+    data = client.get("/api/membership/tiers/").json()
+    assert [tier["slug"] for tier in data if not tier["is_guest_pass"]] == SEVEN
+    assert [tier["name"] for tier in data if tier["is_featured"]] == ["Rose"]
+
+
+def test_load_site_content_creates_the_seven_tiers(client, tmp_path, settings):
+    from apps.memberships.demo import TIERS
+
+    settings.DEBUG = True  # loaded tiers are real tiers, offered with DEBUG on or off
+    # Through JSON, so the choice enums become the plain strings a YAML file holds.
+    plain = json.loads(json.dumps([tier for tier in TIERS if not tier.get("is_guest_pass")]))
+    write_tiers(tmp_path, plain)
+    load(tmp_path)
+    settings.DEBUG = False
+    data = client.get("/api/membership/tiers/").json()
+    assert [tier["slug"] for tier in data] == SEVEN
+    assert [tier["allowed_event_tags"] for tier in data[:2]] == [
+        [{"slug": "community", "name": "Community"}],
+        [{"slug": "first_friday", "name": "First Friday"}],
     ]
 
 

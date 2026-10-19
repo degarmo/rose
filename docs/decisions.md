@@ -616,3 +616,8 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 
 391. **(privacy)** `MembershipUsage` stores a count per membership per month and nothing else, is not in the admin, and is deleted after 13 months by a daily task. The only figure any endpoint returns is a member's own events left this month (their membership and their RSVP state); the door desk shows it to staff.
 
+### After prompt 09
+
+392. The development `runserver` (`apps/core/management/commands/runserver.py`) applies unapplied migrations before it starts and again on every reload after a code change, prints a red WARNING naming any it could not apply, and warns when no membership tiers are on offer. The cause was the dev API container, which migrated only when it started: after prompt 09's models loaded through the code reloader, `/api/membership/tiers/` failed on a missing column until someone ran `migrate` by hand. `apps.core` now sits before `django.contrib.staticfiles` in `INSTALLED_APPS` so this `runserver` is the one Django uses; it still serves static files. `--skip-migrate` turns it off; nothing changes with DEBUG off.
+393. `/membership` shows "Membership plans are not online yet" when no tiers are on offer, rather than an empty page; "did not load" is kept for a failed request.
+

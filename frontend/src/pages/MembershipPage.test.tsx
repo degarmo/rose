@@ -136,4 +136,18 @@ describe('MembershipPage', () => {
     expect(screen.queryByRole('region', { name: 'Your membership' })).not.toBeInTheDocument()
     expect(screen.queryByText('Your plan')).not.toBeInTheDocument()
   })
+
+  it('says so when no plans are on offer, instead of an empty page', async () => {
+    api.tiers.mockResolvedValue([])
+    renderWithProviders(<MembershipPage />)
+    expect(await screen.findByText('Membership plans are not online yet')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByText('Membership plans did not load')).not.toBeInTheDocument()
+  })
+
+  it('says the plans did not load when the request fails', async () => {
+    api.tiers.mockRejectedValue(new Error('Server error'))
+    renderWithProviders(<MembershipPage />)
+    expect(await screen.findByText('Membership plans did not load')).toBeInTheDocument()
+  })
 })

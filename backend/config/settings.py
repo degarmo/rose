@@ -86,6 +86,8 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    # Before staticfiles, so its development `runserver` (which migrates first) is the one used.
+    "apps.core",
     "django.contrib.staticfiles",
     "django_otp",
     "django_otp.plugins.otp_totp",
@@ -95,7 +97,6 @@ INSTALLED_APPS = [
     "django_filters",
     "csp",
     "django_ratelimit",
-    "apps.core",
     "apps.accounts",
     "apps.pages",
     "apps.education",
