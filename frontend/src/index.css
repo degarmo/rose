@@ -314,6 +314,25 @@
     );
   }
 
+  /* The home hero's background. Text on it uses `fg`: muted grey falls below 4.5:1 on the violet and pink. */
+  .gradient-aurora {
+    background:
+      radial-gradient(ellipse 85% 65% at 8% 8%, rgb(175 109 255 / 0.42), transparent 60%),
+      radial-gradient(ellipse 75% 60% at 75% 35%, rgb(255 235 170 / 0.55), transparent 62%),
+      radial-gradient(ellipse 70% 60% at 15% 80%, rgb(255 100 180 / 0.4), transparent 62%),
+      radial-gradient(ellipse 70% 60% at 92% 92%, rgb(120 190 255 / 0.45), transparent 62%),
+      linear-gradient(180deg, #f7eaff 0%, #fde2ea 100%);
+  }
+
+  [data-appearance='dark'] .gradient-aurora {
+    background:
+      radial-gradient(ellipse 85% 65% at 8% 8%, rgb(175 109 255 / 0.22), transparent 60%),
+      radial-gradient(ellipse 75% 60% at 75% 35%, rgb(255 235 170 / 0.1), transparent 62%),
+      radial-gradient(ellipse 70% 60% at 15% 80%, rgb(255 100 180 / 0.16), transparent 62%),
+      radial-gradient(ellipse 70% 60% at 92% 92%, rgb(120 190 255 / 0.16), transparent 62%),
+      linear-gradient(180deg, #120c18 0%, #160a10 100%);
+  }
+
   .wash-warm {
     background: repeating-linear-gradient(
       135deg,

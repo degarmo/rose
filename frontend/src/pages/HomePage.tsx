@@ -5,7 +5,7 @@ import { JournalStrip } from '@/components/content/JournalStrip'
 import { OpportunityCard } from '@/components/content/OpportunityCard'
 import { ErrorState, SkeletonCards, EmptyState } from '@/components/content/States'
 import { ValuesStrip } from '@/components/content/ValuesStrip'
-import { ButtonLink, GUTTER, ImageFrame, Section, SectionHeading } from '@/components/ui'
+import { ButtonLink, GradientBackground, GUTTER, ImageFrame, Section, SectionHeading } from '@/components/ui'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { usePageContent, type PageCopy } from '@/lib/pageContent'
@@ -100,14 +100,15 @@ export function HomePage() {
 
   return (
     <>
-      <section aria-labelledby="home-title">
+      <section aria-labelledby="home-title" className="relative isolate overflow-hidden">
+        <GradientBackground />
         <div className={cn('mx-auto grid max-w-[1440px] items-center gap-5 pb-10 pt-12 lg:grid-cols-2 lg:gap-16 lg:py-24', GUTTER)}>
           <div className="flex flex-col gap-5 lg:gap-6">
             <h1 id="home-title" className="text-[2.625rem] font-light leading-[1.05] tracking-[-0.01em] text-fg lg:text-display">
               {copy.status === 'loading' && <span className="sr-only">Loading</span>}
               <Copy copy={copy} k="hero.title" as="span" lines={2} />
             </h1>
-            <Copy copy={copy} k="hero.lede" lines={2} className="max-w-[460px] text-base text-fg-muted lg:text-lg" />
+            <Copy copy={copy} k="hero.lede" lines={2} className="max-w-[460px] text-base text-fg lg:text-lg" />
             <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3">
               <ButtonLink to="/visit" size="lg">
                 Plan a Visit

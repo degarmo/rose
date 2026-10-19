@@ -3,6 +3,7 @@ export { Button, ButtonLink, type ButtonSize, type ButtonVariant } from './Butto
 export { Card } from './Card'
 export { Checkbox, CheckboxBox } from './Checkbox'
 export { FormField, type FieldControlProps } from './FormField'
+export { GradientBackground } from './GradientBackground'
 export { ImageFrame, type AspectRatio, type PlaceholderTexture } from './ImageFrame'
 export { Input } from './Input'
 export { Modal } from './Modal'

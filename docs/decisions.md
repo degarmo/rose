@@ -570,3 +570,8 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 ### Verification
 
 368. Results at the end of prompt 08: backend 952 tests; frontend 128 tests, type check, oxlint and build clean; Playwright 117 passed (1 skipped: the post modal on phones); the design sweep reports 108 captures with no console errors, failed or third-party requests, sideways overflow or serious or critical axe findings, and the Leave control on every page. Lighthouse (mobile, production build in the e2e stack): Home 97 / 100 / 100, Events 96 / 100 / 100, Visit 96 / 100 / 100 and the member feed 93 / 100 / 100 for performance, accessibility and best practices. SEO is 63 on all four only because that environment's `robots.txt` closes the whole site to crawlers (`SITE_INDEXABLE` is off outside production; member pages are `noindex` in every environment); every other SEO audit passes.
+
+### After prompt 08
+
+369. At the owner's request the home page hero sits on a pastel "Aurora" gradient (violet, butter, pink and sky washes over a lavender-to-blush base), a step away from the design file's white hero. It is a class in `index.css` drawn by `GradientBackground`, not an inline style, and a dimmed version applies in the dark appearance. On it the lead is in the text colour: the muted grey measures as low as 2.7:1 on the violet and pink washes.
+

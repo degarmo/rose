@@ -58,6 +58,7 @@ Contrast ratios are WCAG 2.1 ratios, measured on the background named.
 | `wash-rose` (class; colours `wash-rose-1/2`) | `#F7EEF1` → `#FCF7F8` (dark `#1C1C1C` → `#141414`) | The striped image placeholder in every post, tile and hero. The app draws real photographs; the stripe stays only as the loading background under them. |
 | `wash-warm` (class; colours `wash-warm-1/2`) | `#F3EDE6` → `#FAF7F2` (dark as above) | Education and event placeholders. Same rule. |
 | `scrim` | `rgba(0,0,0,.65)` | Dialog backdrops (post modal, Create, sheets). |
+| `gradient-aurora` (class) | violet `rgb(175 109 255 / .42)`, butter `rgb(255 235 170 / .55)`, pink `rgb(255 100 180 / .40)`, sky `rgb(120 190 255 / .45)` over `#F7EAFF` → `#FDE2EA`; dark: the same washes at about half strength over `#120C18` → `#160A10` | Home hero background (not in the designs; decision 369). |
 | `story` | `#1A1A1A` | App story viewer backdrop (desktop). Text on stories is white. |
 
 ## Type

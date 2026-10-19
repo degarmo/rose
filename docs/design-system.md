@@ -80,6 +80,7 @@ use `fg-muted` rather than `#A3A3A3` (2.5:1).
 | `Section`, `SectionHeading`, `GUTTER` | Page sections | 1440px wide with the 20 / 32 / 48px gutter; `rule` adds the 1px top line. The heading is Fraunces 300 with an optional rose link on the right. |
 | `ImageFrame` | Pictures | Manifest or API pictures over the `wash-*` placeholder; refuses any picture without face consent. |
 | `Modal`, `ToastProvider` | Sheets | Native `<dialog>`; 20px panel, modal shadow. |
+| `GradientBackground` | (not in the designs; decision 369) | The home hero's pastel "Aurora" glow (`.gradient-aurora`), dimmed in dark. Decorative; inside a `relative isolate` parent. Text on it uses `fg`. |
 
 `frontend/src/components/layout`: `Header` (72px; a quiet version with the step indicator
 on `/join`), `Footer` (the full footer on the home page, the one-row footer elsewhere),
