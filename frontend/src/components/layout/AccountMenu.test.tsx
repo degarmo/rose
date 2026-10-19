@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { Account } from '@/lib/api'
@@ -22,9 +22,35 @@ describe('AccountMenu', () => {
     expect(screen.getByRole('link', { name: 'Member app' })).toHaveAttribute('href', '/members/join-feed')
   })
 
-  it('has no app link for people without it, and Staff only for the team', async () => {
-    await open({ ...verifiedUser, staff: { role: 'moderator', verified: false, verify_url: '/x' } })
+  it('has no app link for people without it', async () => {
+    await open(verifiedUser)
     expect(screen.queryByRole('link', { name: 'Member app' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Staff' })).toHaveAttribute('href', '/members/staff')
+    expect(screen.queryByRole('list', { name: 'Staff' })).not.toBeInTheDocument()
+  })
+
+  it('gives the team a Staff block with every way in', async () => {
+    await open({
+      ...verifiedUser,
+      member_app: 'open',
+      staff: {
+        role: 'admin',
+        verified: true,
+        verify_url: null,
+        needs_enrollment: false,
+        admin_url: 'https://site.example/admin/',
+        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/',
+      },
+    })
+    const block = screen.getByRole('list', { name: 'Staff' })
+    expect(screen.getByText('Admin')).toBeInTheDocument()
+    const links = Object.fromEntries(within(block).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')]))
+    expect(links).toEqual({
+      Dashboard: '/members/staff',
+      Reports: '/members/staff/reports',
+      'Door desk': 'https://site.example/admin/memberships/membership/door-desk/',
+      'Member app': '/members/feed',
+      Website: '/',
+      'Django admin': 'https://site.example/admin/',
+    })
   })
 })

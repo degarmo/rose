@@ -9,6 +9,11 @@ export interface StaffSession {
   verified: boolean
   /** Where to complete the two-step login when not yet verified. */
   verify_url: string | null
+  /** No authenticator yet: the two-step login starts by setting one up. */
+  needs_enrollment: boolean
+  /** The Django admin's home, and the door desk for those who may use it. */
+  admin_url: string
+  door_desk_url: string | null
 }
 
 export const ROLE_LABELS: Record<Role, string> = { moderator: 'Moderator', staff: 'Staff', admin: 'Admin' }

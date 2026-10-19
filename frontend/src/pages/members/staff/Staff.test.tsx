@@ -65,8 +65,17 @@ function report(overrides: Partial<ReportDetail> = {}): ReportDetail {
   }
 }
 
-function as(staff: StaffSession | null): Account {
-  return { ...verifiedUser, feed_access: true, member_app: 'open', staff }
+function as(staff: Partial<StaffSession> | null): Account {
+  const session: StaffSession | null = staff && {
+    role: 'moderator',
+    verified: true,
+    verify_url: null,
+    needs_enrollment: false,
+    admin_url: '/admin/',
+    door_desk_url: null,
+    ...staff,
+  }
+  return { ...verifiedUser, feed_access: true, member_app: 'open', staff: session }
 }
 
 beforeEach(() => {
@@ -97,6 +106,12 @@ describe('the staff section', () => {
     expect(screen.getByRole('heading', { name: 'Confirm it is you' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Continue' })).toHaveAttribute('href', 'https://site.example/admin/login/?next=x')
     expect(api.metrics).not.toHaveBeenCalled()
+  })
+
+  it('starts with setting up an authenticator when there is none', () => {
+    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'admin', verified: false, verify_url: '/admin/login/?next=x', needs_enrollment: true }) })
+    expect(screen.getByRole('heading', { name: 'Set up your two-step login' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Set it up' })).toHaveAttribute('href', '/admin/login/?next=x')
   })
 
   it('shows the metrics to staff, with small numbers withheld', async () => {

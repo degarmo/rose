@@ -94,8 +94,9 @@ Blueprint creates paid resources.
     `python manage.py migrate_media_to_storage` (dry run, read the counts), then
     `python manage.py migrate_media_to_storage --commit`. It is safe to repeat.
 15. **First superuser**: Render > web service > Shell:
-    `python manage.py createsuperuser`. Then open `https://<domain>/<admin path>`,
-    log in, and enrol the authenticator app when asked. Save the ten backup
+    `python manage.py make_owner <email>` (a superuser with the Admin role; it asks
+    for a password and prints the next steps). Then log in on the site, and enrol the
+    authenticator app when the staff section asks. Save the ten backup
     codes in a password manager. Create the other staff accounts in the admin
     (staff status, plus a "Door desk" group for door volunteers with only the
     membership view and change permissions); each enrols at first login.

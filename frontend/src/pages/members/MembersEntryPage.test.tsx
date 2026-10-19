@@ -61,12 +61,15 @@ describe('/members', () => {
 })
 
 describe('getting into the app', () => {
-  it('lands members whose app is open in the feed after login, unless they came from a page', () => {
-    const open = { member_app: 'open' as const }
+  it('lands the team on the staff dashboard, and open-app members in the feed, unless they came from a page', () => {
+    const open = { member_app: 'open' as const, staff: null }
     expect(landingAfterLogin(open, null, '/account')).toBe('/members/feed')
     expect(landingAfterLogin(open, '/', '/')).toBe('/members/feed')
     expect(landingAfterLogin(open, '/events/x', '/events/x')).toBe('/events/x')
-    expect(landingAfterLogin({ member_app: 'join' }, null, '/account')).toBe('/account')
+    expect(landingAfterLogin({ member_app: 'join', staff: null }, null, '/account')).toBe('/account')
+    const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', door_desk_url: null } }
+    expect(landingAfterLogin(owner, null, '/account')).toBe('/members/staff')
+    expect(landingAfterLogin(owner, '/events/x', '/events/x')).toBe('/events/x')
     expect(memberAppPath({ member_app: 'open' })).toBe('/members/feed')
     expect(memberAppPath({ member_app: 'join' })).toBe('/members/join-feed')
   })

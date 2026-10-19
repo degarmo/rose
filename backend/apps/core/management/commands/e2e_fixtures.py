@@ -29,6 +29,7 @@ from apps.journal.models import Post as JournalPost
 from apps.journal.models import PostImage as JournalImage
 from apps.memberships.demo import upsert_tiers
 from apps.memberships.models import IdCheck, Membership, MembershipAgreement, Tier
+from apps.pages.demo_activity import seed_activity
 from apps.pages.management.commands.demo_media import sample_image
 from apps.pages.management.commands.seed_demo import DEMO_CONTENT_DIR
 from apps.pages.models import SiteSettings
@@ -43,6 +44,7 @@ TEAM_KEYS = {
     "moderator": "4142434445464748494a4b4c4d4e4f5051525354",
     "admin": "6162636465666768696a6b6c6d6e6f7071727374",
 }
+OWNER_KEY = "7a797877767574737271706f6e6d6c6b6a696867"
 VIEWPORTS = ("phone", "desktop")
 SHOWCASE_AUTHORS = ("e2e_amber_glow", "e2e_low_lamp", "e2e_velvet_rope")
 SHOWCASE_CAPTIONS = [
@@ -124,6 +126,19 @@ class Command(BaseCommand):
             "team": {},
         }
         guidelines = Guidelines.current()
+        # The owner's superuser, as `createsuperuser` makes it (email not confirmed, not
+        # in the app), with an authenticator; and the same year of activity as seed_demo,
+        # so the dashboard has numbers to show.
+        User.objects.filter(email="e2e.owner@example.org").delete()
+        owner = User.objects.create_superuser(
+            email="e2e.owner@example.org", display_name="e2e_owner", password=PASSWORD
+        )
+        TOTPDevice.objects.create(user=owner, name="e2e", key=OWNER_KEY, confirmed=True)
+        data["owner"] = {
+            "email": owner.email,
+            "totp_secret": base64.b32encode(bytes.fromhex(OWNER_KEY)).decode(),
+        }
+        seed_activity()
         for role, key in TEAM_KEYS.items():
             member = reset_user(f"e2e.{role}@example.org", f"e2e_{role}")
             roles.set_role(member, role)

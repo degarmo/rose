@@ -3,7 +3,8 @@
 entitlements(user) is a subset of {"feed", "members_events", "members_education"}:
 everything the active tier grants, plus "feed" from a staff grant (Profile.feed_access_granted),
 which stays for comped members and volunteers, and "feed" for every staff account, so the
-team can always reach the member app.
+team can always reach the member app. A superuser holds every entitlement (the owner's
+"everything" account), with no membership record behind it.
 
 The tier rules for members-only events live here too: which events a tier includes, how
 many it allows each calendar month, and how many guests come with the member.
@@ -29,9 +30,14 @@ def active_membership(user):
     )
 
 
+ALL = frozenset({FEED, MEMBERS_EVENTS, MEMBERS_EDUCATION})
+
+
 def entitlements(user):
     if not (user and user.is_authenticated and user.is_active):
         return set()
+    if user.is_superuser:
+        return set(ALL)
     granted = set()
     membership = active_membership(user)
     if membership is not None:

@@ -88,6 +88,7 @@ class AccountSerializer(serializers.ModelSerializer):
         from urllib.parse import quote
 
         from django.conf import settings
+        from django_otp.plugins.otp_totp.models import TOTPDevice
 
         from apps.safety import roles
 
@@ -95,11 +96,19 @@ class AccountSerializer(serializers.ModelSerializer):
         if role is None:
             return None
         verified = roles.is_verified(user)
-        if verified:
-            return {"role": role, "verified": True, "verify_url": None}
         back = quote(f"{settings.SITE_URL}/members/staff", safe="")
-        verify = f"{settings.ADMIN_BASE_URL}{reverse('admin:login')}?next={back}"
-        return {"role": role, "verified": False, "verify_url": verify}
+        admin = settings.ADMIN_BASE_URL
+        return {
+            "role": role,
+            "verified": verified,
+            "verify_url": None if verified else f"{admin}{reverse('admin:login')}?next={back}",
+            # No authenticator yet: the two-step login starts by setting one up.
+            "needs_enrollment": not TOTPDevice.objects.filter(user=user, confirmed=True).exists(),
+            "admin_url": f"{admin}{reverse('admin:index')}",
+            "door_desk_url": f"{admin}{reverse('admin:memberships_door_desk')}"
+            if user.has_perm("memberships.change_membership")
+            else None,
+        }
 
     def get_feed_controls(self, user):
         """Whether /account has feed controls for this person, so the page asks for them

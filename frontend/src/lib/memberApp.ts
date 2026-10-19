@@ -7,10 +7,12 @@ export function memberAppPath(user: Pick<Account, 'member_app'>) {
 
 /**
  * Where to go after logging in. A page the person was on wins; with none (or the home
- * page, where the header's Log in starts), members whose app is open land in it.
+ * page, where the header's Log in starts), the team and superusers land on the staff
+ * dashboard, and members whose app is open land in it.
  */
-export function landingAfterLogin(user: Pick<Account, 'member_app'> | null, asked: string | null, next: string) {
+export function landingAfterLogin(user: Pick<Account, 'member_app' | 'staff'> | null, asked: string | null, next: string) {
   const defaulted = !asked || asked === '/'
+  if (defaulted && user?.staff) return '/members/staff'
   if (defaulted && user?.member_app === 'open') return '/members/feed'
   return next
 }

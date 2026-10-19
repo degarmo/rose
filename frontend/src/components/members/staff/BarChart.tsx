@@ -14,6 +14,7 @@ function amount(metric: Count | Money) {
 export function BarChart({ title, points }: { title: string; points: Point[] }) {
   const known = points.map((p) => amount(p.metric)).filter((v): v is number => v !== null)
   const max = Math.max(1, ...known)
+  const allWithheld = points.length > 0 && known.length === 0
   return (
     <figure className="flex flex-col gap-3 rounded-app border border-border p-4">
       <figcaption className="text-sm font-semibold text-fg">{title}</figcaption>
@@ -32,6 +33,8 @@ export function BarChart({ title, points }: { title: string; points: Point[] }) 
           )
         })}
       </div>
+      {points.length === 0 && <p className="text-sm text-fg-muted">No periods to show.</p>}
+      {allWithheld && <p className="text-[0.8125rem] text-fg-muted">Fewer than 5 in every period, so nothing is shown.</p>}
       <div className="flex justify-between text-[0.6875rem] text-fg-muted">
         <span>{points[0]?.label}</span>
         <span>{points.at(-1)?.label}</span>

@@ -8,6 +8,7 @@ A superuser counts as an admin. Every role also needs the staff two-step login
 (django-otp) on the current session before the staff section answers at all.
 """
 
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
 
@@ -37,8 +38,19 @@ def has_role(user, minimum):
     return RANK[role_of(user)] >= RANK[minimum]
 
 
+def dev_skip_two_step():
+    """DEV_SKIP_STAFF_2FA, honoured only in local development (DEBUG on, not deployed)."""
+    return bool(
+        settings.DEV_SKIP_STAFF_2FA
+        and settings.DEBUG
+        and settings.DJANGO_ENV not in settings.DEPLOYED_ENVS
+    )
+
+
 def is_verified(user):
     """Whether this session passed the staff two-step login."""
+    if dev_skip_two_step() and role_of(user) is not None:
+        return True
     return bool(getattr(user, "is_verified", lambda: False)())
 
 

@@ -16,15 +16,26 @@ const TABS: Array<{ to: string; label: string; minimum: Role; end?: boolean }> =
   { to: '/members/staff/team', label: 'Team', minimum: 'admin' },
 ]
 
-/** The two-step check, in the app's own look: the admin's login does the work and returns here. */
-function VerifyFirst({ url }: { url: string }) {
+/**
+ * The two-step check, in the app's own look: the admin's login does the work and returns
+ * here. Without an authenticator yet, it says so and starts by setting one up.
+ */
+function VerifyFirst({ url, enrol }: { url: string; enrol: boolean }) {
   return (
-    <div className="mx-auto flex max-w-[420px] flex-col items-center gap-3 px-6 py-16 text-center">
+    <div className="mx-auto flex max-w-[460px] flex-col items-center gap-3 px-6 py-16 text-center">
       <ShieldCheck aria-hidden="true" className="size-10 text-fg" strokeWidth={1.5} />
-      <h1 className="text-xl font-semibold text-fg">Confirm it is you</h1>
-      <p className="text-fg-muted">The staff section needs the code from your authenticator app, once per session.</p>
+      <h1 className="text-xl font-semibold text-fg">{enrol ? 'Set up your two-step login' : 'Confirm it is you'}</h1>
+      {enrol ? (
+        <ol className="flex list-decimal flex-col gap-1 pl-5 text-left text-fg-muted">
+          <li>Install an authenticator app on your phone, if you do not have one.</li>
+          <li>Enter your password again, then scan the code the next page shows.</li>
+          <li>Type the six-digit code, and keep the ten backup codes somewhere safe.</li>
+        </ol>
+      ) : (
+        <p className="text-fg-muted">The staff section needs the code from your authenticator app, once per session.</p>
+      )}
       <a href={url} className={appButtonClasses('primary', 'mt-2')}>
-        Continue
+        {enrol ? 'Set it up' : 'Continue'}
       </a>
     </div>
   )
@@ -43,7 +54,7 @@ export function StaffFrame({ title, minimum = 'moderator', actions, children }: 
     return (
       <>
         <PhoneBar title="Staff" />
-        <VerifyFirst url={staff.verify_url} />
+        <VerifyFirst url={staff.verify_url} enrol={staff.needs_enrollment} />
       </>
     )
   }

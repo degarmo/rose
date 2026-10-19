@@ -67,6 +67,13 @@ function Dashboard({ data }: { data: Metrics }) {
               </tr>
             </thead>
             <tbody>
+              {members.tiers.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-3 text-fg-muted">
+                    No membership tiers yet. Add them in the Django admin or load the site content.
+                  </td>
+                </tr>
+              )}
               {members.tiers.map((row) => (
                 <tr key={row.tier} className="border-b border-border last:border-0">
                   <th scope="row" className={cn(TD, 'font-semibold')}>

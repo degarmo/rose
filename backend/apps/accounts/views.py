@@ -14,6 +14,7 @@ from apps.feed.services import erase_feed_data
 from apps.memberships.account import close_for_deleted_account
 from apps.rentals.services import forget_account as forget_rental_contact
 from apps.safety.models import BlockedEmail
+from apps.safety.owner import prepare_owner
 from apps.volunteers.models import forget_account as forget_volunteer
 
 from . import lockout, tasks
@@ -53,6 +54,9 @@ class SessionView(CsrfProtectedAPIView):
     write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
 
     def get(self, request):
+        if request.user.is_authenticated and request.user.is_superuser:
+            # An owner signed in before their account was prepared gets it now, not next login.
+            prepare_owner(request.user)
         return Response(session_payload(request))
 
     def patch(self, request):

@@ -26,6 +26,8 @@ export function StaffMembersPage() {
       </label>
       <Input id={searchId} type="search" className="mt-1 max-w-[420px]" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="At least two letters" />
       <div className="mt-4">
+        {trimmed.length < 2 && <p className="text-sm text-fg-muted">Type at least two letters of a display name to find a member and see their record.</p>}
+        {results.status === 'error' && <ErrorState title="The search did not work" onRetry={results.retry} />}
         {results.status === 'success' && trimmed.length >= 2 && results.data.length === 0 && <EmptyState title="Nobody found" message="Check the spelling of the display name." />}
         {results.status === 'success' && results.data.length > 0 && (
           <ul className="divide-y divide-border rounded-app border border-border">

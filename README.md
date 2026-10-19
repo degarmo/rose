@@ -56,14 +56,18 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    state. The staff section (`/members/staff`) needs the staff two-step login: the first
    visit sets up an authenticator app.
 
-3. **Create an admin account.**
+3. **Create the owner's account** (a superuser with the Admin role).
 
    ```sh
-   docker compose exec api python manage.py createsuperuser
+   docker compose exec api python manage.py make_owner you@example.org
    ```
 
-   The admin asks you to set up an authenticator app at first login (two-step login is
-   required for all staff, also locally).
+   It asks for a password for a new account and upgrades an existing one; running it again
+   changes nothing. Log in on the site with that email: you land on the staff dashboard,
+   which first sets up the two-step login with an authenticator app (required for all
+   staff, also locally). To try the staff section locally without an authenticator, start
+   the API with `DEV_SKIP_STAFF_2FA=true`; it only works with DEBUG on, and staging and
+   production refuse to start with it set.
 
 4. **Run the backend tests.**
 
@@ -101,7 +105,7 @@ If ports 5433, 6380, 8000 or 5173 are taken, override them, for example
 
    ```sh
    .venv/bin/python manage.py migrate
-   .venv/bin/python manage.py createsuperuser
+   .venv/bin/python manage.py make_owner you@example.org
    .venv/bin/python manage.py seed_demo
    ```
 

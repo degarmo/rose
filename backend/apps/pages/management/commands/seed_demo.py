@@ -434,9 +434,16 @@ class Command(BaseCommand):
             self.logins.append((label, email))
 
     def seed_safety(self):
+        from apps.pages.demo_activity import seed_activity
         from apps.safety.demo import seed_safety
 
         seed_safety()
+        added = seed_activity()
+        if added:
+            self.stdout.write(
+                f"A year of club life: {added} members with payments, past evenings with "
+                "check-ins, gifts, posts, reports and email subscribers (DEBUG only)."
+            )
 
     def print_logins(self):
         self.stdout.write("")

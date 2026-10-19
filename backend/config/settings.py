@@ -371,6 +371,11 @@ FEED_WARNING_COOLDOWN_HOURS = 24
 # seed_demo's one password for every demo account, so the README can list the logins.
 # Used only with DEBUG on; seed_demo never runs in staging or production.
 DEMO_PASSWORD = env.str("DEMO_PASSWORD", default="rose-demo-only")
+
+# Development only: treat team members as having passed the staff two-step login, to try
+# the staff section without an authenticator. Honoured only with DEBUG on outside staging
+# and production, and the deployment check refuses to start a deployed site with it set.
+DEV_SKIP_STAFF_2FA = env.bool("DEV_SKIP_STAFF_2FA", default=False)
 FEED_EXPORT_TTL_HOURS = 24
 FEED_MAX_IMAGES_PER_POST = 10
 DATA_UPLOAD_MAX_NUMBER_FILES = 12
@@ -563,6 +568,10 @@ MEDIA_ORIGINS = sorted(
     if STORAGE_BACKEND == "s3"
     else set()
 )
+# The admin's two-step login redirects back to the site after its form is sent; in
+# development the site runs on another origin (Vite), so it is allowed here. In
+# production the site and the admin share one origin and this adds nothing.
+FORM_ORIGINS = [origin for origin in {_origin(SITE_URL)} if origin]
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": [SELF],
@@ -574,7 +583,7 @@ CONTENT_SECURITY_POLICY = {
         "media-src": [SELF],
         "object-src": [NONE],
         "base-uri": [SELF],
-        "form-action": [SELF],
+        "form-action": [SELF, *FORM_ORIGINS],
         "frame-ancestors": [NONE],
         "manifest-src": [SELF],
         "worker-src": [NONE],

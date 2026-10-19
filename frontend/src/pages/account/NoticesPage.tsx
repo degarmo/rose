@@ -128,6 +128,8 @@ export function NoticesPage() {
         </h2>
         <p className="mt-1 text-sm text-fg-muted">For privacy we never share what was decided, only that it was reviewed.</p>
         <div className="mt-4">
+          {reports.status === 'loading' && <LoadingState label="Loading your reports" />}
+          {reports.status === 'error' && <ErrorState title="Your reports did not load" onRetry={reports.retry} />}
           {reports.status === 'success' &&
             (reports.data.length === 0 ? (
               <p className="text-fg-muted">You have not sent any reports.</p>

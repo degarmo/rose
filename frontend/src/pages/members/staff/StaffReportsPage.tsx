@@ -96,7 +96,16 @@ export function StaffReportsPage() {
         {state.status === 'error' && <ErrorState title="The inbox did not load" onRetry={state.retry} />}
         {state.status === 'success' &&
           (state.data.length === 0 ? (
-            <EmptyState title="Nothing here" message={tab === 'appeals' ? 'No appeals are waiting.' : 'No reports with this status.'} />
+            <EmptyState
+              title={tab === 'appeals' ? 'No appeals waiting' : tab === 'open' ? 'No reports yet' : 'Nothing here'}
+              message={
+                tab === 'appeals'
+                  ? 'Appeals members send about a decision appear here.'
+                  : tab === 'open'
+                    ? 'New reports from members and the website appear here.'
+                    : 'No reports have this status.'
+              }
+            />
           ) : (
             <ul className="divide-y divide-border rounded-app border border-border">
               {tab === 'appeals'

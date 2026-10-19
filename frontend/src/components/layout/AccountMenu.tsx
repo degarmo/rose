@@ -3,6 +3,9 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/cn'
 import { memberAppPath } from '@/lib/memberApp'
+import { ROLE_LABELS } from '@/lib/safetyApi'
+
+const ITEM = 'flex min-h-10 items-center px-4 text-sm font-medium text-fg hover:bg-surface'
 import { useAuth } from './authContext'
 
 /** Log in link, or the signed-in person's display name with a small menu. */
@@ -31,6 +34,7 @@ export function AccountMenu({ className }: { className?: string }) {
     }
   }, [open])
 
+  const staff = auth.user?.staff ?? null
   if (auth.status === 'loading') return <span className={cn('inline-block w-12', className)} aria-hidden="true" />
 
   if (!auth.user) {
@@ -59,21 +63,57 @@ export function AccountMenu({ className }: { className?: string }) {
       {open && (
         <ul
           id={menuId}
-          className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-sheet border border-border bg-canvas py-1 shadow-sheet"
+          className="absolute right-0 top-full mt-2 w-60 overflow-hidden rounded-sheet border border-border bg-canvas py-1 shadow-sheet"
         >
-          {(auth.user.member_app === 'open' || auth.user.member_app === 'join') && (
-            <li>
-              <Link to={memberAppPath(auth.user)} className="flex min-h-11 items-center px-4 text-sm font-semibold text-link hover:bg-surface">
-                Member app
-              </Link>
+          {staff ? (
+            <li className="border-b border-border pb-1">
+              <p className="flex items-center gap-2 px-4 pb-1 pt-2 text-xs text-fg-muted">
+                <span className="rounded-full bg-fg px-2 py-0.5 font-semibold uppercase tracking-[0.06em] text-canvas">Staff</span>
+                {ROLE_LABELS[staff.role]}
+              </p>
+              <ul aria-label="Staff">
+                <li>
+                  <Link to="/members/staff" className={ITEM}>
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/members/staff/reports" className={ITEM}>
+                    Reports
+                  </Link>
+                </li>
+                {staff.door_desk_url && (
+                  <li>
+                    <a href={staff.door_desk_url} className={ITEM}>
+                      Door desk
+                    </a>
+                  </li>
+                )}
+                <li>
+                  <Link to={memberAppPath(auth.user)} className={ITEM}>
+                    Member app
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className={ITEM}>
+                    Website
+                  </Link>
+                </li>
+                <li>
+                  <a href={staff.admin_url} className={ITEM}>
+                    Django admin
+                  </a>
+                </li>
+              </ul>
             </li>
-          )}
-          {auth.user.staff && (
-            <li>
-              <Link to="/members/staff" className="flex min-h-11 items-center px-4 text-sm font-medium text-fg hover:bg-surface">
-                Staff
-              </Link>
-            </li>
+          ) : (
+            (auth.user.member_app === 'open' || auth.user.member_app === 'join') && (
+              <li>
+                <Link to={memberAppPath(auth.user)} className="flex min-h-11 items-center px-4 text-sm font-semibold text-link hover:bg-surface">
+                  Member app
+                </Link>
+              </li>
+            )
           )}
           <li>
             <Link to="/account" className="flex min-h-11 items-center px-4 text-sm font-medium text-fg hover:bg-surface">

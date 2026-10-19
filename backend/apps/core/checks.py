@@ -74,6 +74,14 @@ def deployment_settings(app_configs=None, **kwargs):
         settings.STAGING_BASIC_AUTH_USER and settings.STAGING_BASIC_AUTH_PASSWORD
     ):
         errors.append(_error("E011", "Staging needs STAGING_BASIC_AUTH_USER and _PASSWORD."))
+    if settings.DEV_SKIP_STAFF_2FA:
+        errors.append(
+            _error(
+                "E012",
+                "DEV_SKIP_STAFF_2FA is on: the staff section would skip the two-step login.",
+                "Remove DEV_SKIP_STAFF_2FA. It is for local development only.",
+            )
+        )
     return errors
 
 

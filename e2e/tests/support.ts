@@ -24,6 +24,8 @@ export interface Fixtures {
     }
   >
   team: Record<'moderator' | 'admin', { email: string; totp_secret: string }>
+  /** The owner's superuser, as `createsuperuser` leaves it, with an authenticator. */
+  owner: { email: string; totp_secret: string }
   /** A filled-in member app for the screenshot tests. */
   showcase: { viewer: string; viewer_handle: string; other_handle: string }
 }
@@ -138,6 +140,12 @@ async function twoStepLogin(page: Page, account: { email: string; totp_secret: s
   await page.getByLabel('Password').fill(data.password)
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByLabel(/Six-digit code/).fill(await freshCode(account.totp_secret))
+  await page.getByRole('button', { name: 'Log in' }).click()
+}
+
+/** The admin's second step: a fresh code from this account's authenticator. */
+export async function enterTwoStepCode(page: Page, secret: string) {
+  await page.getByLabel(/Six-digit code/).fill(await freshCode(secret))
   await page.getByRole('button', { name: 'Log in' }).click()
 }
 
