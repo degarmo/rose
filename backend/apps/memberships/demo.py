@@ -367,8 +367,8 @@ def upsert_tiers(placeholder):
     return tiers
 
 
-def seed_memberships():
-    """Returns {display_name: (email, password)} for the demo accounts. DEBUG only."""
+def seed_memberships(password):
+    """Returns {display_name: email} for the demo accounts, all with `password`. DEBUG only."""
     if not settings.DEBUG:
         raise ImproperlyConfigured("Membership demo data is for development only.")
     now = timezone.now()
@@ -388,11 +388,9 @@ def seed_memberships():
             slug=slug, defaults={**values, "members_only": True, "is_published": True}
         )
 
-    staff_password = secrets.token_urlsafe(12)
-    staff = _desk_volunteer(staff_password)
-    passwords = {"desk_volunteer": ("desk.volunteer@example.org", staff_password)}
+    staff = _desk_volunteer(password)
+    accounts = {"desk_volunteer": "desk.volunteer@example.org"}
     for email, display_name, tier_slug, kind in DEMO_MEMBERS:
-        password = secrets.token_urlsafe(12)
         user = User.objects.filter(email=email).first()
         if user is None:
             user = User.objects.create_user(
@@ -402,10 +400,10 @@ def seed_memberships():
             user.set_password(password)
         user.save()
         user.mark_email_verified()
-        passwords[display_name] = (email, password)
+        accounts[display_name] = email
         AgreementSignature.objects.get_or_create(
             user=user, agreement=agreement, defaults={"typed_name": f"Demo Person {user.pk}"}
         )
         if not Membership.objects.filter(user=user).exists():
             _build(user, tiers[tier_slug], kind, staff, now)
-    return passwords
+    return accounts

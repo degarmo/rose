@@ -10,7 +10,14 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import CAPTION_MAX_LENGTH, COMMENT_MAX_LENGTH, FeedPost, Notification, Report
+from .models import (
+    CAPTION_MAX_LENGTH,
+    COMMENT_MAX_LENGTH,
+    REPORT_DETAILS_MAX_LENGTH,
+    FeedPost,
+    Notification,
+    Report,
+)
 from .services import like_count_for
 from .visibility import counted_likes, is_block_pair, visible_comments, visible_posts
 
@@ -245,10 +252,15 @@ class CommentCreateSerializer(serializers.Serializer):
 
 
 class ReportCreateSerializer(serializers.Serializer):
-    target_type = serializers.ChoiceField(choices=Report.TargetType.choices)
+    # Concerns about events go through /api/concerns/, not here.
+    target_type = serializers.ChoiceField(
+        choices=[(t.value, t.label) for t in Report.TargetType if t != Report.TargetType.EVENT]
+    )
     target_id = serializers.CharField(max_length=40)
     reason = serializers.ChoiceField(choices=Report.Reason.choices)
-    details = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+    details = serializers.CharField(
+        max_length=REPORT_DETAILS_MAX_LENGTH, required=False, allow_blank=True, default=""
+    )
 
 
 def notification_payload(notification, viewer):

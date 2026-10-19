@@ -9,6 +9,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.pages.management.commands.demo_media import sample_image
 
+from . import services
 from .models import (
     Block,
     FeedComment,
@@ -18,6 +19,7 @@ from .models import (
     Follow,
     Guidelines,
     GuidelinesAcceptance,
+    Notification,
     Report,
 )
 
@@ -98,9 +100,11 @@ def _post(author, caption, images, age, sensitive=False, status=FeedPost.Status.
 
 @transaction.atomic
 def seed_feed(demo_verified):
-    """Returns the demo member account so its password can be printed."""
+    """Returns the demo member account so its password can be set."""
     if FeedPost.objects.filter(author__display_name__in=PARTICIPANTS).exists():
-        return User.objects.get(display_name="demo_member")
+        demo_member = User.objects.get(display_name="demo_member")
+        _demo_member_activity(demo_member)
+        return demo_member
 
     members = [
         _member("demo.member@example.org" if name == "demo_member" else f"{name}@example.org", name)
@@ -177,4 +181,27 @@ def seed_feed(demo_verified):
         post=posts[8],
         reason=Report.Reason.SPAM,
     )
+    _demo_member_activity(members[-1])
     return members[-1]
+
+
+def _demo_member_activity(demo_member):
+    """Saved posts and notifications for the demo member, so those screens have content."""
+    others = FeedPost.objects.filter(status=FeedPost.Status.PUBLISHED).exclude(author=demo_member)
+    for post in others.order_by("-created_at")[:4]:
+        services.save_post(demo_member, post.public_id)
+    own = FeedPost.objects.filter(author=demo_member, status=FeedPost.Status.PUBLISHED)
+    fans = User.objects.filter(display_name__in=PARTICIPANTS).exclude(pk=demo_member.pk)
+    for post in own.order_by("-created_at")[:3]:
+        for fan in fans[:4]:
+            services.like(fan, post.public_id)
+        if not post.comments.exclude(author=demo_member).exists():
+            # Directly rather than through add_comment, whose hourly limit the seed would hit.
+            comment = FeedComment.objects.create(post=post, author=fans[0], body=COMMENTS[0])
+            Notification.objects.create(
+                recipient=demo_member,
+                kind=Notification.Kind.COMMENT,
+                post=post,
+                comment=comment,
+                actor=fans[0],
+            )

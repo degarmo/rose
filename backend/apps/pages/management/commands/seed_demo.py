@@ -1,8 +1,9 @@
 """Load placeholder content so every page has something real to show.
 
 Safe to run repeatedly: rows are matched on slug, question or email and
-updated. Demo account passwords are regenerated on every run and printed
-only when DEBUG is on.
+updated. With DEBUG on, every demo account gets DEMO_PASSWORD and the logins are
+printed at the end (they are also listed in the README). With DEBUG off the
+passwords are random and nothing is printed.
 """
 
 import secrets
@@ -362,13 +363,16 @@ class Command(BaseCommand):
             )
 
         load(read_files(DEMO_CONTENT_DIR), commit=True)
+        self.logins = []
         users = self.seed_users()
         events = self.seed_events(users)
         post_count = self.seed_journal(events)
         if settings.DEBUG:
             self.seed_member_feed(users["verified"])
             self.seed_memberships()
+            self.seed_team()
             self.seed_parity()
+            self.seed_safety()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -377,12 +381,17 @@ class Command(BaseCommand):
                 f"{len(users)} demo accounts."
             )
         )
+        if settings.DEBUG:
+            # After the commit, so the summary comes after anything sent on commit (emails).
+            transaction.on_commit(self.print_logins)
+
+    def demo_password(self):
+        return settings.DEMO_PASSWORD if settings.DEBUG else secrets.token_urlsafe(12)
 
     def seed_users(self):
         users = {}
-        credentials = []
         for email, display_name, verified in DEMO_USERS:
-            password = secrets.token_urlsafe(12)
+            password = self.demo_password()
             user = User.objects.filter(email=email).first()
             if user is None:
                 user = User.objects.create_user(
@@ -393,34 +402,52 @@ class Command(BaseCommand):
             user.email_verified_at = timezone.now() if verified else None
             user.save()
             users["verified" if verified else "unverified"] = user
-            credentials.append((email, password, verified))
-
-        if settings.DEBUG:
-            self.stdout.write("Demo accounts (DEBUG only, passwords change on every run):")
-            for email, password, verified in credentials:
-                label = "verified" if verified else "not verified"
-                self.stdout.write(f"  {email}  {password}  ({label})")
+            label = "plain account" if verified else "plain account, email not confirmed"
+            self.logins.append((label, email))
         return users
 
     def seed_member_feed(self, demo_verified):
         from apps.feed.demo import seed_feed
 
         demo_member = seed_feed(demo_verified)
-        password = secrets.token_urlsafe(12)
-        demo_member.set_password(password)
+        demo_member.set_password(self.demo_password())
         demo_member.save(update_fields=["password"])
-        self.stdout.write("Member feed demo account (DEBUG only):")
-        self.stdout.write(f"  {demo_member.email}  {password}  (feed member)")
+        self.logins.append(("member with the member app open (feed joined)", demo_member.email))
 
     def seed_memberships(self):
         from apps.memberships.demo import seed_memberships
 
-        accounts = seed_memberships()
+        accounts = seed_memberships(self.demo_password())
+        labels = {
+            "desk_volunteer": "staff: door desk volunteer (no team role)",
+            "demo_active": "active member, feed included but not joined yet",
+            "demo_community": "member without feed access (Community, waiting for ID check)",
+            "demo_limited": "active Limited member",
+        }
+        for display_name, email in accounts.items():
+            self.logins.append((labels.get(display_name, f"membership: {display_name}"), email))
+
+    def seed_team(self):
+        from apps.safety.demo import seed_team
+
+        for label, email in seed_team(self.demo_password()):
+            self.logins.append((label, email))
+
+    def seed_safety(self):
+        from apps.safety.demo import seed_safety
+
+        seed_safety()
+
+    def print_logins(self):
+        self.stdout.write("")
+        self.stdout.write("Demo accounts (DEBUG only). Every password is DEMO_PASSWORD:")
+        self.stdout.write(f"  password: {settings.DEMO_PASSWORD}")
+        width = max(len(email) for _, email in self.logins)
+        for label, email in self.logins:
+            self.stdout.write(f"  {email.ljust(width)}  {label}")
         self.stdout.write(
-            "Membership demo accounts (DEBUG only; placeholder tiers, prices and agreement):"
+            "  Team accounts set up an authenticator on their first visit to /members/staff."
         )
-        for display_name, (email, password) in accounts.items():
-            self.stdout.write(f"  {email}  {password}  ({display_name})")
 
     def seed_parity(self):
         """Guests come with the membership demo; this adds rentals, volunteers,

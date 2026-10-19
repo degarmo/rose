@@ -4,6 +4,7 @@ import { useAuth } from '@/components/layout/authContext'
 import { Button, FormField, Input } from '@/components/ui'
 import { api, ApiError } from '@/lib/api'
 import { safeNextPath } from '@/lib/format'
+import { landingAfterLogin } from '@/lib/memberApp'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { AccountShell, FORM_ALERT } from './AccountShell'
 import { emailError } from './validation'
@@ -28,8 +29,9 @@ export function LoginPage() {
     if (found.email || found.password) return
     setSubmitting(true)
     try {
-      auth.applySession(await api.login(email.trim(), password))
-      navigate(next, { replace: true })
+      const session = await api.login(email.trim(), password)
+      auth.applySession(session)
+      navigate(landingAfterLogin(session.user, params.get('next'), next), { replace: true })
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : 'Please try again.')
     } finally {

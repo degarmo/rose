@@ -1,3 +1,4 @@
+import type { StaffSession } from './safetyApi'
 import { config } from './config'
 
 export interface SocialLink {
@@ -297,6 +298,10 @@ export interface Account {
   feed_access: boolean
   /** The account page has feed controls for them (entitled, or with feed history). */
   feed_controls: boolean
+  /** "open": the app opens now; "join": after joining; "paused": a suspension or ban; null: not theirs. */
+  member_app: 'open' | 'join' | 'paused' | null
+  /** Team members only: their role and whether this session passed the staff two-step login. */
+  staff: StaffSession | null
   appearance: Appearance
 }
 
@@ -324,6 +329,7 @@ export type RSVPStateName =
   | 'unavailable'
   | 'tier_event_not_included'
   | 'monthly_limit_reached'
+  | 'restricted'
   | 'going'
   | 'waitlisted'
 
@@ -338,6 +344,7 @@ export type RSVPReason =
   | 'tier_event_not_included'
   | 'monthly_limit_reached'
   | 'party_size_exceeds_tier'
+  | 'restricted'
 
 export interface MyRSVP {
   status: 'going' | 'waitlist'

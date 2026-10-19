@@ -1,4 +1,4 @@
-import { Ban, Check, ChevronRight, Download, EyeOff, Pause, Search, Sun, Trash2, User, UserCog, type LucideIcon } from 'lucide-react'
+import { Ban, Check, ChevronRight, Download, EyeOff, Flag, Pause, Search, ShieldCheck, Sun, Trash2, User, UserCog, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
@@ -47,6 +47,18 @@ function ActionRowButton({ icon, label, sub, value, danger, onClick, disabled }:
 }
 
 /** A row with a switch on the right; the words are its label. */
+function ActionRowLink({ icon, label, sub, to }: { icon: LucideIcon; label: string; sub?: ReactNode; to: string }) {
+  return (
+    <li>
+      <Link to={to} className={cn(settingsRow, 'hover:bg-surface')}>
+        <RowIcon icon={icon} />
+        <RowText label={label} sub={sub} />
+        <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-fg-muted" />
+      </Link>
+    </li>
+  )
+}
+
 function SwitchRow({ icon, label, sub, checked, disabled, onChange }: { icon: LucideIcon; label: string; sub: string; checked: boolean; disabled: boolean; onChange: (value: boolean) => void }) {
   const id = useId()
   return (
@@ -185,6 +197,8 @@ export function SettingsPage() {
             onClick={() => void act(feedAccount.requestExport, 'We will email you a link shortly', () => setExportAsked(true))}
           />
           <ActionRowButton icon={Trash2} label="Leave and erase" sub="Permanently delete everything you shared" danger onClick={() => setDialog('erase')} />
+          <ActionRowLink icon={Flag} label="Report a concern" sub="Something that happened at an event or the club" to="/members/report" />
+          {auth.user?.staff && <ActionRowLink icon={ShieldCheck} label="Staff" sub="Reports, members and the team" to="/members/staff" />}
         </ul>
         <section aria-labelledby={blockedId}>
           <div className={settingsRow}>

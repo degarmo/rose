@@ -14,7 +14,16 @@ export interface Fixtures {
   password: string
   admin_path: string
   staff: { email: string; totp_secret: string }
-  viewports: Record<string, { feed: { poster: string; friend: string }; events: Record<string, string> }>
+  viewports: Record<
+    string,
+    {
+      feed: { poster: string; friend: string }
+      events: Record<string, string>
+      /** A member with a post to report, and a member with a membership to ban. */
+      moderation: { reporter: string; author: string; author_handle: string; post: string; banned_handle: string; banned_code: string }
+    }
+  >
+  team: Record<'moderator' | 'admin', { email: string; totp_secret: string }>
   /** A filled-in member app for the screenshot tests. */
   showcase: { viewer: string; viewer_handle: string; other_handle: string }
 }
@@ -109,28 +118,40 @@ export async function seriousA11yViolations(page: Page) {
     .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`)
 }
 
-/** A code that has not been used yet: the server refuses a code twice in its 30 seconds. */
+/** A code that has not been used yet: the server refuses a code twice in its 30 seconds.
+ * The last code per key is kept in a file, because each project runs in its own worker. */
 async function freshCode(secret: string): Promise<string> {
-  const lastCode = existsSync(LAST_CODE_FILE) ? readFileSync(LAST_CODE_FILE, 'utf8') : ''
+  const used = (existsSync(LAST_CODE_FILE) ? JSON.parse(readFileSync(LAST_CODE_FILE, 'utf8') || '{}') : {}) as Record<string, string>
   let code = totp(secret)
-  while (code === lastCode) {
+  while (code === used[secret]) {
     await new Promise((resolve) => setTimeout(resolve, 1000))
     code = totp(secret)
   }
-  writeFileSync(LAST_CODE_FILE, code)
+  writeFileSync(LAST_CODE_FILE, JSON.stringify({ ...used, [secret]: code }))
   return code
+}
+
+async function twoStepLogin(page: Page, account: { email: string; totp_secret: string }) {
+  const data = fixtures()
+  await page.goto(`${data.admin_path}login/`)
+  await page.getByLabel('Email').fill(account.email)
+  await page.getByLabel('Password').fill(data.password)
+  await page.getByRole('button', { name: 'Continue' }).click()
+  await page.getByLabel(/Six-digit code/).fill(await freshCode(account.totp_secret))
+  await page.getByRole('button', { name: 'Log in' }).click()
 }
 
 /** Open the admin with the two-step login, as door staff would. */
 export async function staffLogin(page: Page) {
-  const data = fixtures()
-  await page.goto(`${data.admin_path}login/`)
-  await page.getByLabel('Email').fill(data.staff.email)
-  await page.getByLabel('Password').fill(data.password)
-  await page.getByRole('button', { name: 'Continue' }).click()
-  await page.getByLabel(/Six-digit code/).fill(await freshCode(data.staff.totp_secret))
-  await page.getByRole('button', { name: 'Log in' }).click()
+  await twoStepLogin(page, fixtures().staff)
   await expect(page.getByRole('link', { name: 'Door desk' }).first()).toBeVisible()
+}
+
+/** A team member (moderator or admin) through the two-step login, then the staff section. */
+export async function teamLogin(page: Page, role: 'moderator' | 'admin') {
+  await twoStepLogin(page, fixtures().team[role])
+  await page.goto('/members/staff/reports')
+  await expect(page.getByRole('navigation', { name: 'Staff' })).toBeVisible()
 }
 
 /** A separate signed-in browser (a second person), with its own client address. */

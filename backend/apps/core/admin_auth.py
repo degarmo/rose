@@ -15,7 +15,7 @@ import base64
 import secrets
 import time
 from io import BytesIO
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import qrcode
 import qrcode.image.svg
@@ -68,8 +68,11 @@ def _context(request, site, **extra):
 
 
 def _safe_next(request, value):
+    """Back to the admin, or to the site itself (the staff section sends people here to
+    pass the two-step login and come straight back)."""
+    site_host = urlsplit(settings.SITE_URL).netloc
     if value and url_has_allowed_host_and_scheme(
-        value, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        value, allowed_hosts={request.get_host(), site_host}, require_https=request.is_secure()
     ):
         return value
     return reverse("admin:index")

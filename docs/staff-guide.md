@@ -203,6 +203,36 @@ waiting for review.
 - People who report never learn the outcome, and authors never learn who
   reported them. Do not tell anyone either.
 
+## The staff section (in the member app)
+
+Moderators, staff and admins work in the member app, under **Staff** in the sidebar (on a
+phone: your profile, then Settings, then Staff). The first time in each session it asks for
+the code from your authenticator app; a new team member sets one up then.
+
+- **Roles.** A *moderator* handles reports and member actions. *Staff* also see the
+  dashboard. An *admin* also manages the team (**Team**) and can see who sent a report.
+- **Reports.** Open, In review, Resolved and Dismissed, plus **Appeals**. Reports cover
+  posts, comments, profiles and concerns about something at an event or the club (from
+  members, or from anyone through **Report a concern** on the website). What was reported
+  stays blurred until you press **View reported content**. Who sent it stays hidden; only
+  an admin can reveal it, and that is logged. Use **Assigned to** and **Internal notes** to
+  share the work; notes are only for the team.
+- **Actions.** From a report, or from a member's page under **Members**: a warning, removing
+  the reported content, a feed suspension (7 or 30 days, or until a date), an event
+  suspension (no RSVPs, and the door desk shows it) or a ban (ends their membership, closes
+  the app, the door desk shows **Do not admit**, and you can stop the email registering
+  again). Every action needs the rule it relates to and a reason; the member reads both on
+  their account page. Emails only say "An update about your account".
+- **Reversing.** Any action can be reversed with a reason, from the member's page or the
+  report. The log keeps both.
+- **Appeals.** A member can appeal each action once. Appeals go to someone other than the
+  moderator who acted; if that was you, someone else decides.
+- **Dashboard.** Counts and totals only. Anything below 5 shows as "fewer than 5", so
+  nobody can be picked out. **Export** downloads the same figures.
+
+People who report learn only that their report was received, then reviewed. Never tell
+anyone more, and never tell a member who reported them.
+
 ## Image review
 
 **Image review** on the staff home page shows every site image and whether it

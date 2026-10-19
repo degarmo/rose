@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     "apps.volunteers",
     "apps.donations",
     "apps.newsletter",
+    "apps.safety",
 ]
 
 MIDDLEWARE = [
@@ -366,6 +367,10 @@ FEED_PREMODERATION_POSTS = env("FEED_PREMODERATION_POSTS")
 FEED_MAX_POSTS_PER_DAY = env("FEED_MAX_POSTS_PER_DAY")
 FEED_MAX_COMMENTS_PER_HOUR = env("FEED_MAX_COMMENTS_PER_HOUR")
 FEED_WARNING_COOLDOWN_HOURS = 24
+
+# seed_demo's one password for every demo account, so the README can list the logins.
+# Used only with DEBUG on; seed_demo never runs in staging or production.
+DEMO_PASSWORD = env.str("DEMO_PASSWORD", default="rose-demo-only")
 FEED_EXPORT_TTL_HOURS = 24
 FEED_MAX_IMAGES_PER_POST = 10
 DATA_UPLOAD_MAX_NUMBER_FILES = 12

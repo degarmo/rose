@@ -186,6 +186,13 @@ class Profile(
     feed_suspended_until = models.DateTimeField(null=True, blank=True)
     feed_banned_at = models.DateTimeField(null=True, blank=True)
     posting_cooldown_until = models.DateTimeField(null=True, blank=True)
+    # Set and cleared only through member actions (apps/safety).
+    events_suspended_until = models.DateTimeField(
+        null=True, blank=True, editable=False, help_text="No RSVPs until then; flagged at the door."
+    )
+    do_not_admit_at = models.DateTimeField(
+        null=True, blank=True, editable=False, help_text="Banned: the door desk shows Do not admit."
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -201,6 +208,11 @@ class Profile(
     def is_feed_suspended(self, now=None):
         return bool(
             self.feed_suspended_until and self.feed_suspended_until > (now or timezone.now())
+        )
+
+    def is_events_suspended(self, now=None):
+        return bool(
+            self.events_suspended_until and self.events_suspended_until > (now or timezone.now())
         )
 
     def set_feed_participation(self, participates):

@@ -46,6 +46,7 @@ security and restores are in `docs/ops/`.
 | `apps/rentals` | `RentalInquiry`; `services.py` (clash check, status changes, the private calendar hold), neutral emails, admin pipeline and confirm page, retention task. |
 | `apps/volunteers` | `VolunteerSignup`; neutral emails, admin filters and the logged CSV export, retention task. |
 | `apps/donations` | `Donation` (append-only), `DonationCheckout` (a started online gift), `Acknowledgement`, `AcknowledgementTemplate`; `services.py` (online checkout through the payment layer, provider events, gifts at the door, acknowledgements), printable acknowledgement page, retention task. |
+| `apps/safety` | The team and moderation casework. `roles.py` (Moderator, Staff and Admin as groups; superusers are admins), `models.py` (`ReportNote`, `MemberAction`, `Appeal`, `BlockedEmail`), `services.py` (concerns, the report workflow, actions and their reversal, appeals, roles; every step logged), `metrics.py` (aggregates only, small numbers withheld), `api.py` (`StaffAPIView`: role and two-step check before anything else, 404 otherwise), the staff API, the member's notices and appeals, the concern form. |
 | `apps/newsletter` | The email list: `Subscriber`, `Suppression`, `Newsletter`; `services.py` (double opt-in, one-click leaving, batched sending with no tracking), the inbox preview, sending and suppression tasks. |
 | `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, MembershipUsage, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access; the tier rules: included events, events left this month, party limit), `usage.py` (the monthly event count and its purge), `join.py`, `desk.py` (door desk actions), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
@@ -84,6 +85,9 @@ security and restores are in `docs/ops/`.
 | GET | `/api/members/stories/` | Story circles (Tonight, This week, Journal, News) with the caller's seen state. The same for everyone apart from that state. |
 | POST | `/api/members/stories/seen/` | `{keys: [...]}`: mark story items seen (50 at most). |
 | GET | `/api/membership/tiers/`, `options/` | Tiers on offer; payment methods and the current agreement. Placeholders are never offered with DEBUG off. |
+| GET, POST | `/api/staff/...` | The staff section: overview, metrics (staff), team (admin), reports, notes, assignment, status, reveal (admin), members, actions, reversal, appeals, reported pictures. 404 to anyone without a role and a two-step-verified session. |
+| GET, POST | `/api/account/notices/`, `notices/<id>/appeal/`, `reports/` | The caller's own moderation decisions and one appeal each; the reports they sent, as received or reviewed. |
+| POST | `/api/concerns/` | Report a concern, signed in or not. Rate limited, honeypot; staff are told without the text. |
 | GET | `/api/membership/me/` | The caller's own membership, payments, entitlements and members-only events left this month. |
 | POST | `/api/membership/join/`, `checkout/`, `cancel/`, `auto-renew/` | Join (rate limited, 10 an hour), pay online again, cancel, toggle renewal. |
 | GET | `/api/membership/receipts/<id>/` | A neutral receipt for one of the caller's own payments. |
@@ -179,7 +183,7 @@ erDiagram
 - **Leave and erase** (`services.erase_feed_data`, run by `tasks.erase_member_feed`) deletes posts, image files, comments, likes, saved posts, seen-story records, follows, blocks and mutes they created, notifications and exports. Account deletion calls the same routine.
 - **Images**: the browser renders redactions on a canvas and uploads only the result. The server stores the raw upload in private `incoming/`, a worker strips metadata and re-encodes to WebP with a random name, and the raw file is deleted. Posts show "Processing" to their author until then.
 - **Private media**: no feed file has a URL of its own. `MediaView` and `AvatarMediaView` re-check access, blocks and post status on every request, then deliver a copy watermarked with the viewer's display name and date (`FEED_WATERMARK`; faint and sparse by default, about three marks across, set by `FEED_WATERMARK_OPACITY` and `FEED_WATERMARK_SPACING`, and readable once contrast is raised). The copy is rendered once per image, viewer and day and stored under `watermarks/`; on S3 the view answers `302` to a URL signed for 60 seconds, locally it streams the file. Either way the view's response is `Cache-Control: private, no-store`. Deleting an image deletes every copy of it; deleting an account deletes every copy carrying that person's name. `FEED_ENABLED=false` makes every feed path a 404 (docs/ops/incident.md).
-- **Moderation**: `/admin/feed/feedpost/moderation/` lists open reports grouped by item, pending first posts and the action log. Every action writes an append-only `core.AuditLog` entry in the moderation category.
+- **Moderation**: the staff section in the member app (`/members/staff`, `apps/safety`) is the main tool: the reports inbox, member actions with reversal, appeals and the dashboard. `/admin/feed/feedpost/moderation/` still lists open feed reports grouped by item, pending first posts and the action log. Every action and reversal writes an append-only `core.AuditLog` entry in the moderation category.
 
 ## Membership and payments
 
@@ -361,6 +365,9 @@ or exported what (decision 199).
 | feed | Exports | 24 hours, single use | `feed.tasks.purge_expired_exports`. |
 | memberships | Memberships, payments, ID checks | Kept (financial records) | Detached from the person when the account is deleted; the signature goes with the account. |
 | memberships | Unpaid reference codes | `MEMBERSHIP_PENDING_EXPIRY_DAYS` (30) | Lifecycle expires them. |
+| safety | Member actions, appeals, notes | Kept | Moderation records; reversible, with every step in the audit log. |
+| safety | A website concern's email | Until the report is closed | Cleared when it is resolved or dismissed, after the neutral update. |
+| safety | Blocked emails | Until the ban is reversed | Only a keyed hash of the address. |
 | memberships | Monthly event counts | 13 months | `memberships.tasks.purge_old_usage`. A count per membership per month, never which events. |
 | rentals | Declined and cancelled inquiries | Contact details `RENTAL_RETENTION_DAYS` (90) after closing | `rentals.tasks.purge_closed_inquiries` keeps only type, date and status. |
 | rentals | Inquiries never concluded | 90 days after their last requested date | Same task, same result. |
@@ -497,6 +504,17 @@ Check every change against this list.
       return only the caller's own; other people get `null` or 404. No endpoint lists members.
       `tests/test_membership_privacy.py` crawls every API route as the owner, someone else and
       anonymously.
+- [ ] **The staff section is team-only and two-step.** Every `/api/staff/` path answers 404
+      unless the caller holds a role and this session passed django-otp, checked before
+      CSRF (`tests/test_safety.py`).
+- [ ] **Metrics are aggregates.** No figure names a person or ties one to an event; counts
+      below 5 (and money from fewer than 5 payments) are withheld; the only metric routes
+      are the dashboard and its aggregate export.
+- [ ] **Reporters stay anonymous.** Hidden from staff by default, revealed only to an admin
+      on request (logged), never shown to the reported member; reporters learn only
+      "received" and "reviewed".
+- [ ] **Moderation email is discreet.** "An update about your account" and a link; never a
+      reason, a quote or a report.
 - [ ] **Event counts are counts.** `MembershipUsage` holds a number per membership per month,
       never which events, and goes after 13 months. The only figure any endpoint returns is the
       caller's own events left (`/api/membership/me/` and their RSVP state);

@@ -5,6 +5,7 @@ from django.urls import include, path, re_path
 
 from apps.core import spa
 from apps.core import views as core_views
+from apps.safety import views as safety_views
 
 api_patterns = [
     path("csrf/", core_views.csrf_token, name="csrf"),
@@ -12,8 +13,11 @@ api_patterns = [
     path("education/", include("apps.education.urls")),
     path("contact/", include("apps.contact.urls")),
     path("account/feed/", include("apps.feed.account_urls")),
+    path("account/", include("apps.safety.account_urls")),
     path("account/", include("apps.accounts.urls")),
     path("members/", include("apps.feed.urls")),
+    path("staff/", include("apps.safety.urls")),
+    path("concerns/", safety_views.ConcernView.as_view(), name="concerns"),
     path("membership/", include("apps.memberships.urls")),
     path("payments/", include("apps.memberships.payment_urls")),
     path("events/", include("apps.events.urls")),

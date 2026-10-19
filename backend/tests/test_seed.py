@@ -111,10 +111,12 @@ def test_seed_member_feed_only_in_debug(settings, private_root, capsys):
     assert FeedPost.objects.filter(author__in=participants).count() >= 30
     assert FeedPost.objects.filter(is_sensitive=True).exists()
     assert FeedPost.objects.filter(status="pending", author__display_name="brand_new").count() == 2
-    assert Report.objects.filter(resolved_at__isnull=True).count() == 2
+    # Two feed reports, plus two concerns from the staff demo (apps/safety/demo.py).
+    assert Report.objects.filter(resolved_at__isnull=True).exclude(target_type="event").count() == 2
+    assert Report.objects.filter(resolved_at__isnull=True, target_type="event").count() == 2
     assert FeedPost.objects.filter(status="hidden_by_report").count() == 1
     assert Block.objects.count() == 1 and Follow.objects.exists()
 
     call_command("seed_demo")
     assert FeedPost.objects.filter(author__in=participants).count() >= 30
-    assert Report.objects.count() == 2
+    assert Report.objects.exclude(target_type="event").count() == 2

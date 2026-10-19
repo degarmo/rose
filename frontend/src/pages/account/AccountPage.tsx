@@ -375,6 +375,22 @@ export function AccountPage() {
           <UpcomingRSVPs />
         </Panel>
         <FeedSection />
+        <Panel id="safety" title="Safety">
+          <ul className="flex flex-col gap-3">
+            <li>
+              <Link to="/account/notices" className="font-semibold text-link hover:text-primary-hover">
+                Notices about your account
+              </Link>
+              <p className="text-sm text-fg-muted">Any decision by our team, and reports you sent.</p>
+            </li>
+            <li>
+              <Link to="/report-a-concern" className="font-semibold text-link hover:text-primary-hover">
+                Report a concern
+              </Link>
+              <p className="text-sm text-fg-muted">Something that happened at an event or the club.</p>
+            </li>
+          </ul>
+        </Panel>
         <Panel id="profile" title="Profile">
           <DisplayNameForm key={user.display_name} current={user.display_name} />
           <div className="mt-6 border-t border-border pt-5">

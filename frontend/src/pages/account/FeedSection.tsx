@@ -63,7 +63,7 @@ function FeedControls() {
   return (
     <Card as="article" aria-labelledby="feed-heading" className="p-5 sm:p-8">
       <h2 id="feed-heading" className="text-[1.375rem] leading-[1.2] text-fg lg:text-[1.625rem]">
-        Member feed
+        Member app
       </h2>
       <div className="mt-5 flex flex-col gap-6 text-fg-muted">
         {account.banned && <p>Your access to the member feed has been withdrawn. You can still download or erase what you shared.</p>}
@@ -71,10 +71,10 @@ function FeedControls() {
 
         {account.participating && !account.banned && (
           <div className="flex flex-col gap-4">
-            <p>You are part of the member feed.</p>
+            <p>You are part of the member app: the private feed, stories and profiles.</p>
             <div className="flex flex-wrap gap-3">
               <ButtonLink to="/members/feed">
-                Open the feed
+                Open the member app
                 <ArrowRight aria-hidden="true" className="size-4" />
               </ButtonLink>
               <Button variant="secondary" onClick={() => setDialog('step-away')}>

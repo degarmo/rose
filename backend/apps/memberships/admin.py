@@ -323,6 +323,7 @@ class MembershipAdmin(admin.ModelAdmin):
                 {
                     "membership": membership,
                     "events_remaining": events_remaining(membership),
+                    "flags": desk.door_flags(membership.user),
                     "is_guest_pass": membership.tier.is_guest_pass,
                     "id_checked": has_id_check(membership.user) if membership.user else False,
                     "payments": list(membership.payments.all()[:5]),

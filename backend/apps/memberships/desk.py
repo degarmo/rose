@@ -50,6 +50,27 @@ def _ensure_id(staff, membership, id_checked):
     IdCheck.objects.create(membership=membership, checked_by=staff, verified_18_plus=True)
 
 
+def door_flags(user):
+    """What the door must know from moderation (apps/safety): never why."""
+    profile = getattr(user, "profile", None) if user else None
+    if profile is None:
+        return {"do_not_admit": False, "events_suspended_until": None}
+    return {
+        "do_not_admit": profile.do_not_admit_at is not None,
+        "events_suspended_until": profile.events_suspended_until
+        if profile.is_events_suspended()
+        else None,
+    }
+
+
+def _refuse_barred(membership, checking_in=False):
+    flags = door_flags(membership.user)
+    if flags["do_not_admit"]:
+        raise DeskError("Do not admit. Ask a member of the team.")
+    if checking_in and flags["events_suspended_until"]:
+        raise DeskError("Event access is suspended on this account. Ask a member of the team.")
+
+
 def _refuse_guest_pass(membership):
     if membership.tier.is_guest_pass:
         raise DeskError("This is a guest pass. Use Guest visit.")
@@ -66,6 +87,7 @@ def _ensure_no_other_open(membership):
 @transaction.atomic
 def record_payment_and_activate(staff, membership, method, amount_cents, note="", id_checked=False):
     membership = _lock(membership)
+    _refuse_barred(membership)
     _refuse_guest_pass(membership)
     if method not in IN_PERSON_METHODS:
         raise DeskError("Choose cash or card.")
@@ -102,6 +124,7 @@ def guest_visit(staff, membership, method, amount_cents, note="", id_checked=Fal
     their account, their reference code and their ID check.
     """
     membership = _lock(membership)
+    _refuse_barred(membership)
     if not membership.tier.is_guest_pass:
         raise DeskError("This is not a guest pass. Use Record payment and activate.")
     if method not in IN_PERSON_METHODS:
@@ -136,6 +159,7 @@ def guest_visit(staff, membership, method, amount_cents, note="", id_checked=Fal
 def activate_paid_online(staff, membership, id_checked=False):
     """An online payment arrived before anyone saw an ID. Check it, then start the period."""
     membership = _lock(membership)
+    _refuse_barred(membership)
     if not membership.paid_awaiting_id_check:
         raise DeskError("Nothing is waiting for an ID check.")
     _ensure_no_other_open(membership)
@@ -154,6 +178,7 @@ def activate_paid_online(staff, membership, id_checked=False):
 def renew(staff, membership, method, amount_cents, note=""):
     """Extend from the later of today or the current period end."""
     membership = _lock(membership)
+    _refuse_barred(membership)
     _refuse_guest_pass(membership)
     if method not in IN_PERSON_METHODS:
         raise DeskError("Choose cash or card.")
@@ -194,6 +219,7 @@ def comp(staff, membership, reason, id_checked=False):
     if not reason.strip():
         raise DeskError("Give a reason for the complimentary membership.")
     membership = _lock(membership)
+    _refuse_barred(membership)
     _refuse_guest_pass(membership)
     if membership.status in (
         Membership.Status.ACTIVE,
@@ -297,6 +323,7 @@ def walk_in(staff, membership, event, party_size):
     from apps.events.models import RSVP, Event
 
     membership = _lock(membership)
+    _refuse_barred(membership, checking_in=True)
     if not membership.is_entitled or membership.user is None:
         raise DeskError("Only an active membership can be checked in.")
     event = Event.objects.select_for_update().get(pk=event.pk)

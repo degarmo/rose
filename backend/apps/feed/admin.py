@@ -162,7 +162,11 @@ class FeedPostAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(request.path)
 
         groups = defaultdict(list)
-        for report in Report.objects.filter(resolved_at__isnull=True).select_related(
+        # Concerns about events have no feed item; they are handled in the staff inbox.
+        open_reports = Report.objects.filter(resolved_at__isnull=True).exclude(
+            target_type=Report.TargetType.EVENT
+        )
+        for report in open_reports.select_related(
             "post__author", "comment__author", "profile_user__profile", "reporter"
         ):
             key = (

@@ -45,7 +45,9 @@
 
   {% for r in results %}
   {% with m=r.membership %}
-  <section class="desk-card status-{{ m.status }}">
+  <section class="desk-card status-{{ m.status }}{% if r.flags.do_not_admit %} desk-barred{% endif %}">
+    {% if r.flags.do_not_admit %}<p class="desk-flag" role="alert">Do not admit</p>{% endif %}
+    {% if r.flags.events_suspended_until %}<p class="desk-flag desk-flag-wait" role="alert">Event access suspended until {{ r.flags.events_suspended_until|date:"M j, Y" }}</p>{% endif %}
     <header>
       <div>
         <p class="desk-code">{{ m.reference_code }}</p>

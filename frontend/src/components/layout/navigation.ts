@@ -47,4 +47,5 @@ export const JOIN_LINK: NavLinkItem = { to: '/membership', label: 'Join' }
 export const FOOTER_LINKS: NavLinkItem[] = [
   { to: '/membership', label: 'Membership' },
   { to: '/journal', label: 'Journal' },
+  { to: '/report-a-concern', label: 'Report a concern' },
 ]

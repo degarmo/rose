@@ -444,8 +444,9 @@ def _log(actor, action, target_type, target, target_user, reason=""):
 def _resolve_reports(target_type, target, resolution):
     if target_type == "user":
         return
+    status = Report.Status.DISMISSED if resolution == "dismissed" else Report.Status.RESOLVED
     Report.objects.filter(**_target_filter(target_type, target), resolved_at__isnull=True).update(
-        resolved_at=timezone.now(), resolution=resolution
+        resolved_at=timezone.now(), resolution=resolution, status=status
     )
 
 

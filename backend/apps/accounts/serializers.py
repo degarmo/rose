@@ -32,6 +32,8 @@ class AccountSerializer(serializers.ModelSerializer):
     staff_guide_url = serializers.SerializerMethodField()
     feed_access = serializers.SerializerMethodField()
     feed_controls = serializers.SerializerMethodField()
+    member_app = serializers.SerializerMethodField()
+    staff = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -43,6 +45,8 @@ class AccountSerializer(serializers.ModelSerializer):
             "staff_guide_url",
             "feed_access",
             "feed_controls",
+            "member_app",
+            "staff",
             "appearance",
         ]
         read_only_fields = ["email", "email_verified", "appearance"]
@@ -59,6 +63,43 @@ class AccountSerializer(serializers.ModelSerializer):
         from apps.feed.access import can_view_feed
 
         return can_view_feed(user)
+
+    def get_member_app(self, user):
+        """Where the member app stands for this person: "open" (it opens now), "join" (it
+        would after joining), "paused" (a suspension or ban closes it) or None."""
+        from django.conf import settings
+
+        from apps.feed.access import can_join_feed, can_view_feed, has_feed_entitlement
+
+        if not settings.FEED_ENABLED:
+            return None
+        if can_view_feed(user):
+            return "open"
+        if can_join_feed(user):
+            return "join"
+        profile = user.profile
+        if has_feed_entitlement(user) and (profile.is_feed_banned or profile.is_feed_suspended()):
+            return "paused"
+        return None
+
+    def get_staff(self, user):
+        """Team members only: their role, and whether this session passed the two-step
+        login the staff section needs (with where to do it if not)."""
+        from urllib.parse import quote
+
+        from django.conf import settings
+
+        from apps.safety import roles
+
+        role = roles.role_of(user)
+        if role is None:
+            return None
+        verified = roles.is_verified(user)
+        if verified:
+            return {"role": role, "verified": True, "verify_url": None}
+        back = quote(f"{settings.SITE_URL}/members/staff", safe="")
+        verify = f"{settings.ADMIN_BASE_URL}{reverse('admin:login')}?next={back}"
+        return {"role": role, "verified": False, "verify_url": verify}
 
     def get_feed_controls(self, user):
         """Whether /account has feed controls for this person, so the page asks for them

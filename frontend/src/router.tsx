@@ -16,21 +16,35 @@ const members = (pick: (module: typeof import('./pages/members/lazy')) => Compon
 export const router = createBrowserRouter([
   {
     path: 'members',
-    lazy: members((m) => m.AppShell),
     children: [
-      { index: true, element: <Navigate to="/members/feed" replace /> },
-      { path: 'feed', lazy: members((m) => m.FeedPage) },
-      { path: 'explore', lazy: members((m) => m.ExplorePage) },
-      { path: 'search', lazy: members((m) => m.SearchPage) },
-      { path: 'notifications', lazy: members((m) => m.NotificationsPage) },
-      { path: 'p/:id', lazy: members((m) => m.PostPage) },
-      { path: 'u/:handle', lazy: members((m) => m.MemberProfilePage) },
-      { path: 'u/:handle/saved', lazy: members((m) => m.MemberProfilePage) },
-      { path: 'saved', lazy: members((m) => m.SavedPage) },
-      { path: 'settings', lazy: members((m) => m.SettingsPage) },
-      // The old address of member search.
-      { path: 'directory', element: <Navigate to="/members/search" replace /> },
-      { path: '*', element: <NotFoundPage /> },
+      // The door: the feed, joining, or a short explanation (never a bare dead end).
+      { index: true, lazy: members((m) => m.MembersEntryPage) },
+      {
+        lazy: members((m) => m.AppShell),
+        children: [
+          { path: 'feed', lazy: members((m) => m.FeedPage) },
+          { path: 'explore', lazy: members((m) => m.ExplorePage) },
+          { path: 'search', lazy: members((m) => m.SearchPage) },
+          { path: 'notifications', lazy: members((m) => m.NotificationsPage) },
+          { path: 'p/:id', lazy: members((m) => m.PostPage) },
+          { path: 'u/:handle', lazy: members((m) => m.MemberProfilePage) },
+          { path: 'u/:handle/saved', lazy: members((m) => m.MemberProfilePage) },
+          { path: 'saved', lazy: members((m) => m.SavedPage) },
+          { path: 'settings', lazy: members((m) => m.SettingsPage) },
+          { path: 'report', lazy: members((m) => m.ReportConcernPage) },
+          // The staff section: team roles only, after the staff two-step login.
+          { path: 'staff', lazy: members((m) => m.StaffDashboardPage) },
+          { path: 'staff/reports', lazy: members((m) => m.StaffReportsPage) },
+          { path: 'staff/reports/:id', lazy: members((m) => m.StaffReportPage) },
+          { path: 'staff/appeals/:id', lazy: members((m) => m.StaffAppealPage) },
+          { path: 'staff/members', lazy: members((m) => m.StaffMembersPage) },
+          { path: 'staff/members/:handle', lazy: members((m) => m.StaffMemberPage) },
+          { path: 'staff/team', lazy: members((m) => m.StaffTeamPage) },
+          // The old address of member search.
+          { path: 'directory', element: <Navigate to="/members/search" replace /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
   {
@@ -58,6 +72,7 @@ export const router = createBrowserRouter([
       { path: 'journal/:slug', lazy: page(() => import('./pages/JournalPostPage').then((m) => m.JournalPostPage)) },
       { path: 'visit', lazy: page(() => import('./pages/VisitPage').then((m) => m.VisitPage)) },
       { path: 'contact', lazy: page(() => import('./pages/ContactPage').then((m) => m.ContactPage)) },
+      { path: 'report-a-concern', lazy: page(() => import('./pages/ConcernPage').then((m) => m.ConcernPage)) },
       { path: 'membership', lazy: page(() => import('./pages/MembershipPage').then((m) => m.MembershipPage)) },
       { path: 'join', lazy: page(() => import('./pages/join/JoinPage').then((m) => m.JoinPage)) },
       { path: 'join/confirming', lazy: page(() => import('./pages/join/ConfirmingPage').then((m) => m.ConfirmingPage)) },
@@ -71,6 +86,7 @@ export const router = createBrowserRouter([
       { path: 'account/forgot', lazy: page(() => import('./pages/account/ForgotPasswordPage').then((m) => m.ForgotPasswordPage)) },
       { path: 'account/reset', lazy: page(() => import('./pages/account/ResetPasswordPage').then((m) => m.ResetPasswordPage)) },
       { path: 'account/receipts/:id', lazy: page(() => import('./pages/account/ReceiptPage').then((m) => m.default)) },
+      { path: 'account/notices', lazy: page(() => import('./pages/account/NoticesPage').then((m) => m.NoticesPage)) },
       { path: 'account/export', lazy: members((m) => m.ExportDownloadPage) },
       { path: 'members/join-feed', lazy: members((m) => m.JoinFeedPage) },
       { path: '*', element: <NotFoundPage /> },

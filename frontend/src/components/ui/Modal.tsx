@@ -62,7 +62,9 @@ export function Modal({ open, onClose, title, hideTitle = false, variant = 'dial
             <span className="sr-only">Close</span>
           </button>
         </div>
-        <div className="mt-4 min-h-0 flex-1">{children}</div>
+        {/* A dialog scrolls as a whole when it is taller than the screen, so its content never
+            shrinks under the footer; a sheet keeps the flexible area for its own scrolling. */}
+        <div className={cn('mt-4 flex-1', variant === 'sheet' ? 'min-h-0' : 'shrink-0')}>{children}</div>
         {footer && <div className="mt-8 flex flex-wrap justify-end gap-3">{footer}</div>}
       </div>
     </dialog>

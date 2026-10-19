@@ -1,4 +1,4 @@
-import { ArrowLeft, Bell, Compass, Globe, House, LogOut, Menu, Moon, Search, Settings, SquarePlus, User, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Bell, Compass, Globe, House, LogOut, Menu, Moon, Search, Settings, ShieldCheck, SquarePlus, User, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
@@ -173,6 +173,8 @@ interface SidebarProps {
  * is open, a 72px icon rail with "R" and the active item outlined.
  */
 export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
+  const auth = useAuth()
+  const staffRole = auth.user?.staff?.role
   const collapsed = panel !== null
   const { pathname } = useLocation()
   const outline = (active: boolean) => active && 'border border-border wide:border-transparent'
@@ -244,6 +246,7 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
           </button>
         </li>
         {link(profile, 'Profile', User, (path) => path.startsWith(profile))}
+        {staffRole && link('/members/staff', 'Staff', ShieldCheck, (path) => path.startsWith('/members/staff'))}
       </ul>
       <MoreMenu collapsed={collapsed} />
       {/* The quick exit is always the last item. */}

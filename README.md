@@ -35,9 +35,26 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    docker compose exec api python manage.py seed_demo
    ```
 
-   This prints demo logins (one verified, one not, and a member-feed account); passwords
-   change on every run. The verified account has feed access but has not joined, so you can
-   try the join flow from `/account`.
+   It ends by printing the demo logins. They are for development only: `seed_demo` refuses
+   to run in staging or production, and with DEBUG off it gives the accounts random
+   passwords and prints nothing. With DEBUG on, every demo account has the password
+   `rose-demo-only` (set `DEMO_PASSWORD` to change it).
+
+   | Email | What it is |
+   | --- | --- |
+   | `demo.member@example.org` | Member with the member app open (feed joined); lands on `/members/feed` |
+   | `member.active@example.org` | Active member whose tier includes the feed, not joined yet: `/members` leads to the join flow |
+   | `member.community@example.org` | Member without feed access: `/members` explains and links to `/membership` |
+   | `demo.verified@example.org` | Plain account with a staff feed grant, not joined yet |
+   | `demo.unverified@example.org` | Plain account, email not confirmed |
+   | `desk.volunteer@example.org` | Staff (door desk only, no team role) |
+   | `team.moderator@example.org` | Team: Moderator (reports and member actions) |
+   | `team.staff@example.org` | Team: Staff (adds the metrics) |
+   | `team.admin@example.org` | Team: Admin (adds the team and revealing reporters) |
+
+   Other `member.*@example.org` and `guest.*@example.org` accounts cover each membership
+   state. The staff section (`/members/staff`) needs the staff two-step login: the first
+   visit sets up an authenticator app.
 
 3. **Create an admin account.**
 

@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/cn'
+import { memberAppPath } from '@/lib/memberApp'
 import { useAuth } from './authContext'
 
 /** Log in link, or the signed-in person's display name with a small menu. */
@@ -60,6 +61,20 @@ export function AccountMenu({ className }: { className?: string }) {
           id={menuId}
           className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-sheet border border-border bg-canvas py-1 shadow-sheet"
         >
+          {(auth.user.member_app === 'open' || auth.user.member_app === 'join') && (
+            <li>
+              <Link to={memberAppPath(auth.user)} className="flex min-h-11 items-center px-4 text-sm font-semibold text-link hover:bg-surface">
+                Member app
+              </Link>
+            </li>
+          )}
+          {auth.user.staff && (
+            <li>
+              <Link to="/members/staff" className="flex min-h-11 items-center px-4 text-sm font-medium text-fg hover:bg-surface">
+                Staff
+              </Link>
+            </li>
+          )}
           <li>
             <Link to="/account" className="flex min-h-11 items-center px-4 text-sm font-medium text-fg hover:bg-surface">
               My account

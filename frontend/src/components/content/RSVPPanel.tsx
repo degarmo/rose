@@ -283,6 +283,15 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
         </ButtonLink>
       </>
     )
+  } else if (rsvp.state === 'restricted') {
+    body = (
+      <>
+        <Note>RSVPs are paused on your account. Your account page explains why.</Note>
+        <ButtonLink to="/account/notices" size="lg" variant="outline" className="w-full">
+          See my account
+        </ButtonLink>
+      </>
+    )
   } else if (rsvp.state === 'closed' || rsvp.state === 'unavailable' || rsvp.state === 'full') {
     body = (
       <>

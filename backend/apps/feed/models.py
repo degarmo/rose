@@ -22,6 +22,7 @@ from apps.core.validators import cta_url_validator
 CAPTION_MAX_LENGTH = 2200
 COMMENT_MAX_LENGTH = 500
 REPORT_DETAILS_MAX_LENGTH = 500
+CONCERN_DETAILS_MAX_LENGTH = 4000
 
 
 def new_public_id():
@@ -298,10 +299,18 @@ class Notification(models.Model):
 
 
 class Report(models.Model):
+    """A member's report of a post, comment or profile, or a concern about something that
+    happened at an event or the club (from members in the app, or anyone on the website).
+
+    Who reported is never shown to the reported member; staff see it only when an admin
+    reveals it, which is logged.
+    """
+
     class TargetType(models.TextChoices):
         POST = "post", "Post"
         COMMENT = "comment", "Comment"
         PROFILE = "profile", "Profile"
+        EVENT = "event", "Something at an event or the club"
 
     class Reason(models.TextChoices):
         NO_CONSENT = "no_consent", "Posted without consent"
@@ -311,12 +320,21 @@ class Report(models.Model):
         SPAM = "spam", "Spam"
         OTHER = "other", "Other"
 
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        IN_REVIEW = "in_review", "In review"
+        RESOLVED = "resolved", "Resolved"
+        DISMISSED = "dismissed", "Dismissed"
+
+    CLOSED = (Status.RESOLVED, Status.DISMISSED)
+
     # Reasons that hide the content straight away, before anyone reviews it.
     IMMEDIATE_HIDE = frozenset({Reason.NO_CONSENT, Reason.UNDER_18})
     AUTO_HIDE_REPORTERS = 3
 
+    # Null for a concern sent from the website without an account.
     reporter = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+"
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="+"
     )
     target_type = models.CharField(max_length=10, choices=TargetType.choices)
     post = models.ForeignKey(
@@ -332,8 +350,23 @@ class Report(models.Model):
         on_delete=models.CASCADE,
         related_name="+",
     )
+    # A concern: which event (optional), when (optional) and who, if the reporter knows.
+    event = models.ForeignKey(
+        "events.Event", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    event_date = models.DateField(null=True, blank=True)
+    reported_name = models.CharField(max_length=60, blank=True)
+    # Only for a website concern without an account, for the neutral status emails.
+    # Cleared once the report is closed.
+    contact_email = models.EmailField(blank=True)
     reason = models.CharField(max_length=12, choices=Reason.choices)
-    details = models.TextField(max_length=REPORT_DETAILS_MAX_LENGTH, blank=True)
+    details = models.TextField(max_length=CONCERN_DETAILS_MAX_LENGTH, blank=True)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.OPEN, db_index=True
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
     resolution = models.CharField(max_length=40, blank=True)
@@ -363,9 +396,26 @@ class Report(models.Model):
 
     @property
     def target(self):
-        return {"post": self.post, "comment": self.comment, "profile": self.profile_user}[
-            self.target_type
-        ]
+        return {
+            "post": self.post,
+            "comment": self.comment,
+            "profile": self.profile_user,
+            "event": self.event,
+        }[self.target_type]
+
+    @property
+    def reported_member(self):
+        """The member the report is about, when it is about content or a profile."""
+        if self.target_type in (self.TargetType.POST, self.TargetType.COMMENT):
+            return self.target.author if self.target else None
+        if self.target_type == self.TargetType.PROFILE:
+            return self.profile_user
+        return None
+
+    @property
+    def reporter_status(self):
+        """All a reporter ever learns: that it arrived, then that it was reviewed."""
+        return "reviewed" if self.status in self.CLOSED else "received"
 
 
 class ModerationActionType(models.TextChoices):

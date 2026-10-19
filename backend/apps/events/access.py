@@ -21,6 +21,7 @@ MEMBERS_ONLY = "members_only"
 NOT_OPEN_YET = "not_open_yet"
 LOGIN_REQUIRED = "login_required"
 UNVERIFIED = "unverified"
+RESTRICTED = "restricted"
 TIER_EVENT_NOT_INCLUDED = "tier_event_not_included"
 MONTHLY_LIMIT_REACHED = "monthly_limit_reached"
 PARTY_SIZE_EXCEEDS_TIER = "party_size_exceeds_tier"
@@ -83,6 +84,10 @@ def can_rsvp(user, event, now=None, party_size=1, mine=None):
         return False, LOGIN_REQUIRED
     if not user.email_verified:
         return False, UNVERIFIED
+    profile = getattr(user, "profile", None)
+    if profile is not None and (profile.is_events_suspended(now) or profile.do_not_admit_at):
+        # An event suspension or a ban (apps/safety): RSVPs are paused.
+        return False, RESTRICTED
     if membership is not None:
         holding = mine is not None and mine.status in HOLDING
         if not holding and events_remaining(membership, month_of(event.starts_at)) == 0:

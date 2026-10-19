@@ -28,15 +28,21 @@ from apps.feed.models import Announcement, FeedImage, FeedPost, Guidelines
 from apps.journal.models import Post as JournalPost
 from apps.journal.models import PostImage as JournalImage
 from apps.memberships.demo import upsert_tiers
-from apps.memberships.models import MembershipAgreement
+from apps.memberships.models import IdCheck, Membership, MembershipAgreement, Tier
 from apps.pages.management.commands.demo_media import sample_image
 from apps.pages.management.commands.seed_demo import DEMO_CONTENT_DIR
 from apps.pages.models import SiteSettings
 from apps.pages.site_content import load, read_files
+from apps.safety import roles
 
 PASSWORD = "e2e-only-password-0123"
 # 20 bytes, so the authenticator secret below is fixed and known to the tests.
 TOTP_KEY_HEX = "3132333435363738393031323334353637383930"
+# The team's own keys, so two staff logins in one test never share a 30-second code.
+TEAM_KEYS = {
+    "moderator": "4142434445464748494a4b4c4d4e4f5051525354",
+    "admin": "6162636465666768696a6b6c6d6e6f7071727374",
+}
 VIEWPORTS = ("phone", "desktop")
 SHOWCASE_AUTHORS = ("e2e_amber_glow", "e2e_low_lamp", "e2e_velvet_rope")
 SHOWCASE_CAPTIONS = [
@@ -115,8 +121,18 @@ class Command(BaseCommand):
                 "totp_secret": base64.b32encode(bytes.fromhex(TOTP_KEY_HEX)).decode(),
             },
             "viewports": {},
+            "team": {},
         }
         guidelines = Guidelines.current()
+        for role, key in TEAM_KEYS.items():
+            member = reset_user(f"e2e.{role}@example.org", f"e2e_{role}")
+            roles.set_role(member, role)
+            feed_services.join_feed(member, guidelines.version)
+            TOTPDevice.objects.create(user=member, name="e2e", key=key, confirmed=True)
+            data["team"][role] = {
+                "email": member.email,
+                "totp_secret": base64.b32encode(bytes.fromhex(key)).decode(),
+            }
         for viewport in VIEWPORTS:
             people = {}
             for role in ("poster", "friend"):
@@ -158,7 +174,11 @@ class Command(BaseCommand):
                     **extra,
                 )
                 events[kind] = slug
-            data["viewports"][viewport] = {"feed": people, "events": events}
+            data["viewports"][viewport] = {
+                "feed": people,
+                "events": events,
+                "moderation": self.moderation_subjects(viewport, guidelines, now),
+            }
 
         data["showcase"] = self.showcase(now, guidelines)
 
@@ -166,6 +186,41 @@ class Command(BaseCommand):
             self.stdout.write(json.dumps(data))
         else:
             self.stdout.write(self.style.SUCCESS("End-to-end test data is ready."))
+
+    def moderation_subjects(self, viewport, guidelines, now):
+        """A member who reports, a member with a post to report, and one with a membership
+        to ban. The reporter is the flow's own, so other tests leaving the feed cannot
+        affect it."""
+        reporter = reset_user(f"e2e.{viewport}.reporter@example.org", f"e2e_{viewport}_reporter")
+        reporter.profile.feed_access_granted = True
+        reporter.profile.save()
+        feed_services.join_feed(reporter, guidelines.version)
+        author = reset_user(f"e2e.{viewport}.author@example.org", f"e2e_{viewport}_author")
+        author.profile.feed_access_granted = True
+        author.profile.save()
+        feed_services.join_feed(author, guidelines.version)
+        post = FeedPost.objects.create(
+            author=author,
+            caption="A post the tests report.",
+            status=FeedPost.Status.PUBLISHED,
+            consent_attested_at=now,
+            first_published_at=now,
+        )
+        banned = reset_user(f"e2e.{viewport}.banned@example.org", f"e2e_{viewport}_banned")
+        membership = Membership.objects.create(
+            user=banned, tier=Tier.objects.get(slug="rose"), status=Membership.Status.ACTIVE
+        )
+        membership.start_new_period(now)
+        membership.save()
+        IdCheck.objects.create(membership=membership)
+        return {
+            "reporter": reporter.email,
+            "author": author.email,
+            "author_handle": author.display_name,
+            "post": post.public_id,
+            "banned_handle": banned.display_name,
+            "banned_code": membership.reference_code,
+        }
 
     def showcase(self, now, guidelines):
         """A lived-in member app for the screenshot tests: photos, comments, likes,

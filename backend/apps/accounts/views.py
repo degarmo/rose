@@ -13,6 +13,7 @@ from apps.events.services import release_places_held_by
 from apps.feed.services import erase_feed_data
 from apps.memberships.account import close_for_deleted_account
 from apps.rentals.services import forget_account as forget_rental_contact
+from apps.safety.models import BlockedEmail
 from apps.volunteers.models import forget_account as forget_volunteer
 
 from . import lockout, tasks
@@ -81,7 +82,10 @@ class RegisterView(CsrfProtectedAPIView):
         data = serializer.validated_data
 
         existing = User.objects.filter(email__iexact=data["email"]).first()
-        if existing:
+        if BlockedEmail.blocks(data["email"]):
+            # Barred after a ban: the same answer as any sign-up, and nothing is created or sent.
+            pass
+        elif existing:
             # Same response as a new sign-up, so nobody can test which emails have accounts.
             after_commit(tasks.send_already_registered_email, existing.pk)
         else:

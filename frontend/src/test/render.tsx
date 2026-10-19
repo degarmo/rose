@@ -13,6 +13,8 @@ export const verifiedUser: Account = {
   staff_guide_url: null,
   feed_access: false,
   feed_controls: false,
+  member_app: null,
+  staff: null,
   appearance: 'light',
 }
 export const unverifiedUser: Account = { ...verifiedUser, email_verified: false }

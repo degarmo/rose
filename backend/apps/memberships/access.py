@@ -2,7 +2,8 @@
 
 entitlements(user) is a subset of {"feed", "members_events", "members_education"}:
 everything the active tier grants, plus "feed" from a staff grant (Profile.feed_access_granted),
-which stays for comped members and volunteers.
+which stays for comped members and volunteers, and "feed" for every staff account, so the
+team can always reach the member app.
 
 The tier rules for members-only events live here too: which events a tier includes, how
 many it allows each calendar month, and how many guests come with the member.
@@ -36,7 +37,7 @@ def entitlements(user):
     if membership is not None:
         granted |= membership.tier.entitlement_flags
     profile = getattr(user, "profile", None)
-    if profile is not None and profile.feed_access_granted:
+    if user.is_staff or (profile is not None and profile.feed_access_granted):
         granted.add(FEED)
     return granted
 

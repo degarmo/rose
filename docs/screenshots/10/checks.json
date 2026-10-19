@@ -1,0 +1,165 @@
+[
+  {
+    "name": "staff-dashboard-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true,
+    "noPersonInMetrics": true
+  },
+  {
+    "name": "reports-inbox-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "report-detail-hidden-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "report-detail-shown-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "action-dialog-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "appeal-staff-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "team-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "member-notice-390",
+    "memberApp": false,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "entry-settings-staff-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "entry-no-access-390",
+    "memberApp": false,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "entry-after-login-390",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "staff-dashboard-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true,
+    "noPersonInMetrics": true
+  },
+  {
+    "name": "reports-inbox-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "report-detail-hidden-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "report-detail-shown-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "action-dialog-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "appeal-staff-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "team-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "member-notice-1440",
+    "memberApp": false,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "entry-account-menu-1440",
+    "memberApp": false,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "entry-sidebar-staff-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "entry-no-access-1440",
+    "memberApp": false,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  },
+  {
+    "name": "entry-after-login-1440",
+    "memberApp": true,
+    "leaveVisible": true,
+    "overflow": false,
+    "designOk": true
+  }
+]
