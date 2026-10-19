@@ -124,7 +124,8 @@ Eyebrow, display heading and optional lede. `as` picks the heading level (defaul
 The only way to render imagery.
 
 - `image` is a filename from `docs/image-manifest.json`. A missing entry, or one with `faces_visible: true` and `consent_confirmed: false`, renders the placeholder texture instead. This rule cannot be bypassed from a page.
-- `remote` takes an API image, which the server has already checked against the same rule.
+- `remote` takes an API image, which the server has already checked against the same rule. Public uploads come with `width`, `height` and a `srcset` (640, 1280 and the original), which the frame passes to the browser with `sizes`.
+- Manifest images load from the public bucket in production (the server puts its address in a `rose-site-images` meta tag) and from `/images` in development.
 - `placeholder` sets the texture used until a real image exists: `velvet`, `candle`, `silk`, `leather`, `shadow`, `architecture` or `rose`.
 - `ratio` (`1/1`, `4/5`, `4/3`, `3/2`, `16/9`, `21/9`) reserves space so nothing shifts on load. `fill` makes it cover its positioned parent instead.
 - Use `alt=""` for decorative imagery, which is almost all of it.
@@ -195,6 +196,20 @@ toast.show({ tone: 'error', title: 'Your message was not sent', message: 'Please
 ```
 
 A card with a brass-edged date block (weekday, day, month in Chicago time), category and RSVP-state badges, time range, location and, only when staff enable it, the "N going" count. The whole card is clickable through the title link. Use `DateBlock` alone wherever a compact date is needed.
+
+### DetailItem
+
+```tsx
+<dl className="grid gap-5 sm:grid-cols-3">
+  <DetailItem icon={CalendarDays} label="Date">Friday, October 23</DetailItem>
+</dl>
+```
+
+One term and value with a Lucide icon, for the details row on event and class pages. The icon sits inside the `<dt>`, so every `<dt>`/`<dd>` pair is a direct child of its group and screen readers read the list correctly.
+
+### HeroLoading
+
+`<HeroLoading label="Loading event" />` stands in for a page hero's badges, heading and summary while they load: about the same size, so nothing jumps when the content arrives. Pair it with a minimum height on the section below while loading, so the footer stays out of view.
 
 ### MonthCalendar
 

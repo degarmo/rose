@@ -2,7 +2,7 @@
 
 Choices made where the brief did not specify. Privacy-over-convenience calls are marked **(privacy)**.
 
-Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134) and prompt 04 (135 onwards).
+Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173) and prompt 05 (174 onwards).
 
 ## Prompt 01
 
@@ -18,7 +18,7 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 8. **(privacy) The `/prompts` folder is excluded from git** because it names the organisation and its focus.
 9. **(privacy) The seeded address is a neighbourhood plus "shared with confirmed visitors".** No street address is seeded, and the Visit page says exact directions come with confirmation.
 10. **(privacy) No social links are seeded.** The footer shows them only if staff add them in the admin, and only as plain outbound links.
-11. **(privacy) No referrer ever leaves the site.** The SPA page and images use `no-referrer` (HTML meta tag), so outbound links and the quick exit never reveal where the visitor came from. API calls and the API host use `same-origin`: under `no-referrer` browsers send `Origin: null` on POST, which fails Django's CSRF origin check. `same-origin` still sends nothing to other sites.
+11. **(privacy) No referrer ever leaves the site.** Every response carries `Referrer-Policy: no-referrer` (and the page has the matching meta tag), so outbound links and the quick exit never reveal where the visitor came from. The site's own API calls ask for `same-origin` explicitly, and the admin's pages use `same-origin` (decision 174): under `no-referrer` browsers send `Origin: null` on POST, which fails Django's CSRF origin check. `same-origin` still sends nothing to other sites.
 12. **(privacy) The admin path is configurable** through `DJANGO_ADMIN_PATH`, so production can move it away from `/admin/`.
 13. **(privacy) `/media/` responses carry `X-Robots-Tag: noindex, nofollow`.**
 
@@ -66,7 +66,7 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 ### Infrastructure
 
 46. Docker Compose maps Postgres to host port 5433 and Redis to 6380 so they do not clash with locally installed services.
-47. `render.yaml` serves the SPA as a static site that rewrites `/api/*` and `/media/*` to the API service, keeping one origin. The static site sets its own CSP, HSTS and robots headers.
+47. (Replaced in prompt 05, decision 175.) `render.yaml` first served the SPA as a static site that rewrote `/api/*` and `/media/*` to the API service.
 
 ## Prompt 02
 
@@ -266,3 +266,64 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 
 172. An RSVP made while a membership was active stays when the membership lapses, but it can no longer be updated, only cancelled; once cancelled, the membership panel replaces the form. The person may renew at the door, and hosts check entry there. Cancelling it automatically would release a place without telling them.
 173. Receipts print on white with the header, footer and Leave control hidden.
+
+## Prompt 05
+
+### Hosting
+
+174. **(privacy)** `Referrer-Policy: no-referrer` on every response except the admin, which gets `same-origin`. Django's admin forms post with an `Origin` header that `no-referrer` would turn into `null`, failing its CSRF check. `same-origin` sends nothing to any other site, so no referrer ever leaves.
+175. The built React app is served by Django through WhiteNoise, and the separate static site with its `/api` and `/media` rewrites is gone from `render.yaml`. One origin with no proxy hop means one set of headers (CSP, HSTS, robots) in one place, first-party cookies without rewrite rules, one artifact to deploy and roll back, and no second service to keep in step.
+176. One Docker image runs the web service, the worker and beat. Python 3.12.13 and Node 22.23.1 are pinned, and the image carries the PostgreSQL 16 client (from the PostgreSQL apt repository, matching the database version) for backups.
+177. `DJANGO_ENV` (development, test, e2e, staging, production) controls HTTPS-only cookies, HSTS and the redirect, instead of `DJANGO_DEBUG`. The e2e stack runs with DEBUG off over plain HTTP, like production apart from TLS.
+178. The safety checks run in Render's pre-deploy step and again whenever the web process, the worker or beat starts, so a bad setting can never serve a request or send an email. Staging gets the same checks, plus basic auth and in-person payments only.
+179. `seed_demo` writes a `SeedMarker` row and refuses to run in staging or production; the marker stops those environments starting. The e2e data command runs only with `DJANGO_ENV=e2e`.
+180. **(privacy)** `robots.txt` is served by Django. Indexable sites list the private paths but never the admin path, which would publish it. Indexing is on only in production (`SITE_INDEXABLE`, which a measurement run can switch on); staging is always closed.
+181. `/join` is a public page and indexable; only `/join/confirming` is private.
+182. `/healthz` is answered by the first middleware, before host validation, the staging gate and the HTTPS redirect, so the platform's internal checks always reach it. It says only `ok` or `unavailable`.
+
+### Storage
+
+183. Media uses django-storages against S3-compatible buckets, with Cloudflare R2 as the documented default (no egress fees, CDN in front of the public bucket). Staging and production never share a bucket. Uploaded public images have random names and are cached for a year; site imagery keeps fixed names and is cached for a week.
+184. **(privacy)** Signed URLs also set `response-cache-control: private, no-store` and an inline disposition, so the bucket's own response is not cached either.
+185. **(privacy)** Watermarked copies are rendered once per image, viewer and day and stored under `watermarks/<image key>/<viewer key>-<label key>.webp`, with every key an HMAC so names reveal nothing. Deleting an image deletes all its copies; deleting an account or erasing feed data deletes every copy carrying that person's name. This replaces the earlier 10-minute disk cache.
+186. **(privacy)** Export downloads stream through Django instead of redirecting, because the download is a single-use token posted by the page; a signed bucket URL could be copied and reused within its lifetime.
+187. Private storage is a lazy proxy, like Django's default storage, so model fields follow the configured backend instead of the one present at import time.
+188. `migrate_media_to_storage` keeps every object name the database already stores, so no row changes. It verifies size and MD5 (from the ETag when it is a plain MD5, otherwise by reading the object back), skips identical objects, replaces different ones, leaves the old local watermark cache behind, and is a dry run unless `--commit` is given.
+189. Both buckets allow CORS from the site origin only, with GET only. The app also prunes `watermarks/`, `exports/` and `backups/` itself, so a missing lifecycle rule never means data is kept for ever.
+190. The official MinIO images are no longer published, so development, tests and CI use the archived `bitnamilegacy/minio:2025.4.22`. It never runs anywhere deployed: the safety checks refuse any local or plain-HTTP storage endpoint.
+
+### Security
+
+191. Staff two-factor uses django-otp (TOTP plus ten single-use backup codes) through a custom two-step login that replaces the admin's. Nobody is logged in until both steps pass; enrolment is forced on first login; the QR code is drawn on the server as a data URI. **(privacy)** The authenticator app shows the issuer (`OTP_ISSUER`, "Rose") and the display name, never the email. django-otp's pause after a wrong code is kept; wrong codes also count toward the 15-minute lockout shared with member login. Enrolment and backup-code use are audited, in two new audit categories: staff security and operations.
+192. Sessions end through a per-account `session_epoch` mixed into Django's session hash: "Sign out everywhere" and any change to staff, superuser or active status, groups or permissions raise it. Staff sessions are browser-session cookies limited to 12 hours. Member sessions expire after 14 idle days, which means saving the session on every request; the extra write is accepted.
+193. "Sign out everywhere" includes the device it is pressed on, so a lost-phone panic button cannot leave the person thinking only other devices were affected.
+194. **(privacy)** The feed controls under `/api/account/feed/` now answer 404 to signed-out visitors too (they answered 403, which confirmed the endpoints exist). Found by the end-to-end privacy sweep.
+195. Uploads: 15 MB, 40 megapixels, 12,000 px on a side, and JPEG, PNG, WebP or HEIC by magic bytes. GIF is no longer accepted. HEIC decodes through pillow-heif and is stored as WebP like everything else. Pillow's decompression-bomb warning is treated as a refusal.
+196. Every write endpoint has a limit, applied in the shared API base classes: 120 an hour per endpoint per account (or per IP when signed out) by default; 30 an hour for account changes, RSVPs and membership and feed requests; 30 an hour per IP for token links. Specific limits (login, registration, contact, webhooks, posting) stay on top.
+197. The breached-password check uses the standard library and the padded range API, fails open (accepts the password and logs only that the service was unreachable) and is off by default.
+198. Logs use a small JSON formatter of our own rather than another dependency. gunicorn's access log has no client address, query string or user agent. sentry-sdk is installed but dormant unless `SENTRY_DSN` is set.
+199. **(privacy)** Handled contact messages are deleted after `CONTACT_RETENTION_DAYS` (365); unhandled ones wait for staff. The audit log and the attendee export log are kept: they are the record of who saw or exported what, which an incident review needs.
+200. **(privacy)** No analytics. If the club later wants traffic numbers, the acceptable shape is a server-side counter of path and day only, with no IP, user id, cookie or referrer. It is not built.
+201. Email goes through django-anymail (Postmark in the blueprint; SES, Resend, Mailgun or SMTP by one setting), with open and click tracking off. anymail is installed without its `amazon-ses` extra, whose extra package capped `cryptography` below a security fix; SES needs only boto3. `send_test_email` requires `--staff` naming an active staff account and logs without the recipient.
+202. Backups are encrypted on the server with pyrage (age) using only the public key, as custom-format dumps. `verify_restore` is the documented, read-only check for any restore; it rolls back anything its view calls might write.
+
+### Build, tests and CI
+
+203. CI has four jobs (backend, frontend, audit, end-to-end) with no secrets. MinIO runs as a service, and `REQUIRE_S3_TESTS` and `REQUIRE_PG_DUMP` turn the skips used on machines without them into failures.
+204. Browser tests use Playwright with the Chrome already on the machine or runner (`channel: chrome`). Each test sends its own made-up `X-Forwarded-For` (the e2e stack trusts one proxy hop), so per-IP rate limits never bleed between tests; mail is read from Mailpit; the stack allows more logins per email because the tests reuse known accounts; one worker runs them in order.
+205. Lighthouse was measured in mobile emulation against the production image, with the age gate accepted (and the gate measured on its own) and `SITE_INDEXABLE` switched on for the run.
+206. Every page except home loads on demand; the two fonts used above the fold are preloaded; Vite never inlines assets as data URLs (the CSP blocks `data:` fonts, which silently broke one font file); the built files are pre-compressed with gzip and Brotli.
+207. Public uploads get 640 and 1280 px copies and their size recorded, served as `srcset` with width and height. Member images get none (they are watermarked per viewer). Images stored before this change have no recorded size and are served as before.
+208. Event, class and journal detail pages show a skeleton the size of their heading while loading and keep room below it, which removed a layout shift that cost the event page 25 Lighthouse points.
+209. Definition lists put each icon inside its `<dt>` (a shared `DetailItem`), so every `<dt>`/`<dd>` pair is valid for screen readers; axe flagged the old markup.
+210. Logging out from `/account` lands on the home page (the account page's own redirect to the login form used to win).
+211. Dependabot opens grouped weekly updates per ecosystem: Python, the site, the browser tests and GitHub Actions.
+
+### Deployment
+
+212. The blueprint uses Render projects with two environments. Each has a settings group (values) and a secrets group (every key `sync: false`), which web, worker and beat all read, so a secret is entered once per environment. Key Value uses `noeviction` (Celery's queue lives there); beat is pinned to one instance; the pre-deploy step runs the safety checks, then migrations.
+213. Staging was not deployed: the Render CLI is not installed or signed in on this machine, and the blueprint creates paid resources.
+214. `ADMIN_BASE_URL` defaults to `SITE_URL`, since the admin shares the site's origin.
+215. The composer and avatar pickers list the accepted formats (`image/jpeg,png,webp,heic,heif`) instead of `image/*`.
+216. The CSP needs no nonce or hash: nothing inline runs. It adds `worker-src 'none'` and `manifest-src 'self'`. The Permissions-Policy denies every device feature by name and drops `interest-cohort`, which browsers no longer recognise.
+

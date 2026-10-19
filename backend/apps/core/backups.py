@@ -24,7 +24,7 @@ from .private_media import BACKUP_PREFIX, private_media
 
 
 class BackupError(Exception):
-    pass
+    """pg_dump failed; the message carries its last lines (never data)."""
 
 
 def _pg_env_and_args():

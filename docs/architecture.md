@@ -3,28 +3,40 @@
 ## Overview
 
 ```
-Browser --> rose-web (static SPA) --/api, /media rewrite--> rose-api (Django + DRF)
-                                                               |-- Postgres
-                                                               |-- Redis (cache, rate limits, Celery queue)
-                                                               `-- Celery worker + beat (email, reminders, retention, membership lifecycle)
+Browser --> web (gunicorn + Django) -- the built React app (WhiteNoise), /api, the admin, media views
+                 |-- Postgres
+                 |-- Redis (cache, rate limits, Celery queue)
+                 |-- S3 buckets: public (site, journal, event and class images) and
+                 |               private (member images, watermarked copies, exports, backups)
+                 `-- Celery worker + beat (email, images, reminders, retention, lifecycle, backups)
 ```
 
-The browser only ever talks to one origin. In development the Vite dev server proxies
-`/api` and `/media` to Django (target set by `VITE_PROXY_TARGET`); in production the static
-site rewrites them to the API service (see `render.yaml`). Session and CSRF cookies are
-therefore first-party, and the SPA uses Django session auth with CSRF on every write. No
-token is ever stored in browser storage.
+The browser only ever talks to one origin, plus the storage buckets for images. In
+production Django serves the built React app itself through WhiteNoise (hashed
+`/assets/` with a year-long immutable cache, `index.html` with `no-cache`, both
+pre-compressed with gzip and Brotli), so the site, API, admin and media views share
+one origin and one set of cookies (`apps/core/spa.py`). The fallback serves `index.html`
+for client routes but never for `/api`, the admin, media, static files or anything that
+looks like a file. In development the Vite dev server proxies `/api` and `/media` to
+Django (`VITE_PROXY_TARGET`). The SPA uses Django session auth with CSRF on every write;
+no token is ever stored in browser storage.
+
+One Docker image (`Dockerfile`) runs as the web service, the worker and beat, in two
+Render environments (staging and production, `render.yaml`); deployment, storage, email,
+security and restores are in `docs/ops/`.
 
 ## Backend (`/backend`)
 
 | Path | Purpose |
 | --- | --- |
-| `config/settings.py` | All settings, read from the environment through django-environ. Production hardening turns on when `DJANGO_DEBUG` is false. |
+| `config/settings.py` | All settings, read from the environment through django-environ. `DJANGO_ENV` (development, test, e2e, staging, production) turns on HTTPS-only hardening for staging and production. |
+| `config/wsgi.py`, `config/celery.py` | Entry points; both run `assert_deploy_safe()` so staging and production refuse to start with an unsafe setting. |
+| `gunicorn.conf.py` | Web server settings, with an access log that has no client address or query string and goes through the log scrubber. |
 | `config/celery.py` | Celery app. Reads `CELERY_*` settings; beat schedule lives in settings. |
 | `config/urls.py` | `/robots.txt`, the admin (path from `DJANGO_ADMIN_PATH`) and everything under `/api/`. |
 | `templates/admin/` | Admin additions: Image review, door list, Repeat weekly form, feed moderation, the membership Door desk and Membership summary, and the index shortcuts. |
-| `apps/core` | `AuditLog` (append-only record of moderation, door desk, export and private-data actions, with the `audit()` helper) and shared helpers: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface), `watermark.py` (per-viewer tiled watermark), `images.py` (EXIF/GPS stripping, random names), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py`, `views.py`. |
-| `apps/accounts` | `User` (email login, `display_name`, private `legal_name`, `phone`, `email_verified_at`), `Profile`, registration, verification, login lockout, password reset and change, display-name change, account deletion. Email tasks in `tasks.py`. |
+| `apps/core` | `AuditLog` (append-only record of moderation, door desk, export, private-data, staff-security and operations actions, with the `audit()` helper), `SeedMarker`, `checks.py` (deployment safety checks), `spa.py` (serves the built app), `storage.py` (public and private S3 backends), `admin_auth.py` (two-step staff login), `logging.py` (JSON logs and the privacy scrubber, optional Sentry), `backups.py` and `tasks.py` (encrypted nightly backup), commands `migrate_media_to_storage`, `send_test_email`, `verify_restore` and `e2e_fixtures`, and shared helpers: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface: a stream locally, a 60-second signed redirect on S3; stored watermarked copies), `watermark.py` (per-viewer tiled watermark), `images.py` (upload checks, EXIF/GPS stripping, random names, size variants), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py` (health check, staging gate, final header policy), `views.py`. |
+| `apps/accounts` | `User` (email login, `display_name`, private `legal_name`, `phone`, `email_verified_at`, `session_epoch`), `Profile`, registration, verification, login lockout, password reset and change, display-name change, sign out everywhere, account deletion, session rules (`middleware.py`, `sessions.py`, privilege-change signals) and the optional breached-password check (`breach.py`). Email tasks in `tasks.py`. |
 | `apps/pages` | `SiteSettings`, `SocialLink`, `FAQItem`; `seed_demo` command and its generated placeholder art (`demo_media.py`). |
 | `apps/education` | `Opportunity` (uses the consented image pattern). |
 | `apps/contact` | `ContactMessage`, content-free staff notification, `anonymize_messages_from()`. |
@@ -38,13 +50,13 @@ token is ever stored in browser storage.
 
 | Method | Path | Notes |
 | --- | --- | --- |
+| GET | `/healthz` | `ok` (200) when the database and Redis answer, `unavailable` (503) otherwise. No details. |
 | GET | `/api/csrf/` | `{csrfToken}`; the cookie itself is HttpOnly. |
-| GET | `/api/health/` | Health check. |
 | GET | `/api/site-settings/`, `/api/faqs/` | Site content. |
 | GET | `/api/education/opportunities/[<slug>/]` | `?category=&level=` filters. |
 | POST | `/api/contact/` | Rate limited, honeypot. |
 | GET, PATCH | `/api/account/session/` | Who is signed in (`user: null` if nobody); PATCH changes display name. The only endpoint that returns an email, and only the caller's own. |
-| POST | `/api/account/register/`, `verify-email/`, `verify-email/resend/`, `login/`, `logout/`, `password-reset/`, `password-reset/confirm/`, `password/`, `delete/` | Account actions. Login, register and reset are rate limited per IP and per email. |
+| POST | `/api/account/register/`, `verify-email/`, `verify-email/resend/`, `login/`, `logout/`, `sign-out-everywhere/`, `password-reset/`, `password-reset/confirm/`, `password/`, `delete/` | Account actions. Every write is rate limited (docs/ops/security.md). |
 | GET | `/api/account/rsvps/` | The caller's own upcoming RSVPs. |
 | GET | `/api/events/` | Upcoming visible events; `?category=`, `?past=1`. |
 | GET | `/api/events/calendar/?start=&end=` | Events overlapping a date range (max 62 days). |
@@ -72,6 +84,9 @@ token is ever stored in browser storage.
 | `events.tasks.purge_expired_rsvps` | Beat, every 6 hours | Deletes RSVPs `RSVP_RETENTION_DAYS` after the event ends and keeps `final_going_count` and `final_checked_in_count`. |
 | `memberships.tasks.run_lifecycle` | Beat, daily at 06:00 Chicago | Active to grace to expired, cancelled at period end, stale unpaid codes expire, renewal reminders at 14 and 3 days. |
 | `memberships.tasks.deliver_sandbox_events` | Development only | Posts the sandbox checkout's signed webhooks through the real endpoint. |
+| `feed.tasks.purge_old_watermarks` | Beat, daily | Deletes watermarked copies older than 7 days (the bucket's lifecycle rule does the same). |
+| `contact.tasks.purge_old_messages` | Beat, daily | Deletes handled contact messages after `CONTACT_RETENTION_DAYS` (365). |
+| `core.tasks.nightly_backup` | Beat, 03:15 Chicago | `pg_dump`, encrypted with the age public key, uploaded to `backups/` in the private bucket (docs/ops/restore.md). |
 
 ## Member feed
 
@@ -130,7 +145,7 @@ erDiagram
 - **Opting out** (`Profile.participates_in_feed=False`) hides every post, comment, like, avatar and bio at once through `feed_visible_q()`; nothing is deleted, and rejoining restores it all. Banned members are hidden the same way.
 - **Leave and erase** (`services.erase_feed_data`, run by `tasks.erase_member_feed`) deletes posts, image files, comments, likes, follows, blocks and mutes they created, notifications and exports. Account deletion calls the same routine.
 - **Images**: the browser renders redactions on a canvas and uploads only the result. The server stores the raw upload in private `incoming/`, a worker strips metadata and re-encodes to WebP with a random name, and the raw file is deleted. Posts show "Processing" to their author until then.
-- **Private media**: no feed file has a URL. `MediaView` and `AvatarMediaView` re-check access, blocks and post status on every request, watermark the image with the viewer's display name and date (`FEED_WATERMARK`), cache that per viewer for 10 minutes on private disk, and answer with `Cache-Control: private, no-store`.
+- **Private media**: no feed file has a URL of its own. `MediaView` and `AvatarMediaView` re-check access, blocks and post status on every request, then deliver a copy watermarked with the viewer's display name and date (`FEED_WATERMARK`). The copy is rendered once per image, viewer and day and stored under `watermarks/`; on S3 the view answers `302` to a URL signed for 60 seconds, locally it streams the file. Either way the view's response is `Cache-Control: private, no-store`. Deleting an image deletes every copy of it; deleting an account deletes every copy carrying that person's name. `FEED_ENABLED=false` makes every feed path a 404 (docs/ops/incident.md).
 - **Moderation**: `/admin/feed/feedpost/moderation/` lists open reports grouped by item, pending first posts and the action log. Every action writes an append-only `core.AuditLog` entry in the moderation category.
 
 ## Membership and payments
@@ -217,20 +232,20 @@ flowchart LR
 | `lib/calendar.ts`, `lib/events.ts`, `lib/format.ts` | Month grid maths, RSVP state labels, Chicago-time formatting, safe `next` paths, URL fragment parsing. |
 | `**/*.test.tsx`, `test/` | Vitest + Testing Library. |
 
-## How later prompts plug in
+## What each phase added
 
 **Prompt 3: member social feed.** Built; see "Member feed" above.
 
 **Prompt 4: paid membership.** Built; see "Membership and payments" above. A real
 processor is one adapter class (see `docs/payments.md`).
 
-**Prompt 5: hardening and deploy.** Finalise `render.yaml` (domains, plans, the
-`rose-api.onrender.com` rewrite target), configure SMTP through `EMAIL_URL`, set
-`DJANGO_ADMIN_PATH`, and review request logging so client IPs are not kept. Move private
-media to S3-compatible storage behind `apps.core.private_media` (a new backend whose
-`deliver()` returns short-lived signed URLs for watermarked variants); the API, worker and
-beat must share it, which a Render disk cannot do. Add retention for contact messages, the
-attendee export log and the audit log.
+**Prompt 5: hardening and deploy.** Built: single-origin hosting, S3 storage with signed
+private delivery, two Render environments, deployment safety checks, staff two-factor,
+session rules, header policy, upload checks, rate limits on every write, scrubbed JSON
+logs, email through anymail, encrypted nightly backups with a tested restore, CI and
+browser tests. See `docs/ops/`. Handled contact messages now expire after a year; the
+audit log and the attendee export log are kept, because they are the record of who saw
+or exported what (decision 199).
 
 ## Privacy checklist
 
@@ -339,3 +354,26 @@ Check every change against this list.
 - [ ] **Account deletion detaches, never erases, money.** Open memberships are cancelled (and
       online renewals stopped); membership and payment rows stay for the accounts with the
       person removed; the signature is deleted with the account.
+
+### Operations rules
+
+- [ ] **Deployed environments refuse to start unsafe.** `apps/core/checks.py`: no DEBUG,
+      no sandbox, strong secret, hosts and https origins set, S3 storage (not a local
+      emulator), a real email provider, a moved admin path, HTTPS settings on, no demo
+      seed data; staging also needs basic auth. Tested condition by condition.
+- [ ] **Staff use two-step login** for every admin view, including the door desk.
+      Enrolment is forced on first login; backup codes are single use.
+- [ ] **Private files are never public.** The private bucket blocks public access and
+      listing; files are reached only through access-checked views that redirect to
+      60-second signed URLs, with `no-store` on both.
+- [ ] **Logs identify no one.** JSON on stdout through the scrubber (emails, names,
+      reference codes, IPs, session ids, cookies, auth headers, query strings and handles
+      on member paths); no request bodies; no Django error emails; no third-party error
+      tracking unless `SENTRY_DSN` is set, and then without personal data.
+- [ ] **No third-party requests.** Pages load only from the site and its storage
+      buckets; the browser tests fail on any other request and on any console error.
+- [ ] **Backups are encrypted before they leave the server**, with a key the server does
+      not hold, and restores are checked with `verify_restore`.
+- [ ] **No analytics.** If traffic numbers are ever wanted, the acceptable shape is a
+      server-side count of path and day only, with no IP or user id (decision 200).
+

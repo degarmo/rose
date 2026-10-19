@@ -19,9 +19,9 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    docker compose up --build
    ```
 
-   This runs Postgres, Redis, the API (migrations run on start), a Celery worker, Celery beat
-   and the Vite dev server. The site is at http://localhost:5173 and the API and admin are at
-   http://localhost:8000. Emails are printed in the `worker` and `api` logs.
+   This runs Postgres, Redis, the API (migrations run on start), a Celery worker, Celery beat,
+   the Vite dev server, Mailpit and MinIO. The site is at http://localhost:5173, the API and
+   admin at http://localhost:8000, and every email the site sends at http://localhost:8025.
 
 2. **Load demo content** in a second terminal.
 
@@ -39,6 +39,9 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    docker compose exec api python manage.py createsuperuser
    ```
 
+   The admin asks you to set up an authenticator app at first login (two-step login is
+   required for all staff, also locally).
+
 4. **Run the backend tests.**
 
    ```sh
@@ -50,13 +53,14 @@ If ports 5433, 6380, 8000 or 5173 are taken, override them, for example
 
 ## Option B: run the app on your machine
 
-1. **Start Postgres and Redis.**
+1. **Start Postgres, Redis, Mailpit and MinIO.**
 
    ```sh
-   docker compose up -d db cache
+   docker compose up -d db cache mailpit minio
    ```
 
-   Postgres listens on `localhost:5433` and Redis on `localhost:6380`.
+   Postgres listens on `localhost:5433`, Redis on `localhost:6380`, Mailpit on
+   http://localhost:8025 and MinIO (used by the storage tests) on `localhost:9000`.
 
 2. **Set up the backend.**
 
@@ -104,21 +108,46 @@ If ports 5433, 6380, 8000 or 5173 are taken, override them, for example
 
    ```sh
    cd backend
-   .venv/bin/python -m pytest
+   .venv/bin/python -m pytest          # the storage tests need MinIO running (step 1)
    .venv/bin/ruff check . ../scripts
+   .venv/bin/pip-audit -r requirements.txt
 
    cd ../frontend
    npm test
    npm run lint
    npm run build
+   npm audit --omit=dev
    ```
+
+## Browser tests
+
+The end-to-end tests run against the production image with Postgres, Redis, MinIO and
+Mailpit, in the Chrome already installed on your computer:
+
+```sh
+docker compose -f docker-compose.e2e.yml up -d --build --wait
+cd e2e && npm ci && npx playwright test        # phone and desktop widths
+docker compose -f docker-compose.e2e.yml down -v
+```
+
+The stack uses ports 8080 (site), 9100 (MinIO) and 8125 (Mailpit). CI runs the same suite
+(`.github/workflows/checks.yml`).
+
+## Deploying and operating
+
+Production runs on Render from `render.yaml` (staging and production). Start with
+[docs/ops/deploy.md](docs/ops/deploy.md); the rest of `docs/ops/` covers storage, email,
+security, restores and what to do if data may have leaked. Volunteers get
+[docs/staff-guide.md](docs/staff-guide.md), and [docs/launch-checklist.md](docs/launch-checklist.md)
+lists what the club must supply before launch.
 
 ## Member feed
 
 Members whose tier includes the feed, and anyone staff give access to from Admin > Accounts >
 Profiles ("Grant member feed access"), can join it from `/account`. Moderators work from Admin > Feed > Feed posts > "Open queue"
-(`/admin/feed/feedpost/moderation/`). Member uploads live in `backend/private_media/` and are
-only ever served through access-checked views; never point a web server at that folder.
+(`/admin/feed/feedpost/moderation/`). Member uploads live in `backend/private_media/` locally
+(the private bucket in production) and are only ever served through access-checked views;
+never point a web server at that folder.
 
 ## Membership and payments
 
@@ -161,7 +190,10 @@ otherwise, and images in that state are never shown on the site.
 ```
 backend/    Django project "config", apps under backend/apps/, admin templates, Dockerfile
 frontend/   Vite + React + TypeScript + Tailwind, Vitest tests
-docs/       Architecture, decisions, design system, payments, image manifest
-scripts/    fetch_images.py
-render.yaml Hosting blueprint stub (not deployed)
+e2e/        Playwright browser tests (phone and desktop)
+docs/       Architecture, decisions, design system, payments, staff guide, launch checklist;
+            docs/ops/ for deploy, storage, email, security, restore and incidents
+scripts/    fetch_images.py, decrypt_backup.py
+Dockerfile  Production image (web, worker and beat)
+render.yaml Render Blueprint: staging and production
 ```
