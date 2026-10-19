@@ -95,7 +95,9 @@ right-hand control), `Copy` and `CopyHeading` (staff-editable copy, see `docs/co
 (every RSVP state: badge, party-size stepper, note to hosts, calendar file), `MonthCalendar`,
 `FAQAccordion`, `JournalStrip`, `JournalTile`, `ValuesStrip`, `PostView`, `Carousel`,
 `StaffCard`, `DetailItem`, `States`. `components/membership`: `PaywallPanel` (the blush
-"For members" panel) and `ReferenceCode` (the door reference card with its QR code).
+"For members" panel), `ReferenceCode` (the door reference card with its QR code) and
+`TierCard` (Join step 1's tier card: the featured tier has the rose border, tinted card and
+"Most popular" tag; also used, four to a row from 1264px, on the membership page).
 
 ## Member app components
 

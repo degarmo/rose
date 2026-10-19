@@ -10,7 +10,9 @@ from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import RSVP, AttendeeExport, Event
+from apps.memberships import usage
+
+from .models import RSVP, AttendeeExport, Event, EventTag
 from .recurrence import repeat_weekly
 
 CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
@@ -45,6 +47,7 @@ class EventAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
     date_hierarchy = "starts_at"
     autocomplete_fields = ("opportunity",)
+    filter_horizontal = ("access_tags",)
     readonly_fields = (
         "final_going_count",
         "final_checked_in_count",
@@ -60,9 +63,11 @@ class EventAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "audience",
+                    "access_tags",
                     "capacity",
                     "waitlist_enabled",
                     "max_party_size",
+                    "guest_allowance",
                     "rsvp_opens_at",
                     "rsvp_closes_at",
                     "show_attendee_count",
@@ -218,6 +223,13 @@ class EventAdmin(admin.ModelAdmin):
         return response
 
 
+@admin.register(EventTag)
+class EventTagAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+    search_fields = ("name",)
+
+
 @admin.register(RSVP)
 class RSVPAdmin(admin.ModelAdmin):
     list_display = ("event", "attendee", "status", "party_size", "checked_in", "created_at")
@@ -247,6 +259,11 @@ class RSVPAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # A status changed by hand still keeps the member's monthly count right.
+        usage.sync(obj)
 
     @admin.display(description="Attendee", ordering="user__display_name")
     def attendee(self, obj):

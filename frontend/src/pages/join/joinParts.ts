@@ -1,13 +1,5 @@
 import { GUTTER } from '@/components/ui'
 import { cn } from '@/lib/cn'
-import type { Tier } from '@/lib/membershipApi'
-
-/** "/ month", "/ year", or "for 30 days" for a pass, beside the price. */
-export function perLabel(tier: Tier) {
-  if (tier.interval === 'month') return '/ month'
-  if (tier.interval === 'year') return '/ year'
-  return `for ${tier.duration_days ?? 30} days`
-}
 
 /** The quiet "Back" beside a step's main button (design: Join step 2). */
 export const BACK_BUTTON = 'inline-flex h-12 items-center self-start px-3 font-semibold text-fg-muted transition-colors hover:text-fg disabled:cursor-not-allowed'

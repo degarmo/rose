@@ -35,6 +35,19 @@ class EventQuerySet(models.QuerySet):
         )
 
 
+class EventTag(models.Model):
+    """A label staff put on events. Membership tiers limited to tagged events use them."""
+
+    name = models.CharField(max_length=60)
+    slug = models.SlugField(max_length=60, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Event(consented_image("hero_image", upload_to="events")):
     class Category(models.TextChoices):
         EDUCATION = "education", "Education night"
@@ -71,6 +84,19 @@ class Event(consented_image("hero_image", upload_to="events")):
         default=MAX_PARTY_SIZE,
         validators=[MinValueValidator(1), MaxValueValidator(MAX_PARTY_SIZE)],
         help_text="1 for just themselves, 2 to allow one guest.",
+    )
+    guest_allowance = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MaxValueValidator(MAX_PARTY_SIZE - 1)],
+        help_text="Members-only events: guests a member may bring beyond what their membership "
+        "includes. The party size above still caps the total.",
+    )
+    access_tags = models.ManyToManyField(
+        EventTag,
+        blank=True,
+        related_name="events",
+        help_text="Members-only events: memberships limited to tagged events can RSVP "
+        "when one of these tags is on their membership.",
     )
     rsvp_opens_at = models.DateTimeField(null=True, blank=True, help_text="Blank opens now.")
     rsvp_closes_at = models.DateTimeField(
@@ -129,6 +155,8 @@ class Event(consented_image("hero_image", upload_to="events")):
             errors["rsvp_closes_at"] = "RSVPs cannot close after the event ends."
         if self.slug in RESERVED_SLUGS:
             errors["slug"] = "That address is reserved. Please choose another."
+        if self.guest_allowance and self.guest_allowance >= (self.max_party_size or 1):
+            errors["guest_allowance"] = "Allow fewer guests than the party size."
         if self.capacity == 0:
             errors["capacity"] = "Use a number above zero, or leave blank for unlimited."
         if self.is_private_hold and self.is_published:
@@ -167,6 +195,11 @@ class RSVP(models.Model):
     )
     note_to_hosts = models.CharField(max_length=280, blank=True)
     checked_in = models.BooleanField(default=False)
+    counts_toward_plan = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="This RSVP is counted in its member's monthly event allowance.",
+    )
     waitlisted_at = models.DateTimeField(null=True, blank=True)
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

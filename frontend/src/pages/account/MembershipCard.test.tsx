@@ -34,7 +34,7 @@ describe('MembershipCard', () => {
     api.me.mockResolvedValue({ membership: null, entitlements: [] })
     renderWithProviders(<MembershipCard />, { user: verifiedUser })
     expect(await screen.findByText(/You are not a member yet/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Become a member' })).toHaveAttribute('href', '/join')
+    expect(screen.getByRole('link', { name: 'Become a member' })).toHaveAttribute('href', '/membership')
   })
 
   it('shows a pending code with what to bring', async () => {
@@ -97,7 +97,7 @@ describe('MembershipCard', () => {
     })
     renderWithProviders(<MembershipCard />, { user: member })
     expect(await screen.findByText('Ended November 12, 2026')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Join again' })).toHaveAttribute('href', '/join')
+    expect(screen.getByRole('link', { name: 'Join again' })).toHaveAttribute('href', '/membership')
     expect(screen.queryByText('R7K-42Q')).not.toBeInTheDocument()
   })
 

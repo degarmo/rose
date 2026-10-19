@@ -56,7 +56,16 @@ def test_seed_events_journal_and_demo_users(capsys, settings):
     socials = Event.objects.filter(category="social")
     assert sorted({timezone.localtime(e.starts_at).weekday() for e in socials}) == [4, 5]
     assert socials.count() == 8
-    assert Event.objects.filter(audience="members").count() == 1
+    members = Event.objects.filter(audience="members")
+    assert members.count() == 3
+    # The free tiers' evenings carry their tags.
+    assert set(members.values_list("access_tags__slug", flat=True)) == {
+        None,
+        "community",
+        "first_friday",
+    }
+    first_friday = timezone.localtime(members.get(slug="first-friday").starts_at)
+    assert first_friday.weekday() == 4 and first_friday.day <= 7
 
     full = Event.objects.get(slug="intimate-salon")
     assert full.waitlist_enabled and full.is_full()

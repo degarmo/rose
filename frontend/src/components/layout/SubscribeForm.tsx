@@ -10,7 +10,7 @@ type State = { name: 'idle' } | { name: 'sending' } | { name: 'sent'; message: s
  * The footer's email list sign-up. Double opt-in: the answer is the same
  * "check your inbox" whether or not the address is already on the list.
  */
-export function SubscribeForm() {
+export function SubscribeForm({ label = 'Occasional email, never more than monthly' }: { label?: string }) {
   const id = useId()
   const [email, setEmail] = useState('')
   const [website, setWebsite] = useState('')
@@ -43,7 +43,7 @@ export function SubscribeForm() {
   return (
     <form noValidate onSubmit={submit} aria-label="Stay in touch" className="relative flex flex-col gap-2">
       <label htmlFor={`${id}-email`} className="font-semibold text-fg">
-        Occasional email, never more than monthly
+        {label}
       </label>
       <div className="flex gap-2">
         <input

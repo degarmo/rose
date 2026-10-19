@@ -1,10 +1,14 @@
-"""Joining: sign the agreement, then either pay at the door or check out online."""
+"""Joining: sign the agreement, then either pay at the door or check out online.
+
+A free tier skips payment: it gets a reference code like any other and starts once
+staff have seen a photo ID, straight away when one is already on file.
+"""
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 
 from . import emails
-from .models import AgreementSignature, Membership, MembershipAgreement, Tier
+from .models import AgreementSignature, Membership, MembershipAgreement, Tier, has_id_check
 from .providers import registry
 from .providers.base import ProviderError
 
@@ -18,7 +22,7 @@ class JoinError(Exception):
 
 
 def offered_tiers():
-    tiers = Tier.objects.filter(is_active=True)
+    tiers = Tier.objects.filter(is_active=True).prefetch_related("allowed_event_tags")
     if not settings.DEBUG:
         tiers = tiers.filter(is_placeholder=False)
     return tiers
@@ -74,8 +78,8 @@ def start_checkout(membership, provider_key):
     return session
 
 
-def join(user, tier_slug, agreement_version, typed_name, method):
-    """Returns (membership, redirect_url or None)."""
+def join(user, tier_slug, agreement_version, typed_name, method=""):
+    """Returns (membership, redirect_url or None). A free tier ignores the method."""
     if not user.email_verified:
         raise JoinError("unverified", "Please confirm your email first.", status=403)
     tier = offered_tiers().filter(slug=tier_slug).first()
@@ -89,6 +93,8 @@ def join(user, tier_slug, agreement_version, typed_name, method):
     typed_name = " ".join(typed_name.split())
     if len(typed_name) < 2 or len(typed_name) > 200:
         raise JoinError("typed_name", "Type your full name to sign.")
+    if tier.is_free:
+        method = "manual"
     if method not in [m["key"] for m in payment_methods()]:
         raise JoinError("method", "That payment method is not available.")
     if tier.is_guest_pass and method != "manual":
@@ -115,12 +121,22 @@ def join(user, tier_slug, agreement_version, typed_name, method):
                 source=Membership.Source.MANUAL
                 if method == "manual"
                 else Membership.Source.PROVIDER,
+                paid_awaiting_id_check=tier.is_free,
             )
+            if tier.is_free and has_id_check(user):
+                membership.start_new_period()
+                membership.status = Membership.Status.ACTIVE
+                membership.paid_awaiting_id_check = False
+                membership.save()
     except IntegrityError as exc:
         raise JoinError(
             "exists", "You already have a membership. See your account page.", 409
         ) from exc
 
+    if tier.is_free:
+        if membership.status == Membership.Status.PENDING_PAYMENT:
+            transaction.on_commit(lambda: emails.send_reference_code(membership))
+        return membership, None
     if method == "manual":
         transaction.on_commit(lambda: emails.send_reference_code(membership))
         return membership, None

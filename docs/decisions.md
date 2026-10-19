@@ -577,3 +577,42 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 
 369. At the owner's request the home page hero sits on a pastel "Aurora" gradient (violet, butter, pink and sky washes over a lavender-to-blush base), a step away from the design file's white hero. It is a class in `index.css` drawn by `GradientBackground`, not an inline style, and a dimmed version applies in the dark appearance. On it the lead is in the text colour: the muted grey measures as low as 2.7:1 on the violet and pink washes.
 
+## Prompt 09
+
+### Navigation and pages
+
+370. "Membership" takes Journal's place in the header, on desktop and in the phone menu, for everyone. Journal moves to the footer beside Membership and Privacy; its pages, the home page strip and the feed's club posts are unchanged.
+371. The "Join" button stays, reads "Join" for everyone (it no longer turns into "Membership" for members, since Membership is now in the navigation beside it) and opens `/membership`. Other general join links (Become a Member on the home page, Join to RSVP, the paywall's Join, the account's Become a member and Join again) also go to `/membership`; `/join` is the flow behind each plan's Choose button.
+372. `/membership` is a page of its own, so the old site's `/membership → /join` redirect is removed from `redirects.yaml`, and a data migration deletes that row from any database that loaded it (it would otherwise hide the page). The old plan pages (`/plans-pricing`, `/first-friday`, `/community-membership` and the others) and the old membership form PDF now redirect to `/membership`.
+373. The membership page has no design of its own. The cards are Join step 1's, extracted into `TierCard` and now used by both pages, so Join step 1 also shows the featured tier with the rose border and a "Most popular" tag. Rows: four to a row from 1264px (the 1264px `wide` breakpoint), two from 768px, one on phones. The compare table appears from 1024px; below that each tier gets its own short list, so nothing scrolls sideways. The member's own card says "Your plan" (in place of "Most popular" when it is Rose) and its button is "Manage".
+374. A signed-out visitor who chooses a plan goes to `/join?tier=<slug>`, which sends them to create an account first and brings them back to the agreement with that tier chosen.
+375. The page's newsletter line ("Occasional news, never more than monthly.") labels the existing email sign-up form in the closing section.
+
+### Tier rules
+
+376. The tier rules (included events, events per month, guests) apply only to members-only events. Anyone with a verified account can RSVP to the other events, so a membership neither limits them nor counts them. Community and First Fridays are therefore members-only tiers limited by tag to members-only events tagged Community or First Friday.
+377. A month is the calendar month of the event (Chicago time), not of the RSVP: booking in October for a November evening uses a November event. Cancelling gives back the month it took.
+378. Every RSVP status change goes through one function, `memberships.usage.sync`, used by RSVPs, cancellations (including from the email link and when an account is deleted), waitlist promotions, staff edits in the admin and door desk walk-ins. Each RSVP records whether it was counted, so a cancellation only gives back an event that was taken. Changing the party size of an RSVP is not another event.
+379. A member already going (or waitlisted) keeps their place when their month fills up and can still change it. A waitlisted member whose month has filled up since is passed over when a place opens, and stays on the waitlist.
+380. "Any allowance the event permits" is a new event field, Guest allowance: extra guests a member may bring beyond those their tier includes. The largest party a tier allows is 1 + included guests + the event's allowance, and the event's own party size still caps it. The party size cap stays at 2.
+381. Door desk walk-ins: "Check in tonight" on a running membership lists today's members-only events. It applies the same tier rules as an RSVP, uses one of the month's events and marks them checked in; someone already on the list is just checked in. Capacity is not enforced at the door (staff are there to decide). The audit entry names the membership, never the event.
+382. `perks` replaces the earlier `benefits` field (renamed, data kept); the existing `description` is the card's one-line summary. A tier also has `premium_discord`, because the compare table has a Premium Discord row and every row comes from the tier.
+383. Tiers are ordered by price, then `sort_order`, everywhere (the model's default ordering), and React keeps the API's order.
+384. `renews` is a display and lifecycle fact. A one-time pass cannot renew. A free tier that renews (Community) stays open: the lifecycle starts a new period when one ends, with no reminder emails. Paid tiers renew as before, at the door or through an online subscription.
+
+### Free tiers
+
+385. Joining a free tier needs no payment method: the agreement leads straight to the reference code. The membership waits for the first-visit ID check like an online payment does (`paid_awaiting_id_check`), staff press Activate at the door desk, and no payment row is written. The account page and API call it "Waiting for ID check". Someone with an ID check already on file (an earlier membership) starts at once.
+386. An unused free code lapses after `MEMBERSHIP_PENDING_EXPIRY_DAYS` like an unpaid one, and can be cancelled from the account page before it starts. A time-limited free tier (First Fridays, 7 days) simply ends at the end of its week, with no grace period and no email.
+
+### Defaults needing the club's confirmation
+
+387. **(needs club confirmation)** Member community (feed) access: on for Rose, Limited, Rose +, Limited + and Trial; off for Community and First Fridays.
+388. **(needs club confirmation)** Events per month: Limited, Limited + and First Fridays 1; Rose, Rose +, Trial and Community unlimited (Community within its tag). Guests included: Limited + and Rose + 1, the others 0. Guest discount: Rose and Rose +. Premium Discord: Rose, Rose +, Limited and Limited +. Featured: Rose.
+389. **(needs club confirmation)** Prices are inferred from the old page, which shows doubled digits ("$4040"): Community $0, First Fridays $0, Limited $20 a month, Trial $20 for two weeks, Limited + $35 a month, Rose $40 a month, Rose + $55 a month. Community is drafted as renewing (open until cancelled), Trial and First Fridays as one-time.
+390. **(needs club confirmation)** The refund and cancellation wording on the page follows the old page: cancel by emailing management or through the Discord ticket feature, and a full refund if cancelled before 9 pm on the night of the first event.
+
+### Privacy
+
+391. **(privacy)** `MembershipUsage` stores a count per membership per month and nothing else, is not in the admin, and is deleted after 13 months by a daily task. The only figure any endpoint returns is a member's own events left this month (their membership and their RSVP state); the door desk shows it to staff.
+

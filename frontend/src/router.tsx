@@ -58,6 +58,7 @@ export const router = createBrowserRouter([
       { path: 'journal/:slug', lazy: page(() => import('./pages/JournalPostPage').then((m) => m.JournalPostPage)) },
       { path: 'visit', lazy: page(() => import('./pages/VisitPage').then((m) => m.VisitPage)) },
       { path: 'contact', lazy: page(() => import('./pages/ContactPage').then((m) => m.ContactPage)) },
+      { path: 'membership', lazy: page(() => import('./pages/MembershipPage').then((m) => m.MembershipPage)) },
       { path: 'join', lazy: page(() => import('./pages/join/JoinPage').then((m) => m.JoinPage)) },
       { path: 'join/confirming', lazy: page(() => import('./pages/join/ConfirmingPage').then((m) => m.ConfirmingPage)) },
       // Development only: the API behind it answers 404 unless DEBUG and the sandbox are on.

@@ -58,6 +58,7 @@ def test_beat_schedule_runs_purge_and_reminders(settings):
         "apps.events.tasks.send_due_reminders",
         "apps.feed.tasks.purge_expired_exports",
         "apps.memberships.tasks.run_lifecycle",
+        "apps.memberships.tasks.purge_old_usage",
         "apps.feed.tasks.purge_old_watermarks",
         "apps.contact.tasks.purge_old_messages",
         "apps.core.tasks.nightly_backup",

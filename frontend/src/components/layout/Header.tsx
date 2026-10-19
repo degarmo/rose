@@ -6,7 +6,7 @@ import { ButtonLink, GUTTER, Modal } from '../ui'
 import { AccountMenu } from './AccountMenu'
 import { useAuth } from './authContext'
 import { NavDropdown } from './NavDropdown'
-import { isGroup, NAV, type NavLinkItem } from './navigation'
+import { isGroup, JOIN_LINK, NAV, type NavLinkItem } from './navigation'
 import { QuickExit } from './QuickExit'
 import { Wordmark } from './Wordmark'
 
@@ -19,12 +19,6 @@ function MyFeedLink({ onNavigate, className }: { onNavigate?: () => void; classN
       My feed
     </NavLink>
   )
-}
-
-/** "Join" reads "Membership" for anyone who has, or has had, a membership. */
-function useJoinLabel() {
-  const auth = useAuth()
-  return auth.user?.has_membership ? 'Membership' : 'Join'
 }
 
 const NAV_LINK = 'inline-flex min-h-10 items-center text-sm font-medium transition-colors duration-150'
@@ -45,7 +39,6 @@ function MobileLink({ item, onNavigate }: { item: NavLinkItem; onNavigate: () =>
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const auth = useAuth()
   const { pathname } = useLocation()
-  const joinLabel = useJoinLabel()
   return (
     <Modal open={open} onClose={onClose} title="Menu" hideTitle variant="sheet">
       <nav aria-label="Main" className="flex min-h-full flex-col">
@@ -62,7 +55,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
                   ))}
                 </ul>
               </li>
-            ) : entry.to === '/join' ? null : (
+            ) : (
               <li key={entry.to} className="border-b border-border">
                 <MobileLink item={entry} onNavigate={onClose} />
               </li>
@@ -84,8 +77,8 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
           </div>
         )}
         <div className="mt-auto flex flex-col gap-3 pt-10">
-          <ButtonLink to="/join" size="lg" className="w-full">
-            {joinLabel}
+          <ButtonLink to={JOIN_LINK.to} size="lg" className="w-full">
+            {JOIN_LINK.label}
           </ButtonLink>
           <p className="text-[0.8125rem] text-fg-muted">Press Esc twice to leave quickly.</p>
         </div>
@@ -104,7 +97,6 @@ export const JOIN_STEPS_SLOT = 'join-steps'
 
 export function Header() {
   const { pathname } = useLocation()
-  const joinLabel = useJoinLabel()
   // The menu belongs to the page it was opened on, so any navigation closes it.
   const [menuPath, setMenuPath] = useState<string | null>(null)
 
@@ -140,7 +132,7 @@ export function Header() {
         <nav aria-label="Main" className="hidden flex-1 items-center gap-6 xl:flex">
           {NAV.map((entry) => {
             if (isGroup(entry)) return <NavDropdown key={entry.label} group={entry} />
-            if (entry.to === '/' || entry.to === '/join') return null
+            if (entry.to === '/') return null
             return (
               <NavLink key={entry.to} to={entry.to} className={({ isActive }) => cn(NAV_LINK, isActive ? 'text-link' : 'text-fg hover:text-link')}>
                 {entry.label}
@@ -151,9 +143,7 @@ export function Header() {
         <div className="hidden items-center gap-7 xl:flex">
           <MyFeedLink className="inline-flex min-h-10 items-center text-sm font-semibold text-link hover:text-primary-hover" />
           <AccountMenu />
-          <ButtonLink to="/join" className={cn(pathname.startsWith('/join') && 'bg-primary-hover')}>
-            {joinLabel}
-          </ButtonLink>
+          <ButtonLink to={JOIN_LINK.to}>{JOIN_LINK.label}</ButtonLink>
           <QuickExit />
         </div>
         <div className="ml-auto flex items-center gap-2 xl:hidden">

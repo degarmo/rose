@@ -1,0 +1,156 @@
+[
+  {
+    "name": "membership-logged-out-phone",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "order": [
+      "Community",
+      "First Fridays",
+      "Limited",
+      "Trial",
+      "Limited +",
+      "Rose",
+      "Rose +"
+    ],
+    "perRow": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "equalHeights": true,
+    "cardsMatchJoin": true,
+    "compareStacksOnPhone": true
+  },
+  {
+    "name": "header-menu-open-phone",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "membershipInMenu": true,
+    "journalInMenu": 0
+  },
+  {
+    "name": "membership-limited-0-left-phone",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "order": [
+      "Community",
+      "First Fridays",
+      "Limited",
+      "Trial",
+      "Limited +",
+      "Rose",
+      "Rose +"
+    ],
+    "perRow": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "equalHeights": true,
+    "cardsMatchJoin": true,
+    "compareStacksOnPhone": true,
+    "banner": "Your plan: LimitedRenews November 13, 2026 · 0 events left this monthManage"
+  },
+  {
+    "name": "join-free-agreement-phone",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0
+  },
+  {
+    "name": "join-free-code-phone",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "noPaymentStep": true,
+    "nothingToPay": true
+  },
+  {
+    "name": "membership-logged-out-desktop",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "order": [
+      "Community",
+      "First Fridays",
+      "Limited",
+      "Trial",
+      "Limited +",
+      "Rose",
+      "Rose +"
+    ],
+    "perRow": [
+      4,
+      3
+    ],
+    "equalHeights": true,
+    "cardsMatchJoin": true,
+    "compareStacksOnPhone": true
+  },
+  {
+    "name": "header-desktop",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "membershipInNav": true,
+    "journalInNav": 0
+  },
+  {
+    "name": "membership-limited-0-left-desktop",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "order": [
+      "Community",
+      "First Fridays",
+      "Limited",
+      "Trial",
+      "Limited +",
+      "Rose",
+      "Rose +"
+    ],
+    "perRow": [
+      4,
+      3
+    ],
+    "equalHeights": true,
+    "cardsMatchJoin": true,
+    "compareStacksOnPhone": true,
+    "banner": "Your plan: LimitedRenews November 13, 2026 · 0 events left this monthManage"
+  },
+  {
+    "name": "join-free-agreement-desktop",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0
+  },
+  {
+    "name": "join-free-code-desktop",
+    "noOverflow": true,
+    "websiteDesign": true,
+    "leaveVisible": true,
+    "consoleErrors": 0,
+    "noPaymentStep": true,
+    "nothingToPay": true
+  }
+]

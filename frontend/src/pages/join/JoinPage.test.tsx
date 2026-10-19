@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { agreement, makeMembership, makeTier } from '@/test/membership'
 import { renderWithProviders, unverifiedUser, verifiedUser } from '@/test/render'
@@ -210,6 +211,46 @@ describe('JoinPage', () => {
   it('reassures after a cancelled checkout', async () => {
     renderWithProviders(<JoinPage />, { user: verifiedUser, path: '/join?cancelled=1' })
     expect(await screen.findByText(/nothing was charged/)).toBeInTheDocument()
+  })
+
+  it('features the highlighted tier', async () => {
+    api.tiers.mockResolvedValue([makeTier(), makeTier({ slug: 'rose', name: 'Rose', price_cents: 4000, is_featured: true })])
+    renderWithProviders(<JoinPage />, { user: verifiedUser })
+    expect(await screen.findByText('Most popular')).toBeInTheDocument()
+    // Phones start with the featured tier picked.
+    expect(screen.getByRole('radio', { name: /Rose/ })).toBeChecked()
+  })
+
+  it('sends a signed-out visitor who chose a tier to create an account first', async () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/join" element={<JoinPage />} />
+        <Route path="/account/register" element={<p>Create your account</p>} />
+      </Routes>,
+      { path: '/join?tier=monthly' },
+    )
+    expect(await screen.findByText('Create your account')).toBeInTheDocument()
+  })
+
+  it('takes a free tier from the agreement straight to the code, with no payment step', async () => {
+    const community = makeTier({ slug: 'community', name: 'Community', price_cents: 0, is_free: true })
+    api.tiers.mockResolvedValue([community])
+    api.join.mockResolvedValue({
+      membership: makeMembership({ tier: community, paid_awaiting_id_check: true, status_label: 'Waiting for ID check', code_expires_at: null }),
+      entitlements: [],
+      redirect_url: null,
+    })
+    renderWithProviders(<JoinPage />, { user: verifiedUser, path: '/join?tier=community' })
+    expect(await screen.findByText(/Community · Free/)).toBeInTheDocument()
+    scrollToEnd()
+    await userEvent.click(screen.getByLabelText('I have read the agreement and I agree to it.'))
+    await userEvent.type(screen.getByLabelText(/Type your full name to sign/), 'Sam Realname')
+    await userEvent.click(screen.getByRole('button', { name: 'Agree and get my code' }))
+    expect(await screen.findByText("You're in")).toBeInTheDocument()
+    expect(api.join).toHaveBeenCalledWith({ tier: 'community', agreement_version: 3, typed_name: 'Sam Realname', method: undefined })
+    expect(screen.queryByRole('heading', { name: 'How would you like to pay?' })).not.toBeInTheDocument()
+    expect(screen.getByText(/There is nothing to pay/)).toBeInTheDocument()
+    expect(screen.queryByText(/Your payment/)).not.toBeInTheDocument()
   })
 
   it('shows an error with retry when options fail to load', async () => {

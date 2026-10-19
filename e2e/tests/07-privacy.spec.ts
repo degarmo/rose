@@ -9,6 +9,7 @@ const PUBLIC_ROUTES = [
   '/journal',
   '/visit',
   '/contact',
+  '/membership',
   '/join',
   '/privacy',
   '/about/staff',

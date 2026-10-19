@@ -81,13 +81,30 @@ in the admin: the **Staff guide** link at the bottom of the public site (shown o
 3. Choose the action:
    - **Record payment and activate**: pick cash or card, check the amount, tick
      **Photo ID checked, 18+** if asked, and press the button.
-   - **Activate** (when they already paid online): tick the ID box and press it.
+   - **Activate** (when they already paid online, or chose a free plan such as Community
+     or First Fridays: there is nothing to take): tick the ID box and press it.
+   - **Check in tonight** (a member at tonight's members-only event without an RSVP):
+     choose the event and whether they bring a guest. It follows their plan: it uses one of
+     the month's events and is refused if the plan does not include the event or the month
+     is used up.
    - **Renew**: for someone whose membership is running out or has lapsed.
    - **Complimentary membership**: needs a short reason.
    - **Suspend** or **Reinstate**: needs a short reason.
    - **Refund**: in the payments list, type the amount and press Refund.
-4. **Show signature name** reveals the full name someone typed when they signed
+4. Each card shows the plan's rules: **Events this month** (how many are left, or
+   "Unlimited"), how many guests come free per event, and **Guest discount** when their
+   guests pay the lower price.
+5. **Show signature name** reveals the full name someone typed when they signed
    the agreement. Only use it when you truly need it; every use is recorded.
+
+### Event tags and plan rules
+
+Some plans only reach some members-only events (Community: events tagged **Community**;
+First Fridays: events tagged **First Friday**). Tag an event under **RSVP > Access tags**
+when you create it. **Guest allowance** on an event lets members bring extra guests beyond
+what their plan includes. A plan's price, events per month, guests, guest discount, premium
+Discord, member community and tags are under **Memberships > Tiers**; the membership page
+shows them straight away.
 
 ### Guests at the door
 

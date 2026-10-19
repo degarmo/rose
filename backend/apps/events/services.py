@@ -1,7 +1,8 @@
 """RSVP capacity rules. Every change locks the event row first.
 
 `select_for_update` on the Event serialises all RSVP writes for one event, so
-two people racing for the last place cannot both get it.
+two people racing for the last place cannot both get it. Every status change
+then goes through `usage.sync`, which keeps the member's monthly count right.
 """
 
 from dataclasses import dataclass, field
@@ -10,8 +11,16 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.memberships import usage
+
 from . import tasks
-from .access import can_rsvp
+from .access import (
+    MONTHLY_LIMIT_REACHED,
+    PARTY_SIZE_EXCEEDS_TIER,
+    TIER_EVENT_NOT_INCLUDED,
+    can_rsvp,
+    plan_has_room,
+)
 from .models import RSVP, Event
 
 
@@ -33,6 +42,9 @@ MESSAGES = {
     "party_size": "Choose a party size this event allows.",
     "full": "This event is full.",
     "no_room_for_change": "There is not enough space to change your party size.",
+    TIER_EVENT_NOT_INCLUDED: "Your membership does not include this event.",
+    MONTHLY_LIMIT_REACHED: "You have used this month's events on your membership.",
+    PARTY_SIZE_EXCEEDS_TIER: "Your membership does not include that many guests here.",
 }
 
 
@@ -48,16 +60,25 @@ def _fits(event, party_size, exclude_pk=None):
 
 
 def _promote_waitlist(event):
-    """Move waitlisted RSVPs to going, oldest first, skipping any that do not fit."""
+    """Move waitlisted RSVPs to going, oldest first, skipping any that do not fit.
+
+    A member whose month has filled up since joining the waitlist stays on it.
+    """
     promoted = []
-    for waiting in event.rsvps.filter(status=RSVP.Status.WAITLIST).order_by(
-        "waitlisted_at", "created_at"
+    for waiting in (
+        event.rsvps.filter(status=RSVP.Status.WAITLIST)
+        .select_related("user")
+        .order_by("waitlisted_at", "created_at")
     ):
-        if _fits(event, waiting.party_size):
-            waiting.status = RSVP.Status.GOING
-            waiting.waitlisted_at = None
-            waiting.save(update_fields=["status", "waitlisted_at", "updated_at"])
-            promoted.append(waiting)
+        if not _fits(event, waiting.party_size):
+            continue
+        if not plan_has_room(waiting.user, event):
+            continue
+        waiting.status = RSVP.Status.GOING
+        waiting.waitlisted_at = None
+        waiting.save(update_fields=["status", "waitlisted_at", "updated_at"])
+        usage.sync(waiting)
+        promoted.append(waiting)
     return promoted
 
 
@@ -71,9 +92,10 @@ def _email_after_commit(rsvp_ids_by_kind):
 
 
 def submit_rsvp(user, event, party_size, note=""):
-    allowed, reason = can_rsvp(user, event)
+    mine = RSVP.objects.filter(event=event, user=user).first()
+    allowed, reason = can_rsvp(user, event, party_size=party_size, mine=mine)
     if not allowed:
-        raise RSVPError(reason, "RSVPs are not available for this event.")
+        raise RSVPError(reason, MESSAGES.get(reason, "RSVPs are not available for this event."))
     if not 1 <= party_size <= event.max_party_size:
         raise RSVPError("party_size", MESSAGES["party_size"])
 
@@ -116,6 +138,7 @@ def submit_rsvp(user, event, party_size, note=""):
         rsvp.checked_in = False
         rsvp.reminder_sent_at = None
         rsvp.save()
+        usage.sync(rsvp)
 
         kind = "confirmation" if status == RSVP.Status.GOING else "waitlist"
         _email_after_commit({kind: [rsvp.pk]})
@@ -133,6 +156,7 @@ def cancel_rsvp(rsvp, notify_owner=True):
         rsvp.waitlisted_at = None
         rsvp.checked_in = False
         rsvp.save(update_fields=["status", "waitlisted_at", "checked_in", "updated_at"])
+        usage.sync(rsvp)
         promoted = _promote_waitlist(event)
         _email_after_commit(
             {

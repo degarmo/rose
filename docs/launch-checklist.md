@@ -18,8 +18,9 @@ has an owner; replace `[owner]` with a name before starting.
         General Rules and the Membership Terms. Owner: [owner]
   - [ ] `faq.yaml`. Owner: [owner]
   - [ ] `guests.yaml`. Owner: [owner]
-  - [ ] `membership.yaml`: tier prices, the Limited plans' one-event rule, and the refund
-        policy (the old plan pages and the Membership Terms disagree). Owner: [owner]
+  - [ ] `membership.yaml`: the seven tiers and the membership page copy, including the
+        Limited plans' one-event rule and the refund policy (the old plan pages and the
+        Membership Terms disagree). The checks below come from it. Owner: [owner]
   - [ ] `education.yaml` and `events.yaml`. Owner: [owner]
   - [ ] `rentals.yaml`: what is included, and rates if any are to be published.
         Owner: [owner]
@@ -49,8 +50,21 @@ has an owner; replace `[owner]` with a name before starting.
 
 ## Membership and payments
 
-- [ ] **Tier names and prices** (replace the placeholder tiers; set descriptions
-      and benefits). Owner: [owner]
+- [ ] **Tier prices confirmed.** The old membership page shows doubled digits (such as
+      "$4040"), so the drafted prices are inferred: Community $0, First Fridays $0, Limited
+      $20 a month, Trial $20 for two weeks, Limited + $35 a month, Rose $40 a month, Rose +
+      $55 a month. Owner: [owner]
+- [ ] **Tier rules confirmed**: events per month (Limited, Limited + and First Fridays: 1;
+      Rose, Rose + and Trial: unlimited), guests included (Limited + and Rose +: 1), premium
+      Discord, and that Community and First Fridays reach only events tagged Community and
+      First Friday. Owner: [owner]
+- [ ] **Member community (feed) access per tier** confirmed. Drafted: on for Rose, Limited,
+      Rose +, Limited + and Trial; off for Community and First Fridays. Owner: [owner]
+- [ ] **Refund and cancellation wording** on the membership page confirmed: cancel any time
+      by emailing management or through the Discord ticket feature; a full refund if
+      cancelled before 9 pm on the night of the first event. Owner: [owner]
+- [ ] **Guest discount amounts** decided for Rose and Rose + (the site says only that their
+      guests pay a discounted price), and the Guests page updated to match. Owner: [owner]
 - [ ] **Membership agreement** text approved by the board and published.
       Owner: [owner]
 - [ ] **Payment processor decision**: in person only for launch, or which online

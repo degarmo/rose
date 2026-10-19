@@ -6,11 +6,13 @@ from datetime import timedelta
 from django.conf import settings
 from rest_framework import serializers
 
+from .access import events_remaining
 from .models import Membership, MembershipAgreement, Payment, Tier, has_id_check
 
 
 class TierSerializer(serializers.ModelSerializer):
     interval_label = serializers.CharField(source="get_interval_display")
+    allowed_event_tags = serializers.SerializerMethodField()
 
     class Meta:
         model = Tier
@@ -18,18 +20,32 @@ class TierSerializer(serializers.ModelSerializer):
             "slug",
             "name",
             "description",
-            "benefits",
+            "perks",
             "price_cents",
             "currency",
+            "is_free",
             "interval",
             "interval_label",
             "duration_days",
+            "renews",
+            "events_per_month",
+            "guests_included_per_event",
+            "guest_discount",
+            "premium_discord",
+            "event_access",
+            "allowed_event_tags",
             "grants_feed_access",
             "grants_members_events",
             "grants_members_education",
+            "is_featured",
             "is_guest_pass",
             "is_placeholder",
         ]
+
+    def get_allowed_event_tags(self, obj):
+        if obj.event_access != Tier.EventAccess.TAGGED:
+            return []
+        return [{"slug": tag.slug, "name": tag.name} for tag in obj.allowed_event_tags.all()]
 
 
 class AgreementSerializer(serializers.ModelSerializer):
@@ -60,7 +76,8 @@ class MyMembershipSerializer(serializers.ModelSerializer):
 
     self_only = True
     tier = TierSerializer()
-    status_label = serializers.CharField(source="get_status_display")
+    status_label = serializers.SerializerMethodField()
+    events_remaining_this_month = serializers.SerializerMethodField()
     online = serializers.SerializerMethodField()
     id_checked = serializers.SerializerMethodField()
     last_payment_failed = serializers.SerializerMethodField()
@@ -85,8 +102,20 @@ class MyMembershipSerializer(serializers.ModelSerializer):
             "last_payment_failed",
             "code_expires_at",
             "payments",
+            "events_remaining_this_month",
             "created_at",
         ]
+
+    def get_status_label(self, obj):
+        if obj.status == Membership.Status.PENDING_PAYMENT and obj.paid_awaiting_id_check:
+            return "Waiting for ID check"
+        return obj.get_status_display()
+
+    def get_events_remaining_this_month(self, obj):
+        """The member's own figure: members-only events left this month. None is unlimited."""
+        if not obj.is_entitled:
+            return None
+        return events_remaining(obj)
 
     def get_online(self, obj):
         return obj.source == Membership.Source.PROVIDER and bool(obj.provider_subscription_ref)
@@ -99,8 +128,11 @@ class MyMembershipSerializer(serializers.ModelSerializer):
         return latest is not None and latest.status == Payment.Status.FAILED
 
     def get_code_expires_at(self, obj):
-        """When an unpaid reference code lapses (the daily lifecycle expires it)."""
-        if obj.status != Membership.Status.PENDING_PAYMENT or obj.paid_awaiting_id_check:
+        """When an unused reference code lapses (the daily lifecycle expires it): an unpaid
+        one, or a free tier's still waiting for its ID check."""
+        if obj.status != Membership.Status.PENDING_PAYMENT:
+            return None
+        if obj.paid_awaiting_id_check and not obj.tier.is_free:
             return None
         return obj.created_at + timedelta(days=settings.MEMBERSHIP_PENDING_EXPIRY_DAYS)
 
@@ -112,7 +144,8 @@ class JoinSerializer(serializers.Serializer):
     tier = serializers.SlugField()
     agreement_version = serializers.IntegerField()
     typed_name = serializers.CharField(max_length=200, write_only=True)
-    method = serializers.CharField(max_length=40)
+    # Not needed for a free tier.
+    method = serializers.CharField(max_length=40, required=False, allow_blank=True)
 
 
 def receipt_payload(payment):

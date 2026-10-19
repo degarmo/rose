@@ -10,13 +10,13 @@ describe('PaywallPanel', () => {
     renderWithProviders(<PaywallPanel {...props} />, { path: '/education/advanced-lab' })
     expect(screen.getByRole('heading', { level: 3, name: 'For members' })).toBeInTheDocument()
     expect(screen.getByText(props.benefit)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute('href', '/join')
+    expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute('href', '/membership')
     expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/account/login?next=%2Feducation%2Fadvanced-lab')
   })
 
   it('offers membership to signed-in people without one', () => {
     renderWithProviders(<PaywallPanel {...props} tiers={['Monthly', 'Annual']} />, { user: verifiedUser })
-    expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute('href', '/join')
+    expect(screen.getByRole('link', { name: 'Join' })).toHaveAttribute('href', '/membership')
     expect(screen.getByText('Included with Monthly and Annual memberships.')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument()
   })

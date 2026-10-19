@@ -113,7 +113,7 @@ export function HomePage() {
               <ButtonLink to="/visit" size="lg">
                 Plan a Visit
               </ButtonLink>
-              <ButtonLink to="/join" size="lg" variant="secondary">
+              <ButtonLink to="/membership" size="lg" variant="secondary">
                 Become a Member
               </ButtonLink>
             </div>

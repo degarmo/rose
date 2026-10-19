@@ -16,7 +16,7 @@ file starts with a status and the source pages it was drafted from:
     social_links: [{label: Discord, url: https://...}]
     faqs: [{slug: parking, question: ..., answer: ...}]
     staff: [{slug: venus, display_name: Venus, role_title: ..., bio: ...}]
-    tiers: [{slug: monthly, name: ..., price_cents: 4000}]   # price only if given
+    tiers: [{slug: rose, name: ..., price_cents: 4000, allowed_event_tags: [community]}]
     redirects: [{from: /old-path, to: /new-path}]
 
 Loading is idempotent: rows are matched on slug (or page and key, or old path)
@@ -33,6 +33,7 @@ from django.db import transaction
 
 from apps.core.models import AuditLog, audit
 from apps.core.text import sanitize_rich_text
+from apps.events.models import EventTag
 from apps.memberships.models import Tier
 
 from .models import FAQItem, PageContent, Redirect, SiteSettings, SocialLink, StaffProfile
@@ -53,13 +54,20 @@ SITE_SETTINGS_FIELDS = {
 TIER_FIELDS = {
     "name",
     "description",
-    "benefits",
+    "perks",
     "price_cents",
     "interval",
     "duration_days",
+    "renews",
+    "events_per_month",
+    "guests_included_per_event",
+    "guest_discount",
+    "premium_discord",
+    "event_access",
     "grants_feed_access",
     "grants_members_events",
     "grants_members_education",
+    "is_featured",
     "is_guest_pass",
     "is_active",
     "sort_order",
@@ -285,7 +293,7 @@ def apply_file(content, report):
     for item in data.get("tiers", []):
         _require(name, item, ("slug",))
         values = {k: v for k, v in item.items() if k in TIER_FIELDS}
-        unknown = set(item) - TIER_FIELDS - {"slug"}
+        unknown = set(item) - TIER_FIELDS - {"slug", "allowed_event_tags"}
         if unknown:
             raise ContentError(f"{name}: tier {item['slug']} has unknown fields {sorted(unknown)}.")
         tier = Tier.objects.filter(slug=item["slug"]).first()
@@ -295,6 +303,15 @@ def apply_file(content, report):
                 "an interval and a price."
             )
         _upsert(report, name, Tier, {"slug": item["slug"]}, values)
+        if "allowed_event_tags" in item:
+            slugs = [str(slug) for slug in item["allowed_event_tags"] or []]
+            tags = list(EventTag.objects.filter(slug__in=slugs))
+            missing = sorted(set(slugs) - {tag.slug for tag in tags})
+            if missing:
+                raise ContentError(
+                    f"{name}: tier {item['slug']} names unknown event tags {missing}."
+                )
+            Tier.objects.get(slug=item["slug"]).allowed_event_tags.set(tags)
 
     for item in data.get("redirects", []):
         _require(name, item, ("from", "to"))

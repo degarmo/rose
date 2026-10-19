@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router'
 import { cn } from '@/lib/cn'
 import { GUTTER } from '../ui'
 import { useAuth } from './authContext'
+import { FOOTER_LINKS } from './navigation'
 import { QuickExit } from './QuickExit'
 import { useSiteSettings } from './siteSettingsContext'
 import { SubscribeForm } from './SubscribeForm'
@@ -16,11 +17,17 @@ function oneLine(text: string) {
     .join(' ')
 }
 
-function PrivacyLinks() {
+/** Membership, Journal and Privacy, then the staff guide for staff. */
+function FooterLinks() {
   const auth = useAuth()
   const staffGuide = auth.user?.staff_guide_url
   return (
     <>
+      {FOOTER_LINKS.map((link) => (
+        <Link key={link.to} to={link.to} className="text-fg-muted hover:text-fg">
+          {link.label}
+        </Link>
+      ))}
       <Link to="/privacy" className="text-fg-muted hover:text-fg">
         Privacy
       </Link>
@@ -36,9 +43,9 @@ function PrivacyLinks() {
 
 /**
  * The website footer. The home page has the full one (design "Home"): the wordmark,
- * address and email, the email list sign-up, then Privacy and Leave. Every other page has
- * the single row from the inner-page designs (Events, Contact): address and email, then
- * Privacy and Leave.
+ * address and email, the email list sign-up, then the footer links and Leave. Every other
+ * page has the single row from the inner-page designs (Events, Contact): address and email,
+ * then the footer links (Membership, Journal, Privacy) and Leave.
  */
 export function Footer() {
   const { pathname } = useLocation()
@@ -72,8 +79,8 @@ export function Footer() {
         <div className={cn('mx-auto flex max-w-[1440px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between', GUTTER)}>
           <p className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:gap-x-1.5">{contact}</p>
           <div className="flex items-center justify-between gap-5 lg:justify-end">
-            <div className="flex gap-5">
-              <PrivacyLinks />
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              <FooterLinks />
             </div>
             <QuickExit />
           </div>
@@ -104,8 +111,8 @@ export function Footer() {
         </div>
         <SubscribeForm />
         <div className="flex items-center justify-between gap-5 lg:justify-end">
-          <div className="flex gap-5">
-            <PrivacyLinks />
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <FooterLinks />
           </div>
           <QuickExit />
         </div>

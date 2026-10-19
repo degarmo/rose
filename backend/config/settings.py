@@ -447,6 +447,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.memberships.tasks.run_lifecycle",
         "schedule": crontab(hour=6, minute=0),
     },
+    "purge-membership-usage": {
+        "task": "apps.memberships.tasks.purge_old_usage",
+        "schedule": crontab(hour=6, minute=30),
+    },
     "send-scheduled-newsletters": {
         "task": "apps.newsletter.tasks.send_scheduled_newsletters",
         "schedule": 5 * 60,

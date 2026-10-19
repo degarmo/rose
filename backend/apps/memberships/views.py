@@ -78,7 +78,7 @@ class JoinView(CsrfProtectedAPIView):
                 data["tier"],
                 data["agreement_version"],
                 data["typed_name"],
-                data["method"],
+                data.get("method", ""),
             )
         except join.JoinError as exc:
             return Response({"detail": exc.message, "code": exc.code}, status=exc.status)

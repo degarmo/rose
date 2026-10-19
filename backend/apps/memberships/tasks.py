@@ -1,11 +1,17 @@
 from celery import shared_task
 
-from . import lifecycle
+from . import lifecycle, usage
 
 
 @shared_task
 def run_lifecycle():
     return lifecycle.run()
+
+
+@shared_task
+def purge_old_usage():
+    """Monthly event counts are kept for 13 months, then deleted."""
+    return usage.purge_old()
 
 
 @shared_task

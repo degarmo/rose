@@ -47,7 +47,7 @@ export function PaywallPanel({ title, benefit, tiers = [], size = 'sm', headingL
   } else {
     actions = (
       <>
-        <ButtonLink to="/join" size={buttonSize}>
+        <ButtonLink to="/membership" size={buttonSize}>
           Join
         </ButtonLink>
         {!auth.user && (

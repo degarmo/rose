@@ -1,0 +1,25 @@
+status: placeholder - development only
+source_url: []
+page: membership
+copy:
+  hero:
+    title: Find the membership that fits.
+    lede: Monthly plans renew each month, and you can cancel any time.
+  compare:
+    title: Compare plans
+  good_to_know:
+    title: Good to know
+    1:
+      rich: <p>Cancel any time by emailing us, or through the ticket feature on our Discord.</p>
+    2:
+      rich: <p>If you cancel before 9 pm on the night of your first event, you get a full refund.</p>
+    3:
+      rich: <p>Bring a photo ID showing you are 18 or older to your first visit.</p>
+    4:
+      rich: <p>Bringing someone? Guest prices are on the <a href="/guests">Guests page</a>.</p>
+  tip: Use an email address that doesn't include your legal name.
+  cta:
+    title: Ready for a first visit?
+    body: Here is what an evening looks like, from the door to the last hour.
+    button: Plan your visit
+  newsletter: Occasional news, never more than monthly.

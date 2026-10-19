@@ -23,7 +23,7 @@ test.describe('Membership', () => {
 
     // Choose, read and sign the agreement, pay at the door.
     // Desktop has a button per tier card; phones pick from a list, then "Continue with …".
-    await member.getByRole('button', { name: /^(Choose|Continue with) Monthly$/ }).filter({ visible: true }).click()
+    await member.getByRole('button', { name: /^(Choose|Continue with) Rose$/ }).filter({ visible: true }).click()
     const agreement = member.getByRole('region', { name: 'Agreement text' })
     await agreement.evaluate((element) => element.scrollTo(0, element.scrollHeight))
     await expect(member.getByText('You have reached the end.')).toBeAttached()

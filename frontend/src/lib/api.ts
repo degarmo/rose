@@ -320,6 +320,8 @@ export type RSVPStateName =
   | 'members_only'
   | 'not_open_yet'
   | 'unavailable'
+  | 'tier_event_not_included'
+  | 'monthly_limit_reached'
   | 'going'
   | 'waitlisted'
 
@@ -331,6 +333,9 @@ export type RSVPReason =
   | 'members_only'
   | 'not_open_yet'
   | 'unavailable'
+  | 'tier_event_not_included'
+  | 'monthly_limit_reached'
+  | 'party_size_exceeds_tier'
 
 export interface MyRSVP {
   status: 'going' | 'waitlist'
@@ -345,6 +350,10 @@ export interface RSVPState {
   opens_at: string | null
   closes_at: string
   max_party_size: number
+  /** Members-only events: the largest party your membership allows here (null: no plan applies). */
+  plan_party_limit: number | null
+  /** Members-only events: your own events left in the event's month (null: unlimited or no plan). */
+  events_remaining: number | null
   mine: MyRSVP | null
 }
 

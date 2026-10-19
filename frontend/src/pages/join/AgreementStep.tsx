@@ -10,6 +10,9 @@ interface AgreementStepProps {
   agreement: Agreement
   tier: Tier
   notice?: string
+  /** True while signing finishes the join (a free tier has no payment step). */
+  busy?: boolean
+  submitLabel?: string
   onBack: () => void
   onSigned: (typedName: string) => void
 }
@@ -18,7 +21,7 @@ interface AgreementStepProps {
  * Join step 2 (design: "Join step 2"): read to the end, tick the box, type a full name.
  * Only staff ever see that name.
  */
-export function AgreementStep({ agreement, tier, notice, onBack, onSigned }: AgreementStepProps) {
+export function AgreementStep({ agreement, tier, notice, busy = false, submitLabel = 'Agree and continue', onBack, onSigned }: AgreementStepProps) {
   const [read, setRead] = useState(false)
   const [agreed, setAgreed] = useState(false)
   const [name, setName] = useState('')
@@ -138,10 +141,10 @@ export function AgreementStep({ agreement, tier, notice, onBack, onSigned }: Agr
         </div>
 
         <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <Button type="submit" size="lg" disabled={!ready}>
-            Agree and continue
+          <Button type="submit" size="lg" disabled={!ready || busy} aria-busy={busy}>
+            {busy ? 'Working' : submitLabel}
           </Button>
-          <button type="button" onClick={onBack} className={cn(BACK_BUTTON, 'self-center sm:self-auto')}>
+          <button type="button" onClick={onBack} disabled={busy} className={cn(BACK_BUTTON, 'self-center sm:self-auto')}>
             Back
           </button>
         </div>

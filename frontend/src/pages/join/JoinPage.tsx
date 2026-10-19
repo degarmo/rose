@@ -1,17 +1,19 @@
-import { Check } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, Navigate, useSearchParams } from 'react-router'
 import { Copy, CopyHeading, CopySkeleton } from '@/components/content/Copy'
 import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
+import { TierCard } from '@/components/membership/TierCard'
 import { Button, ButtonLink, useToast } from '@/components/ui'
 import { ApiError } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { formatMoney } from '@/lib/format'
 import {
+  billingLabel,
   goTo,
   isOpen,
   membershipApi,
+  membershipTiers,
   type JoinOptions,
   type MyMembership,
   type PaymentMethod,
@@ -22,7 +24,7 @@ import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { AgreementStep } from './AgreementStep'
 import { JoinConfirmation } from './JoinConfirmation'
-import { BACK_BUTTON, JOIN_FRAME, perLabel } from './joinParts'
+import { BACK_BUTTON, JOIN_FRAME } from './joinParts'
 import { JoinProgress, JoinSteps, TierSummary } from './JoinSteps'
 
 type Step =
@@ -39,46 +41,33 @@ function registerFor(tier: Tier) {
 }
 
 function ChooseButton({ tier, access, onChoose, className }: { tier: Tier; access: Access; onChoose: (tier: Tier) => void; className?: string }) {
+  const variant = tier.is_featured ? 'primary' : 'outline'
   if (access === 'anonymous') {
     return (
-      <ButtonLink to={registerFor(tier)} size="lg" variant="outline" className={className}>
+      <ButtonLink to={registerFor(tier)} size="lg" variant={variant} className={className}>
         Choose {tier.name}
       </ButtonLink>
     )
   }
   return (
-    <Button size="lg" variant="outline" className={className} disabled={access !== 'verified'} onClick={() => onChoose(tier)}>
+    <Button size="lg" variant={variant} className={className} disabled={access !== 'verified'} onClick={() => onChoose(tier)}>
       Choose {tier.name}
     </Button>
   )
 }
 
-/** Desktop tiers (design: "Join step 1 · desktop"): 320px cards, 20px corners, price in Fraunces 44. */
+/** Desktop tiers (design: "Join step 1 · desktop"): 320px cards, the featured one highlighted. */
 function TierCards({ tiers, access, onChoose }: { tiers: Tier[]; access: Access; onChoose: (tier: Tier) => void }) {
   return (
-    <ul className="hidden flex-wrap justify-center gap-6 lg:flex">
+    <ul className="hidden flex-wrap justify-center gap-6 pt-3 lg:flex">
       {tiers.map((tier) => (
-        <li key={tier.slug} className="flex w-[320px] flex-col gap-3 rounded-panel border-[1.5px] border-border bg-canvas p-8">
-          <h2 className="text-[1.625rem] leading-[1.2] text-fg">{tier.name}</h2>
-          <p className="flex items-baseline gap-1">
-            <span className="font-display text-[2.75rem] leading-none text-fg">{formatMoney(tier.price_cents, tier.currency)}</span>
-            <span className="text-fg-muted">{perLabel(tier)}</span>
-          </p>
-          <div className="flex flex-1 flex-col gap-3 text-sm text-fg-muted">
-            {tier.description && <p>{tier.description}</p>}
-            {tier.benefits.length > 0 && (
-              <ul className="flex flex-col gap-1.5">
-                {tier.benefits.map((benefit) => (
-                  <li key={benefit} className="flex gap-2">
-                    <Check aria-hidden="true" className="mt-[3px] size-4 shrink-0 text-link" />
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <ChooseButton tier={tier} access={access} onChoose={onChoose} className="mt-3 w-full" />
-        </li>
+        <TierCard
+          key={tier.slug}
+          tier={tier}
+          tag={tier.is_featured ? { label: 'Most popular', tone: 'featured' } : undefined}
+          action={<ChooseButton tier={tier} access={access} onChoose={onChoose} className="w-full" />}
+          className="w-[320px]"
+        />
       ))}
     </ul>
   )
@@ -86,7 +75,7 @@ function TierCards({ tiers, access, onChoose }: { tiers: Tier[]; access: Access;
 
 /** Phone tiers (design: "Join step 1 · phone"): compact rows to pick from, then "Continue with …". */
 function TierRows({ tiers, access, onChoose }: { tiers: Tier[]; access: Access; onChoose: (tier: Tier) => void }) {
-  const [picked, setPicked] = useState(tiers[0]?.slug)
+  const [picked, setPicked] = useState((tiers.find((t) => t.is_featured) ?? tiers[0])?.slug)
   const tier = tiers.find((t) => t.slug === picked) ?? tiers[0]
   return (
     <div className="flex flex-col gap-4 lg:hidden">
@@ -109,7 +98,7 @@ function TierRows({ tiers, access, onChoose }: { tiers: Tier[]; access: Access; 
               </span>
               <span className="flex flex-col items-end text-right">
                 <span className="font-display text-[1.75rem] leading-none text-fg">{formatMoney(option.price_cents, option.currency)}</span>
-                <span className="mt-1 text-xs text-fg-muted">{perLabel(option)}</span>
+                <span className="mt-1 text-xs text-fg-muted">{billingLabel(option)}</span>
               </span>
             </label>
           )
@@ -341,8 +330,10 @@ function JoinFlow({
       </div>
     )
   }
-  const membershipTiers = tiers.filter((tier) => !tier.is_guest_pass)
-  if (!agreement || (!guest && membershipTiers.length === 0)) {
+  const offered = membershipTiers(tiers)
+  // Chosen on the membership page while signed out: an account comes first.
+  if (preselected && !guest && access === 'anonymous') return <Navigate to={registerFor(preselected)} replace />
+  if (!agreement || (!guest && offered.length === 0)) {
     return (
       <div className={JOIN_FRAME}>
         <TierIntro copy={copy} />
@@ -356,7 +347,8 @@ function JoinFlow({
     )
   }
 
-  async function join(tier: Tier, typedName: string, method: string) {
+  /** A free tier has nothing to pay, so it has no method. */
+  async function join(tier: Tier, typedName: string, method?: string) {
     if (!agreement) return
     setBusy(true)
     try {
@@ -382,7 +374,7 @@ function JoinFlow({
   // Guest passes are paid at the door, never online.
   const methodsFor = (tier: Tier) => (tier.is_guest_pass ? options.methods.filter((m) => !m.online) : options.methods)
   const choose = (tier: Tier) => setStep({ name: 'agreement', tier })
-  const shown = guest ? [guest] : membershipTiers
+  const shown = guest ? [guest] : offered
 
   return (
     <div ref={top} className="scroll-mt-24">
@@ -418,7 +410,11 @@ function JoinFlow({
             tier={step.tier}
             notice={step.notice}
             onBack={() => setStep({ name: 'tiers' })}
-            onSigned={(typedName) => setStep({ name: 'method', tier: step.tier, typedName })}
+            busy={busy}
+            submitLabel={step.tier.is_free ? 'Agree and get my code' : undefined}
+            onSigned={(typedName) =>
+              step.tier.is_free ? void join(step.tier, typedName) : setStep({ name: 'method', tier: step.tier, typedName })
+            }
           />
         )}
         {step.name === 'method' && (

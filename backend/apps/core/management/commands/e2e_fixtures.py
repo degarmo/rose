@@ -2,7 +2,7 @@
 
     python manage.py e2e_fixtures [--json]
 
-Creates (or resets) a tier and agreement, a staff account with a known
+Creates (or resets) the tiers and agreement, a staff account with a known
 authenticator secret, feed members for each test viewport, events for
 the RSVP flows and a filled-in member app for the screenshot tests, then prints
 what the tests need as JSON. It refuses to run in
@@ -11,7 +11,7 @@ any other environment, so none of this can exist in staging or production.
 
 import base64
 import json
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
@@ -27,7 +27,8 @@ from apps.feed import services as feed_services
 from apps.feed.models import Announcement, FeedImage, FeedPost, Guidelines
 from apps.journal.models import Post as JournalPost
 from apps.journal.models import PostImage as JournalImage
-from apps.memberships.models import MembershipAgreement, Tier
+from apps.memberships.demo import upsert_tiers
+from apps.memberships.models import MembershipAgreement
 from apps.pages.management.commands.demo_media import sample_image
 from apps.pages.management.commands.seed_demo import DEMO_CONTENT_DIR
 from apps.pages.models import SiteSettings
@@ -77,31 +78,8 @@ class Command(BaseCommand):
         if settings.DJANGO_ENV != "e2e":
             raise CommandError("e2e_fixtures only runs with DJANGO_ENV=e2e.")
         now = timezone.now()
-        Tier.objects.update_or_create(
-            slug="e2e-monthly",
-            defaults={
-                "name": "Monthly",
-                "description": "Renews every month.",
-                "benefits": ["Members-only nights", "The member community"],
-                "price_cents": 2500,
-                "interval": Tier.Interval.MONTH,
-            },
-        )
-        Tier.objects.update_or_create(
-            slug="e2e-guest",
-            defaults={
-                "name": "Guest night pass",
-                "description": "One evening, paid at the door.",
-                "price_cents": 1500,
-                "interval": Tier.Interval.ONCE,
-                "duration_days": 1,
-                "grants_feed_access": False,
-                "grants_members_events": False,
-                "grants_members_education": False,
-                "is_guest_pass": True,
-                "sort_order": 90,
-            },
-        )
+        # The membership page's seven tiers and the door guest pass, as development has them.
+        upsert_tiers(placeholder=False)
         # The pages' words: the same placeholder copy development uses.
         load(read_files(DEMO_CONTENT_DIR), commit=True)
         site = SiteSettings.load()
@@ -149,20 +127,33 @@ class Command(BaseCommand):
                 people[role] = user.email
             events = {}
             starts = now + timedelta(days=5)
+            members = {"audience": Event.Audience.MEMBERS, "capacity": 40}
+            day = timezone.localtime(starts).date()
             for kind, extra in {
                 "open": {"capacity": 40},
                 "waitlist": {"capacity": 1, "waitlist_enabled": True, "max_party_size": 1},
-                "members": {"audience": Event.Audience.MEMBERS, "capacity": 40},
+                "members": members,
+                # Two members-only evenings on one day, so always in the same month:
+                # a one-event-a-month membership can RSVP to the first and not the second.
+                "members_early": {
+                    **members,
+                    "starts_at": timezone.make_aware(datetime.combine(day, time(18, 0))),
+                },
+                "members_late": {
+                    **members,
+                    "starts_at": timezone.make_aware(datetime.combine(day, time(21, 0))),
+                },
             }.items():
-                slug = f"e2e-{viewport}-{kind}"
+                slug = f"e2e-{viewport}-{kind.replace('_', '-')}"
+                begins = extra.pop("starts_at", starts)
                 Event.objects.filter(slug=slug).delete()
                 Event.objects.create(
                     slug=slug,
-                    title=f"Test evening ({kind})",
+                    title=f"Test evening ({kind.replace('_', ' ')})",
                     summary="An evening used by the automated tests.",
                     body="<p>An evening used by the automated tests.</p>",
-                    starts_at=starts,
-                    ends_at=starts + timedelta(hours=3),
+                    starts_at=begins,
+                    ends_at=begins + timedelta(hours=3),
                     is_published=True,
                     **extra,
                 )

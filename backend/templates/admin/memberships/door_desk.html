@@ -51,13 +51,17 @@
         <p class="desk-code">{{ m.reference_code }}</p>
         <h2>{% if m.user %}{{ m.user.display_name }}{% else %}Deleted account{% endif %}</h2>
       </div>
-      <p class="desk-status">{% if r.is_guest_pass %}Guest pass · {% endif %}{{ m.get_status_display }}{% if m.paid_awaiting_id_check %} · paid online, needs ID check{% endif %}</p>
+      <p class="desk-status">{% if r.is_guest_pass %}Guest pass · {% endif %}{{ m.get_status_display }}{% if m.paid_awaiting_id_check %} · {% if m.tier.is_free %}free{% else %}paid online{% endif %}, needs ID check{% endif %}</p>
     </header>
     <dl class="desk-facts">
       <div><dt>Tier</dt><dd>{{ m.tier.name }} ({{ r.default_amount }} {{ m.tier.currency }}, {{ m.tier.get_interval_display }})</dd></div>
       <div><dt>Period ends</dt><dd>{% if m.current_period_end %}{{ m.current_period_end|date:"M j, Y" }}{% else %}Not started{% endif %}</dd></div>
       <div><dt>ID check</dt><dd>{% if r.id_checked %}On file{% else %}<strong>None yet</strong>{% endif %}</dd></div>
       <div><dt>Source</dt><dd>{{ m.get_source_display }}</dd></div>
+      {% if not r.is_guest_pass %}
+      <div><dt>Events this month</dt><dd>{% if r.events_remaining is None %}Unlimited{% else %}{{ r.events_remaining }} left{% endif %}</dd></div>
+      <div><dt>Guests</dt><dd>{{ m.tier.guests_included_per_event }} included per event{% if m.tier.guest_discount %} · <strong>Guest discount</strong>{% endif %}</dd></div>
+      {% endif %}
     </dl>
 
     {% if r.signature_name %}
@@ -111,6 +115,18 @@
         <label>Note <input name="note" maxlength="300"></label>
         {% if not r.id_checked %}<label class="desk-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
         <button name="action" value="activate" class="desk-button primary">Record payment and activate</button>
+      </form>
+      {% endif %}
+
+      {% if tonight_events and m.status == "active" or tonight_events and m.status == "grace" %}
+      <form method="post" class="desk-form">{% csrf_token %}
+        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <h3>Check in tonight</h3>
+        <div class="desk-row">
+          <label>Event <select name="event">{% for event in tonight_events %}<option value="{{ event.pk }}">{{ event.title }} ({{ event.starts_at|time:"g:i A" }})</option>{% endfor %}</select></label>
+          <label>Party <select name="party_size"><option value="1">Just them</option><option value="2">With a guest</option></select></label>
+        </div>
+        <button name="action" value="walk_in" class="desk-button primary">Check in</button>
       </form>
       {% endif %}
 

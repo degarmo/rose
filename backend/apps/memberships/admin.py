@@ -19,6 +19,7 @@ from apps.core.models import AuditLog, audit
 from apps.donations.services import DonationError, record_desk_donation
 
 from . import desk
+from .access import events_remaining
 from .models import (
     AgreementSignature,
     IdCheck,
@@ -51,11 +52,11 @@ class ReadOnlyAdmin(admin.ModelAdmin):
 
 
 class TierForm(forms.ModelForm):
-    benefits_text = forms.CharField(
-        label="Benefits",
+    perks_text = forms.CharField(
+        label="Perks",
         required=False,
         widget=forms.Textarea(attrs={"rows": 4}),
-        help_text="One short line per benefit.",
+        help_text="One short line per perk, shown with a tick on the membership page.",
     )
 
     class Meta:
@@ -64,28 +65,41 @@ class TierForm(forms.ModelForm):
             "name",
             "slug",
             "description",
-            "benefits_text",
+            "perks_text",
             "price_cents",
             "interval",
             "duration_days",
+            "renews",
+            "events_per_month",
+            "guests_included_per_event",
+            "guest_discount",
+            "premium_discord",
+            "event_access",
+            "allowed_event_tags",
             "grants_feed_access",
             "grants_members_events",
             "grants_members_education",
             "is_guest_pass",
+            "is_featured",
             "is_active",
             "sort_order",
         ]
+        widgets = {"allowed_event_tags": forms.CheckboxSelectMultiple}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
-            self.fields["benefits_text"].initial = "\n".join(self.instance.benefits)
+            self.fields["perks_text"].initial = "\n".join(self.instance.perks)
 
     def clean(self):
         cleaned = super().clean()
-        self.instance.benefits = [
-            line.strip() for line in cleaned.get("benefits_text", "").splitlines() if line.strip()
+        self.instance.perks = [
+            line.strip() for line in cleaned.get("perks_text", "").splitlines() if line.strip()
         ]
+        if cleaned.get("event_access") == Tier.EventAccess.TAGGED and not cleaned.get(
+            "allowed_event_tags"
+        ):
+            self.add_error("allowed_event_tags", "Choose at least one tag for tagged access.")
         return cleaned
 
 
@@ -96,12 +110,15 @@ class TierAdmin(admin.ModelAdmin):
         "name",
         "price",
         "interval",
+        "events_per_month",
+        "grants_feed_access",
+        "is_featured",
         "is_guest_pass",
         "is_active",
         "is_placeholder",
         "sort_order",
     )
-    list_filter = ("is_active", "interval", "is_guest_pass")
+    list_filter = ("is_active", "interval", "is_guest_pass", "is_free")
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("is_placeholder",)
 
@@ -305,6 +322,7 @@ class MembershipAdmin(admin.ModelAdmin):
             results.append(
                 {
                     "membership": membership,
+                    "events_remaining": events_remaining(membership),
                     "is_guest_pass": membership.tier.is_guest_pass,
                     "id_checked": has_id_check(membership.user) if membership.user else False,
                     "payments": list(membership.payments.all()[:5]),
@@ -326,6 +344,7 @@ class MembershipAdmin(admin.ModelAdmin):
             if any(r["is_guest_pass"] for r in results)
             else None,
             "donation_methods": DONATION_DESK_METHODS,
+            "tonight_events": list(desk.tonight_events()) if results else [],
         }
         # The camera policy for this page is set by PrivacyHeadersMiddleware.
         return TemplateResponse(request, "admin/memberships/door_desk.html", context)
@@ -412,6 +431,16 @@ class MembershipAdmin(admin.ModelAdmin):
             elif action == "reinstate":
                 desk.reinstate(request.user, membership, data.get("reason", ""))
                 self.message_user(request, f"{membership.reference_code} is reinstated.")
+            elif action == "walk_in":
+                event = desk.tonight_events().filter(pk=data.get("event")).first()
+                if event is None:
+                    raise desk.DeskError("Choose one of tonight's members-only events.")
+                try:
+                    party_size = int(data.get("party_size", "1"))
+                except ValueError:
+                    party_size = 0
+                desk.walk_in(request.user, membership, event, party_size)
+                self.message_user(request, f"{membership.reference_code} is checked in.")
             elif action == "show_signature":
                 return {
                     membership.pk: desk.reveal_signature_name(request.user, membership)

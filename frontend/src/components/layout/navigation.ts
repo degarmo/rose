@@ -20,7 +20,7 @@ export const NAV: NavEntry[] = [
   { to: '/about', label: 'About' },
   { to: '/events', label: 'Events' },
   { to: '/education', label: 'Education' },
-  { to: '/journal', label: 'Journal' },
+  { to: '/membership', label: 'Membership' },
   {
     label: 'Visit',
     items: [
@@ -38,8 +38,13 @@ export const NAV: NavEntry[] = [
     ],
   },
   { to: '/contact', label: 'Contact' },
-  { to: '/join', label: 'Join' },
 ]
 
-/** Every link, flattened, for the footer. */
-export const ALL_LINKS: NavLinkItem[] = NAV.flatMap((entry) => (isGroup(entry) ? entry.items : [entry]))
+/** The "Join" button beside the navigation, for everyone: it opens the membership plans. */
+export const JOIN_LINK: NavLinkItem = { to: '/membership', label: 'Join' }
+
+/** The footer's links, beside Privacy. Journal lives here rather than in the header. */
+export const FOOTER_LINKS: NavLinkItem[] = [
+  { to: '/membership', label: 'Membership' },
+  { to: '/journal', label: 'Journal' },
+]

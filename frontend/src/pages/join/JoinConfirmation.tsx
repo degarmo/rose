@@ -126,16 +126,24 @@ export function DoorWelcome({ membership, label, lead, secondary, bring }: DoorW
 
 /** Right after joining with a pay-at-the-door method. */
 export function JoinConfirmation({ membership }: { membership: MyMembership }) {
-  const guest = membership.tier.is_guest_pass
-  const lead = guest
-    ? 'Show this code and your photo ID at the door on the night you visit. Staff check your ID, take payment and you are in for the evening. The same account and code work next time too.'
-    : `Show this code and your photo ID at the door on your first visit, and staff will start your ${membership.tier.name.toLowerCase()} membership there.`
+  const { tier } = membership
+  const guest = tier.is_guest_pass
+  // A free tier starts at once when an ID check from an earlier visit is on file.
+  const started = membership.status === 'active'
+  let lead: string
+  if (started) lead = `Your ${tier.name} membership has started. Show this code at the door when you visit.`
+  else if (guest)
+    lead =
+      'Show this code and your photo ID at the door on the night you visit. Staff check your ID, take payment and you are in for the evening. The same account and code work next time too.'
+  else if (tier.is_free)
+    lead = `Show this code and your photo ID at the door on your first visit. Staff check your ID and start your ${tier.name} membership there. There is nothing to pay.`
+  else lead = `Show this code and your photo ID at the door on your first visit, and staff will start your ${tier.name} membership there.`
   return (
     <DoorWelcome
       membership={membership}
       label={guest ? 'Your guest pass is ready' : "You're in"}
-      lead={`${lead} We have emailed you this code too.`}
-      bring
+      lead={started ? lead : `${lead} We have emailed you this code too.`}
+      bring={!started}
     />
   )
 }

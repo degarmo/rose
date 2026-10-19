@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Max, Q
 from django.utils import timezone
@@ -30,15 +31,20 @@ class Tier(models.Model):
         YEAR = "year", "Yearly"
         ONCE = "once", "One-time pass"
 
+    class EventAccess(models.TextChoices):
+        ALL = "all", "All members-only events"
+        TAGGED = "tagged", "Only events with one of the tags below"
+
     name = models.CharField(max_length=80)
     slug = models.SlugField(max_length=80, unique=True)
-    description = models.TextField(blank=True)
-    benefits = models.JSONField(
+    description = models.TextField(blank=True, help_text="One line, shown under the price.")
+    perks = models.JSONField(
         default=list,
         blank=True,
         help_text='Short lines, e.g. ["Weekend socials", "Members-only classes"].',
     )
     price_cents = models.PositiveIntegerField()
+    is_free = models.BooleanField(default=False, editable=False, help_text="Set from the price.")
     currency = models.CharField(max_length=3, default="USD", editable=False)
     interval = models.CharField(max_length=5, choices=Interval.choices, default=Interval.MONTH)
     duration_days = models.PositiveIntegerField(
@@ -49,6 +55,38 @@ class Tier(models.Model):
     grants_feed_access = models.BooleanField(default=True)
     grants_members_events = models.BooleanField(default=True)
     grants_members_education = models.BooleanField(default=True)
+    renews = models.BooleanField(
+        default=False,
+        help_text="Runs month after month (or year after year) until cancelled. "
+        "A free tier that renews simply stays open.",
+    )
+    events_per_month = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1)],
+        help_text="Members-only events per calendar month. Blank for unlimited.",
+    )
+    guests_included_per_event = models.PositiveSmallIntegerField(
+        default=0, help_text="Guests who come free with the member to a members-only event."
+    )
+    guest_discount = models.BooleanField(
+        default=False, help_text="Guests beyond those included pay the discounted guest price."
+    )
+    premium_discord = models.BooleanField(
+        default=False, help_text="Includes the premium Discord channels."
+    )
+    event_access = models.CharField(
+        max_length=6, choices=EventAccess.choices, default=EventAccess.ALL
+    )
+    allowed_event_tags = models.ManyToManyField(
+        "events.EventTag",
+        blank=True,
+        related_name="tiers",
+        help_text="With tagged access: members-only events carrying any of these tags.",
+    )
+    is_featured = models.BooleanField(
+        default=False, help_text='Highlighted on the membership page as "Most popular".'
+    )
     is_guest_pass = models.BooleanField(
         default=False,
         help_text="A one-night guest pass: a one-time pass lasting 1 day with no online "
@@ -63,13 +101,23 @@ class Tier(models.Model):
     )
 
     class Meta:
-        ordering = ["sort_order", "price_cents"]
+        # The membership page lists tiers from the lowest price up; sort_order breaks ties.
+        ordering = ["price_cents", "sort_order"]
 
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        self.is_free = self.price_cents == 0
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "price_cents" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "is_free"}
+        super().save(*args, **kwargs)
+
     def clean(self):
         super().clean()
+        if self.renews and self.interval == self.Interval.ONCE:
+            raise ValidationError({"renews": "A one-time pass does not renew."})
         if self.interval == self.Interval.ONCE and not self.duration_days:
             raise ValidationError({"duration_days": "Set how many days a one-time pass lasts."})
         if self.is_guest_pass:
@@ -88,10 +136,8 @@ class Tier(models.Model):
                         "events or members-only classes. Untick those three."
                     }
                 )
-        if not isinstance(self.benefits, list) or not all(
-            isinstance(b, str) for b in self.benefits
-        ):
-            raise ValidationError({"benefits": "Use a list of short text lines."})
+        if not isinstance(self.perks, list) or not all(isinstance(b, str) for b in self.perks):
+            raise ValidationError({"perks": "Use a list of short text lines."})
 
     def period_end_from(self, start):
         if self.interval == self.Interval.MONTH:
@@ -197,7 +243,9 @@ class Membership(models.Model):
     auto_renew = models.BooleanField(default=False)
     cancel_at_period_end = models.BooleanField(default=False)
     paid_awaiting_id_check = models.BooleanField(
-        default=False, help_text="Paid online; becomes active once staff check a photo ID."
+        default=False,
+        help_text="Nothing left to pay (paid online, or a free tier); "
+        "becomes active once staff check a photo ID.",
     )
     source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
     provider = models.CharField(max_length=40, blank=True)
@@ -246,6 +294,26 @@ class Membership(models.Model):
         self.reminded_3_at = None
         self.grace_started_at = None
         self.ended_at = None
+
+
+class MembershipUsage(models.Model):
+    """How many members-only events a membership has used in one calendar month.
+
+    A count and nothing else: never which events. Rows older than 13 months are deleted.
+    """
+
+    membership = models.ForeignKey(Membership, on_delete=models.CASCADE, related_name="usage")
+    month = models.DateField(help_text="The first day of the month, Chicago time.")
+    events_used = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-month"]
+        constraints = [
+            models.UniqueConstraint(fields=["membership", "month"], name="one_usage_row_per_month")
+        ]
+
+    def __str__(self):
+        return f"{self.membership.reference_code} {self.month:%Y-%m}: {self.events_used}"
 
 
 class ImmutableQuerySet(models.QuerySet):

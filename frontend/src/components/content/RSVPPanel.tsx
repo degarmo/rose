@@ -1,5 +1,6 @@
 import { CalendarDays, Minus, Plus } from 'lucide-react'
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
+import { Link } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
 import { Badge, Button, ButtonLink, Card, Checkbox, Modal, Textarea, useToast } from '@/components/ui'
 import { api, ApiError, type EventDetail, type RSVPState } from '@/lib/api'
@@ -68,6 +69,21 @@ function Note({ children }: { children: ReactNode }) {
   return <p className="text-[0.8125rem] text-fg-muted">{children}</p>
 }
 
+const UPGRADE_LINK = 'font-semibold text-link hover:text-primary-hover'
+
+/** "Your membership includes one guest here." when the plan, not the event, sets the limit. */
+function PlanGuests({ limit }: { limit: number }) {
+  const guests = limit - 1
+  return (
+    <Note>
+      {guests === 0 ? 'Your membership does not include guests here.' : `Your membership includes ${guests === 1 ? 'one guest' : `${guests} guests`} here.`}{' '}
+      <Link to="/membership" className={UPGRADE_LINK}>
+        See plans with guests
+      </Link>
+    </Note>
+  )
+}
+
 /**
  * The RSVP panel (design system: "RSVP panel · every state"): "RSVP" with a status badge,
  * the party size, the main action, the calendar file and a short note.
@@ -88,6 +104,9 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
   const noteId = useId()
   const next = encodeURIComponent(`/events/${event.slug}`)
   const badge = rsvpBadge(rsvp)
+  // A membership can allow a smaller party than the event does.
+  const planLimited = rsvp.plan_party_limit !== null && rsvp.plan_party_limit < rsvp.max_party_size
+  const maxParty = planLimited ? (rsvp.plan_party_limit ?? rsvp.max_party_size) : rsvp.max_party_size
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
@@ -145,7 +164,8 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
 
   const rsvpForm = (label: string, primary: boolean) => (
     <form onSubmit={submit} className="flex flex-col gap-4" aria-label="RSVP">
-      {rsvp.max_party_size > 1 && <PartySize value={partySize} max={rsvp.max_party_size} onChange={setPartySize} />}
+      {maxParty > 1 && <PartySize value={partySize} max={maxParty} onChange={setPartySize} />}
+      {planLimited && <PlanGuests limit={maxParty} />}
       {noteOpen ? (
         <div className="flex flex-col gap-1.5 text-sm">
           <label htmlFor={noteId} className="font-semibold text-fg">
@@ -234,7 +254,7 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
             See my membership
           </ButtonLink>
         ) : (
-          <ButtonLink to="/join" size="lg" className="w-full">
+          <ButtonLink to="/membership" size="lg" className="w-full">
             Join to RSVP
           </ButtonLink>
         )}
@@ -243,6 +263,24 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
             Log in
           </ButtonLink>
         )}
+      </>
+    )
+  } else if (rsvp.state === 'tier_event_not_included') {
+    body = (
+      <>
+        <Note>This event is not part of your membership. Some plans include it.</Note>
+        <ButtonLink to="/membership" size="lg" className="w-full">
+          See plans that include it
+        </ButtonLink>
+      </>
+    )
+  } else if (rsvp.state === 'monthly_limit_reached') {
+    body = (
+      <>
+        <Note>You have used this month&rsquo;s events on your membership. They start again on the first of next month.</Note>
+        <ButtonLink to="/membership" size="lg" className="w-full">
+          See plans with more events
+        </ButtonLink>
       </>
     )
   } else if (rsvp.state === 'closed' || rsvp.state === 'unavailable' || rsvp.state === 'full') {
@@ -305,6 +343,12 @@ export function RSVPPanel({ event, onChange }: RSVPPanelProps) {
         {waitlist && <Note>This evening is full. Join the waitlist and we will email you if a place opens up.</Note>}
         {rsvpForm(waitlist ? 'Join the waitlist' : partySize > 1 ? `RSVP for ${partySize}` : 'RSVP', !waitlist)}
         {!waitlist && <CalendarDownload slug={event.slug} />}
+        {rsvp.events_remaining !== null && (
+          <Note>
+            {rsvp.events_remaining === 1 ? 'This uses your last event' : `You have ${rsvp.events_remaining} events left`} this month on your
+            membership.
+          </Note>
+        )}
         {!waitlist && <Note>Photo ID is checked at the door. Only our hosts see who is on the list.</Note>}
       </>
     )

@@ -17,7 +17,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.core.models import SeedMarker
 from apps.education.models import Opportunity
-from apps.events.models import RSVP, Event
+from apps.events.models import RSVP, Event, EventTag
 from apps.journal.models import Post, PostImage
 from apps.pages.models import FAQItem, SiteSettings
 from apps.pages.site_content import load, read_files
@@ -240,6 +240,18 @@ def upcoming_weekday(weekday, weeks_ahead, at):
     days_until = (weekday - today.weekday()) % 7 or 7
     date = today + timedelta(days=days_until + 7 * weeks_ahead)
     return timezone.make_aware(datetime.combine(date, at))
+
+
+def next_first_friday(at):
+    """The first Friday of a month that is still ahead, at a local time."""
+    today = timezone.localdate()
+    first = today.replace(day=1)
+    for _ in range(2):
+        friday = first + timedelta(days=(4 - first.weekday()) % 7)
+        if friday > today:
+            return timezone.make_aware(datetime.combine(friday, at))
+        first = (first + timedelta(days=32)).replace(day=1)
+    raise AssertionError("A first Friday always falls within two months.")
 
 
 def upcoming_thursday_evening(weeks_ahead):
@@ -471,6 +483,34 @@ class Command(BaseCommand):
                 events.setdefault(name.lower(), []).append(event)
 
         member_start = upcoming_weekday(2, 1, time(19, 30))
+        community_start = upcoming_weekday(6, 1, time(18, 0))
+        first_friday = next_first_friday(time(20, 0))
+        community = self.upsert_event(
+            "community-evening",
+            title="Community Evening",
+            summary="An open evening for every member, including Community members.",
+            body="<p>A relaxed evening with hosts on hand. Bring a valid photo ID.</p>",
+            category=Event.Category.MEMBER_NIGHT,
+            audience=Event.Audience.MEMBERS,
+            starts_at=community_start,
+            ends_at=community_start + timedelta(hours=3),
+            location_label="Main floor",
+            capacity=60,
+        )
+        community.access_tags.set(EventTag.objects.filter(slug="community"))
+        first = self.upsert_event(
+            "first-friday",
+            title="First Friday",
+            summary="The month's welcome evening, open to First Fridays members.",
+            body="<p>A welcoming evening for newcomers, with a short tour at 8:30 pm.</p>",
+            category=Event.Category.SPECIAL,
+            audience=Event.Audience.MEMBERS,
+            starts_at=first_friday,
+            ends_at=first_friday + timedelta(hours=3),
+            location_label="Main floor",
+            capacity=60,
+        )
+        first.access_tags.set(EventTag.objects.filter(slug="first_friday"))
         events["members"] = [
             self.upsert_event(
                 "member-night",
@@ -482,7 +522,9 @@ class Command(BaseCommand):
                 starts_at=member_start,
                 ends_at=member_start + timedelta(hours=3),
                 location_label="The Parlor",
-            )
+            ),
+            community,
+            first,
         ]
 
         full_start = upcoming_weekday(6, 0, time(15, 0))

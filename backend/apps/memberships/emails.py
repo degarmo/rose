@@ -17,10 +17,11 @@ def _date(moment):
 
 def send_reference_code(membership):
     days = settings.MEMBERSHIP_PENDING_EXPIRY_DAYS
+    bring = "a valid photo ID" if membership.tier.is_free else "your payment and a valid photo ID"
     body = (
         f"Hello {membership.user.display_name},\n\n"
         f"Your reference code is {membership.reference_code}.\n\n"
-        "Please bring it on your first visit, along with your payment and a valid photo ID "
+        f"Please bring it on your first visit, along with {bring} "
         "showing you are 18 or older. Staff will finish setting up your account there.\n\n"
         f"The code stays open for {days} days. You can see it any time at {site_link('/account')}\n"
     )

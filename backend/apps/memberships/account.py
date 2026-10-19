@@ -20,10 +20,14 @@ def _provider_for(membership):
 @transaction.atomic
 def cancel(membership):
     """Pending: cancelled now. Running: ends at period end, with no more reminders."""
-    membership = Membership.objects.select_for_update().get(pk=membership.pk)
-    if (
-        membership.status == Membership.Status.PENDING_PAYMENT
-        and not membership.paid_awaiting_id_check
+    membership = (
+        Membership.objects.select_for_update(of=("self",))
+        .select_related("tier")
+        .get(pk=membership.pk)
+    )
+    # Nothing has been paid on an unpaid code or a free tier waiting for its ID check.
+    if membership.status == Membership.Status.PENDING_PAYMENT and (
+        not membership.paid_awaiting_id_check or membership.tier.is_free
     ):
         membership.end(Membership.Status.CANCELLED)
         membership.save()

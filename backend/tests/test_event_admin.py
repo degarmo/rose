@@ -147,6 +147,7 @@ def test_admin_blocks_publishing_unconsented_faces(admin_client, gps_image_path)
         "audience": "public",
         "waitlist_enabled": "on",
         "max_party_size": "2",
+        "guest_allowance": "0",
         "hero_image": upload,
         "hero_image_alt": "People at the bar",
         "hero_image_faces_visible": "on",

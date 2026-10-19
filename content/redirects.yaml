@@ -11,14 +11,13 @@ notes: >-
   they fall through to the normal not-found page: the empty shop (/category/*,
   /cart-page, /checkout), Wix system and template pages (/thank-you-page, /search,
   /items-1/*), the members' login pages (/memberlogin/*), and paths that are the
-  same on both sites (/faq, /about, /events, /rentals).
+  same on both sites (/faq, /about, /events, /rentals, /membership).
 redirects:
   # Main navigation
   - {from: /home, to: /}
   - {from: /staff, to: /about/staff}
   - {from: /gallery, to: /journal}
   - {from: /calendar, to: /events}
-  - {from: /membership, to: /join}
   - {from: /guest-membership, to: /guests}
   - {from: /educational, to: /education}
   - {from: /directions, to: "/visit#directions"}
@@ -35,13 +34,13 @@ redirects:
   - {from: /booking-calendar/*, to: /events}
   - {from: /booking-form, to: /events}
   # Pricing plan pages
-  - {from: /plans-pricing, to: /join}
-  - {from: /first-friday, to: /join}
-  - {from: /community-membership, to: /join}
-  - {from: /educational-event-only, to: /join}
-  - {from: /limited-one-visit-per-month, to: /join}
-  - {from: /rose-visit-any-rose-event, to: /join}
-  - {from: /trial-memberships, to: /join}
+  - {from: /plans-pricing, to: /membership}
+  - {from: /first-friday, to: /membership}
+  - {from: /community-membership, to: /membership}
+  - {from: /educational-event-only, to: /membership}
+  - {from: /limited-one-visit-per-month, to: /membership}
+  - {from: /rose-visit-any-rose-event, to: /membership}
+  - {from: /trial-memberships, to: /membership}
   # Documents linked from What To Expect, Contact Us, Volunteer and the footer
   - {from: /_files/ugd/bd1bc6_dd105f94e2ac42f4b20a0ee01c4203f2.pdf, to: /house-rules}
   - {from: /_files/ugd/bd1bc6_1b92863e5fb948f6bdba1f2d908e79a6.pdf, to: /house-rules}
@@ -50,7 +49,7 @@ redirects:
   - {from: /_files/ugd/bd1bc6_88d3f62ec16446c5a6e1518fe453f60f.pdf, to: /house-rules}
   - {from: /_files/ugd/bd1bc6_999a1556bc89487e95c45d9f167151a0.pdf, to: /house-rules}
   - {from: /_files/ugd/bd1bc6_e20e575231854103a4cc4a71bea000ce.pdf, to: /house-rules}
-  - {from: /_files/ugd/bd1bc6_166faf5903ed409980f4784804e0a99e.pdf, to: /join}
+  - {from: /_files/ugd/bd1bc6_166faf5903ed409980f4784804e0a99e.pdf, to: /membership}
   - {from: /_files/ugd/bd1bc6_948141225e044e3ab491b6e097f4a04f.pdf, to: /contact}
   - {from: /_files/ugd/bd1bc6_8be7996aed31408db01a089cd74a989b.pdf, to: /get-involved/volunteer}
   - {from: /_files/ugd/bd1bc6_8a9bc335df5d4501b4895ee42e95dd6d.pdf, to: /journal}

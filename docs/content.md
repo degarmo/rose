@@ -32,9 +32,18 @@ site_settings: {hours_text: ..., directions_text: ...}  # only the fields given 
 social_links: [{label: Discord, url: https://...}]
 faqs: [{slug: parking, question: ..., answer: ...}]
 staff: [{slug: wren, display_name: Wren, role_title: Host, bio: ..., is_published: false}]
-tiers: [{slug: rose, name: Rose, interval: month, price_cents: 4000}]  # price only if given
+tiers: [{slug: rose, name: Rose, interval: month, price_cents: 4000}]  # only the fields given change
 redirects: [{from: /old-path, to: /new-path}]                          # "/old/*" covers all under it
 ```
+
+A tier takes `name`, `description` (one line), `perks` (a list), `price_cents`, `interval`
+(`month`, `year` or `once`), `duration_days`, `renews`, `events_per_month` (`null` for
+unlimited), `guests_included_per_event`, `guest_discount`, `premium_discord`, `event_access`
+(`all` or `tagged`), `allowed_event_tags` (event tag slugs, such as `community` and
+`first_friday`), `grants_feed_access`, `grants_members_events`, `grants_members_education`,
+`is_featured`, `is_guest_pass`, `is_active` and `sort_order`. The membership page lists
+tiers by price, lowest first, with `sort_order` breaking ties; a price of 0 makes a tier
+free.
 
 Loading matches rows by slug (or page and key, or old path) and updates them. It never
 deletes anything, and if any file has a problem nothing at all is written.
@@ -66,6 +75,7 @@ deletes anything, and if any file has a problem nothing at all is written.
 | `rules` | `hero.*`, `intro`, `rules.N.title/body`, `help.title/lede` |
 | `guests` | `hero.*`, `who.*`, `id.title/body`, `price.*`, `steps` |
 | `join` | `hero.title/lede`, `note`, `benefits.*` and `benefits.N.title/body` |
+| `membership` | `hero.title/lede`, `compare.title`, `good_to_know.title` and `good_to_know.N` (formatted), `tip`, `cta.title/body/button`, `newsletter` (tiers come from `tiers:`) |
 | `events`, `education`, `journal` | `hero.*` |
 | `contact` | `hero.title/lede`, `concern` |
 | `privacy` | `hero.*`, `blocks.N.title/body` |

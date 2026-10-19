@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from . import emails
@@ -19,12 +20,17 @@ def run(now=None):
         "to_cancelled": 0,
         "pending_expired": 0,
         "guest_passes_ended": 0,
+        "free_ended": 0,
+        "free_continued": 0,
         "reminders": 0,
     }
 
+    # Unused codes lapse: unpaid ones, and free ones whose ID was never checked.
     stale = now - timedelta(days=settings.MEMBERSHIP_PENDING_EXPIRY_DAYS)
     for membership in Membership.objects.filter(
-        status=Membership.Status.PENDING_PAYMENT, paid_awaiting_id_check=False, created_at__lt=stale
+        Q(paid_awaiting_id_check=False) | Q(tier__is_free=True),
+        status=Membership.Status.PENDING_PAYMENT,
+        created_at__lt=stale,
     ):
         membership.end(Membership.Status.EXPIRED, now)
         membership.save(update_fields=["status", "ended_at", "auto_renew", "updated_at"])
@@ -37,6 +43,25 @@ def run(now=None):
         membership.end(Membership.Status.EXPIRED, now)
         membership.save(update_fields=["status", "ended_at", "auto_renew", "updated_at"])
         counts["guest_passes_ended"] += 1
+
+    # Free tiers have nothing to renew: one that renews stays open for another period,
+    # and a time-limited one (a free week) simply ends, with no grace period and no email.
+    for membership in Membership.objects.filter(
+        status=Membership.Status.ACTIVE, current_period_end__lte=now, tier__is_free=True
+    ).select_related("tier"):
+        if membership.tier.renews and not membership.cancel_at_period_end:
+            membership.start_new_period(now)
+            membership.save()
+            counts["free_continued"] += 1
+            continue
+        status = (
+            Membership.Status.CANCELLED
+            if membership.cancel_at_period_end
+            else Membership.Status.EXPIRED
+        )
+        membership.end(status, now)
+        membership.save(update_fields=["status", "ended_at", "auto_renew", "updated_at"])
+        counts["free_ended"] += 1
 
     for membership in Membership.objects.filter(
         status=Membership.Status.ACTIVE, current_period_end__lte=now
@@ -69,6 +94,7 @@ def run(now=None):
         current_period_end__gt=now,
         current_period_end__lte=now + timedelta(days=first),
         tier__is_guest_pass=False,
+        tier__is_free=False,
     ).select_related("user")
     for membership in upcoming:
         days_left = membership.current_period_end - now

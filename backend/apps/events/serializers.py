@@ -2,15 +2,36 @@ from rest_framework import serializers
 
 from apps.core.consent_images import consent_image_payload
 
-from .access import CLOSED, MEMBERS_ONLY, NOT_OPEN_YET, UNAVAILABLE, can_rsvp
+from .access import (
+    CLOSED,
+    MEMBERS_ONLY,
+    MONTHLY_LIMIT_REACHED,
+    NOT_OPEN_YET,
+    TIER_EVENT_NOT_INCLUDED,
+    UNAVAILABLE,
+    can_rsvp,
+    plan_events_remaining,
+    plan_party_limit,
+)
 from .models import MAX_PARTY_SIZE, RSVP, Event
 
-UNAVAILABLE_STATES = {CLOSED, MEMBERS_ONLY, NOT_OPEN_YET, UNAVAILABLE}
+UNAVAILABLE_STATES = {
+    CLOSED,
+    MEMBERS_ONLY,
+    NOT_OPEN_YET,
+    UNAVAILABLE,
+    TIER_EVENT_NOT_INCLUDED,
+    MONTHLY_LIMIT_REACHED,
+}
 
 
 def rsvp_state(user, event, mine=None):
-    """What the RSVP panel should show this person. Never names anyone else."""
-    allowed, reason = can_rsvp(user, event)
+    """What the RSVP panel should show this person. Never names anyone else.
+
+    `plan_party_limit` and `events_remaining` are this person's own membership figures
+    for members-only events (None when no plan applies or it is unlimited).
+    """
+    allowed, reason = can_rsvp(user, event, mine=mine)
     if mine and mine.status != RSVP.Status.CANCELLED:
         state = "going" if mine.status == RSVP.Status.GOING else "waitlisted"
     elif reason in UNAVAILABLE_STATES:
@@ -26,6 +47,8 @@ def rsvp_state(user, event, mine=None):
         "opens_at": event.rsvp_opens_at,
         "closes_at": event.rsvp_deadline,
         "max_party_size": event.max_party_size,
+        "plan_party_limit": plan_party_limit(user, event),
+        "events_remaining": plan_events_remaining(user, event),
         "mine": (
             {
                 "status": mine.status,

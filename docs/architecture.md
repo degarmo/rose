@@ -40,14 +40,14 @@ security and restores are in `docs/ops/`.
 | `apps/pages` | `SiteSettings` (now with the giving details and the staff-only legal name and EIN), `SocialLink`, `FAQItem`, `StaffProfile`, `PageContent` (editable page copy), `Redirect` (old site addresses). `content.py` (cached copy and redirect reads), `middleware.py` (301s before the app's fallback), `site_content.py` and the `load_site_content` command (YAML drafts), `demo_content/` (placeholder copy for development and tests), `seed_demo` and its generated art. |
 | `apps/education` | `Opportunity` (uses the consented image pattern). |
 | `apps/contact` | `ContactMessage`, content-free staff notification, `anonymize_messages_from()`. |
-| `apps/events` | `Event`, `RSVP`, `AttendeeExport`; `access.can_rsvp()`, `services.py` (capacity and waitlist under a row lock), `tasks.py` (RSVP emails, reminders, retention purge), `ics.py`, `recurrence.py` (Repeat weekly), admin door list and CSV export. |
+| `apps/events` | `Event`, `EventTag` (staff labels; tiers limited to tagged events use them), `RSVP`, `AttendeeExport`; `access.can_rsvp()` (with the tier rules for members-only events), `services.py` (capacity and waitlist under a row lock), `tasks.py` (RSVP emails, reminders, retention purge), `ics.py`, `recurrence.py` (Repeat weekly), admin door list and CSV export. |
 | `apps/journal` | Staff-written public posts: `Post` and `PostImage` (1 to 10 images, consented image pattern), cursor-paginated API. |
 | `apps/feed` | The opt-in member feed. `access.py` (who may see and post), `visibility.py` (what one member may see), `services.py` (posting, likes, comments, follows, blocks, mutes, reports, moderation, erase, export), `tasks.py` (image processing, erase, export, expiry), `api.py` (404-first base view), `views.py` under `/api/members/`, `account_views.py` under `/api/account/feed/`, admin moderation queue. |
 | `apps/rentals` | `RentalInquiry`; `services.py` (clash check, status changes, the private calendar hold), neutral emails, admin pipeline and confirm page, retention task. |
 | `apps/volunteers` | `VolunteerSignup`; neutral emails, admin filters and the logged CSV export, retention task. |
 | `apps/donations` | `Donation` (append-only), `DonationCheckout` (a started online gift), `Acknowledgement`, `AcknowledgementTemplate`; `services.py` (online checkout through the payment layer, provider events, gifts at the door, acknowledgements), printable acknowledgement page, retention task. |
 | `apps/newsletter` | The email list: `Subscriber`, `Suppression`, `Newsletter`; `services.py` (double opt-in, one-click leaving, batched sending with no tracking), the inbox preview, sending and suppression tasks. |
-| `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access), `join.py`, `desk.py` (door desk actions), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
+| `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, MembershipUsage, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access; the tier rules: included events, events left this month, party limit), `usage.py` (the monthly event count and its purge), `join.py`, `desk.py` (door desk actions), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
 
 ### API
@@ -70,7 +70,7 @@ security and restores are in `docs/ops/`.
 | GET | `/api/account/rsvps/` | The caller's own upcoming RSVPs. |
 | GET | `/api/events/` | Upcoming visible events; `?category=`, `?past=1`. |
 | GET | `/api/events/calendar/?start=&end=` | Events overlapping a date range (max 62 days). |
-| GET | `/api/events/<slug>/` | Detail with the caller's RSVP state. |
+| GET | `/api/events/<slug>/` | Detail with the caller's RSVP state (on members-only events, also the caller's own plan party limit and events left that month). |
 | POST, DELETE | `/api/events/<slug>/rsvp/` | RSVP or update; cancel. |
 | GET | `/api/events/<slug>/calendar.ics[?details=1]` | Discreet by default. |
 | POST | `/api/events/rsvp/cancel/` | Cancel from an emailed, signed link. |
@@ -84,7 +84,7 @@ security and restores are in `docs/ops/`.
 | GET | `/api/members/stories/` | Story circles (Tonight, This week, Journal, News) with the caller's seen state. The same for everyone apart from that state. |
 | POST | `/api/members/stories/seen/` | `{keys: [...]}`: mark story items seen (50 at most). |
 | GET | `/api/membership/tiers/`, `options/` | Tiers on offer; payment methods and the current agreement. Placeholders are never offered with DEBUG off. |
-| GET | `/api/membership/me/` | The caller's own membership, payments and entitlements. |
+| GET | `/api/membership/me/` | The caller's own membership, payments, entitlements and members-only events left this month. |
 | POST | `/api/membership/join/`, `checkout/`, `cancel/`, `auto-renew/` | Join (rate limited, 10 an hour), pay online again, cancel, toggle renewal. |
 | GET | `/api/membership/receipts/<id>/` | A neutral receipt for one of the caller's own payments. |
 | POST | `/api/payments/webhook/<provider>/` | Provider webhooks: CSRF-exempt, rate limited, signature checked by the adapter, 200 only once stored. |
@@ -98,7 +98,8 @@ security and restores are in `docs/ops/`.
 | `events.tasks.send_rsvp_email` | On commit after RSVP changes | Confirmation, waitlist, promoted, cancellation. |
 | `events.tasks.send_due_reminders` | Beat, every 15 minutes | 24-hour reminder, once per RSVP. |
 | `events.tasks.purge_expired_rsvps` | Beat, every 6 hours | Deletes RSVPs `RSVP_RETENTION_DAYS` after the event ends and keeps `final_going_count` and `final_checked_in_count`. |
-| `memberships.tasks.run_lifecycle` | Beat, daily at 06:00 Chicago | Active to grace to expired, cancelled at period end, stale unpaid codes expire, renewal reminders at 14 and 3 days. |
+| `memberships.tasks.run_lifecycle` | Beat, daily at 06:00 Chicago | Active to grace to expired, cancelled at period end, stale unpaid (and unused free) codes expire, renewal reminders at 14 and 3 days. Free tiers: one that renews stays open for another period; a time-limited one ends with no grace and no email. |
+| `memberships.tasks.purge_old_usage` | Beat, daily at 06:30 Chicago | Deletes monthly event counts more than 13 months old. |
 | `memberships.tasks.deliver_sandbox_events` | Development only | Posts the sandbox checkout's signed webhooks through the real endpoint. |
 | `feed.tasks.purge_old_watermarks` | Beat, daily | Deletes watermarked copies older than 7 days (the bucket's lifecycle rule does the same). |
 | `contact.tasks.purge_old_messages` | Beat, daily | Deletes handled contact messages after `CONTACT_RETENTION_DAYS` (365). |
@@ -229,6 +230,8 @@ flowchart LR
     T --> E[entitlements]
     G -->|adds feed| E
     E --> R[events.access.can_rsvp: members audience needs members_events]
+    M --> TR[tier rules on members-only events: included events, events per month, guests]
+    TR --> R
     E --> F[feed.access.has_feed_entitlement: needs feed]
     E --> O[education serializer: members_only needs members_education, else body and call to action withheld]
 ```
@@ -240,7 +243,10 @@ flowchart LR
   vendored jsQR) or display name. Actions: record payment and activate (needs "Photo ID
   checked, 18+" if there is no earlier ID check), activate after an online payment, renew,
   comp (reason), suspend and reinstate (reason), refund (a new row; online refunds also go to
-  the provider). The typed signature name appears only after "Show signature name", which is
+  the provider), and check in tonight (a member arriving at a members-only event without an
+  RSVP; the same tier rules apply and it uses one of the month's events). Each row shows the
+  tier, events left this month (or "Unlimited"), guests included per event and "Guest
+  discount". A free tier waits for its first-visit ID check like an online payment does. The typed signature name appears only after "Show signature name", which is
   logged. This page alone sends `Permissions-Policy: camera=(self)`.
 - **Membership summary** (`/admin/memberships/membership/summary/`): counts by status and
   tier, new, renewed and expired this month, and revenue by month and method for 12 months
@@ -355,6 +361,7 @@ or exported what (decision 199).
 | feed | Exports | 24 hours, single use | `feed.tasks.purge_expired_exports`. |
 | memberships | Memberships, payments, ID checks | Kept (financial records) | Detached from the person when the account is deleted; the signature goes with the account. |
 | memberships | Unpaid reference codes | `MEMBERSHIP_PENDING_EXPIRY_DAYS` (30) | Lifecycle expires them. |
+| memberships | Monthly event counts | 13 months | `memberships.tasks.purge_old_usage`. A count per membership per month, never which events. |
 | rentals | Declined and cancelled inquiries | Contact details `RENTAL_RETENTION_DAYS` (90) after closing | `rentals.tasks.purge_closed_inquiries` keeps only type, date and status. |
 | rentals | Inquiries never concluded | 90 days after their last requested date | Same task, same result. |
 | rentals | Confirmed bookings | Kept | The record of the booking; contact details go when the account is deleted. |
@@ -490,6 +497,11 @@ Check every change against this list.
       return only the caller's own; other people get `null` or 404. No endpoint lists members.
       `tests/test_membership_privacy.py` crawls every API route as the owner, someone else and
       anonymously.
+- [ ] **Event counts are counts.** `MembershipUsage` holds a number per membership per month,
+      never which events, and goes after 13 months. The only figure any endpoint returns is the
+      caller's own events left (`/api/membership/me/` and their RSVP state);
+      `tests/test_tier_rules.py` checks that nothing else carries it. Door desk walk-ins log
+      the membership, not the event.
 - [ ] **The typed signature name is staff-only.** It is never serialized (`JoinSerializer`
       takes it write-only), never emailed, and on the door desk it appears only after "Show
       signature name", which is logged.

@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.education.models import Opportunity
+from apps.events.models import EventTag
 
 from .models import (
     AgreementSignature,
@@ -24,41 +25,109 @@ from .models import (
     Tier,
 )
 
+# The seven tiers of the membership page, with the same slugs, prices and rules as the
+# club's draft in /content/membership.yaml (prices and rules await the club's approval),
+# plus the door guest pass offered on the Guests page.
 TIERS = [
     {
-        "slug": "monthly",
-        "name": "Monthly",
-        "description": "Placeholder price for development. Renews every month.",
-        "benefits": ["Members-only nights", "Members-only classes", "The member community"],
-        "price_cents": 2500,
+        "slug": "community",
+        "name": "Community",
+        "description": "Education nights and open community events.",
+        "perks": ["Education nights", "Open community events"],
+        "price_cents": 0,
         "interval": Tier.Interval.MONTH,
+        "renews": True,
+        "event_access": Tier.EventAccess.TAGGED,
+        "allowed_event_tags": ["community"],
+        "grants_feed_access": False,
         "sort_order": 10,
     },
     {
-        "slug": "annual",
-        "name": "Annual",
-        "description": "Placeholder price for development. Two months free compared to monthly.",
-        "benefits": ["Members-only nights", "Members-only classes", "The member community"],
-        "price_cents": 25000,
-        "interval": Tier.Interval.YEAR,
+        "slug": "first-fridays",
+        "name": "First Fridays",
+        "description": "A first look, on the first Friday of the month.",
+        "perks": ["The first Friday event of the month", "Ends on its own after a week"],
+        "price_cents": 0,
+        "interval": Tier.Interval.ONCE,
+        "duration_days": 7,
+        "events_per_month": 1,
+        "event_access": Tier.EventAccess.TAGGED,
+        "allowed_event_tags": ["first_friday"],
+        "grants_feed_access": False,
+        "grants_members_education": False,
         "sort_order": 20,
     },
     {
-        "slug": "30-day-pass",
-        "name": "30-day pass",
-        "description": "Placeholder price for development. One payment, no renewal.",
-        "benefits": ["Members-only nights", "Members-only classes"],
-        "price_cents": 3500,
-        "interval": Tier.Interval.ONCE,
-        "duration_days": 30,
-        "grants_feed_access": False,
+        "slug": "limited",
+        "name": "Limited",
+        "description": "One club event every month.",
+        "perks": ["One club event each month", "Premium Discord access"],
+        "price_cents": 2000,
+        "interval": Tier.Interval.MONTH,
+        "renews": True,
+        "events_per_month": 1,
+        "premium_discord": True,
         "sort_order": 30,
+    },
+    {
+        "slug": "trial",
+        "name": "Trial",
+        "description": "Two weeks of club events before you decide.",
+        "perks": ["Club events for two weeks", "One payment, no renewal"],
+        "price_cents": 2000,
+        "interval": Tier.Interval.ONCE,
+        "duration_days": 14,
+        "sort_order": 40,
+    },
+    {
+        "slug": "limited-plus",
+        "name": "Limited +",
+        "description": "One club event a month, with a guest.",
+        "perks": ["One club event each month", "A guest comes free", "Premium Discord access"],
+        "price_cents": 3500,
+        "interval": Tier.Interval.MONTH,
+        "renews": True,
+        "events_per_month": 1,
+        "guests_included_per_event": 1,
+        "premium_discord": True,
+        "sort_order": 50,
+    },
+    {
+        "slug": "rose",
+        "name": "Rose",
+        "description": "Every club event, as often as you like.",
+        "perks": ["Unlimited club events", "Discounted guest entry", "Premium Discord access"],
+        "price_cents": 4000,
+        "interval": Tier.Interval.MONTH,
+        "renews": True,
+        "guest_discount": True,
+        "premium_discord": True,
+        "is_featured": True,
+        "sort_order": 60,
+    },
+    {
+        "slug": "rose-plus",
+        "name": "Rose +",
+        "description": "Every club event, with a guest.",
+        "perks": [
+            "Unlimited club events",
+            "One guest free at each event",
+            "Discounted entry for more guests",
+            "Premium Discord access for two",
+        ],
+        "price_cents": 5500,
+        "interval": Tier.Interval.MONTH,
+        "renews": True,
+        "guests_included_per_event": 1,
+        "guest_discount": True,
+        "premium_discord": True,
+        "sort_order": 70,
     },
     {
         "slug": "guest-night",
         "name": "Guest night pass",
         "description": "Placeholder price for development. One evening, paid at the door.",
-        "benefits": ["One open evening", "A host to show you around"],
+        "perks": ["One open evening", "A host to show you around"],
         "price_cents": 1500,
         "interval": Tier.Interval.ONCE,
         "duration_days": 1,
@@ -66,7 +135,7 @@ TIERS = [
         "grants_members_events": False,
         "grants_members_education": False,
         "is_guest_pass": True,
-        "sort_order": 40,
+        "sort_order": 80,
     },
 ]
 
@@ -121,14 +190,16 @@ MEMBERS_ONLY_OPPORTUNITIES = [
 
 # (email, display name, tier slug, status, how the demo row is set up)
 DEMO_MEMBERS = [
-    ("member.pending@example.org", "demo_pending", "monthly", "pending"),
-    ("member.active@example.org", "demo_active", "monthly", "active"),
-    ("member.online@example.org", "demo_online", "annual", "online"),
-    ("member.awaiting@example.org", "demo_awaiting_id", "monthly", "awaiting_id"),
-    ("member.grace@example.org", "demo_grace", "monthly", "grace"),
-    ("member.expired@example.org", "demo_expired", "30-day-pass", "expired"),
-    ("member.cancelled@example.org", "demo_cancelled", "monthly", "cancelled"),
-    ("member.suspended@example.org", "demo_suspended", "annual", "suspended"),
+    ("member.pending@example.org", "demo_pending", "limited", "pending"),
+    ("member.active@example.org", "demo_active", "rose", "active"),
+    ("member.limited@example.org", "demo_limited", "limited", "active"),
+    ("member.online@example.org", "demo_online", "rose-plus", "online"),
+    ("member.awaiting@example.org", "demo_awaiting_id", "limited-plus", "awaiting_id"),
+    ("member.community@example.org", "demo_community", "community", "free_pending"),
+    ("member.grace@example.org", "demo_grace", "limited", "grace"),
+    ("member.expired@example.org", "demo_expired", "trial", "expired"),
+    ("member.cancelled@example.org", "demo_cancelled", "rose", "cancelled"),
+    ("member.suspended@example.org", "demo_suspended", "rose", "suspended"),
     ("guest.first@example.org", "demo_guest", "guest-night", "pending"),
     ("guest.returning@example.org", "demo_guest_returning", "guest-night", "guest_visits"),
 ]
@@ -188,6 +259,13 @@ def _build(user, tier, kind, staff, now):
 
     if kind == "pending":
         m.created_at = now - days(3)
+        m.save()
+        return m
+
+    if kind == "free_pending":
+        # A free tier: nothing to pay, waiting for the first-visit ID check.
+        m.created_at = now - days(2)
+        m.paid_awaiting_id_check = True
         m.save()
         return m
 
@@ -254,19 +332,47 @@ def _ref(label):
     return {"provider_payment_ref": f"sbx_pay_demo_{label}_{secrets.token_hex(4)}"}
 
 
+def upsert_tiers(placeholder):
+    """Create or update TIERS, with their event tags; returns {slug: tier}.
+
+    Other tiers are no longer offered (their memberships keep them). Placeholder tiers
+    are only ever offered with DEBUG on.
+    """
+    defaults = {
+        "duration_days": None,
+        "grants_feed_access": True,
+        "grants_members_events": True,
+        "grants_members_education": True,
+        "renews": False,
+        "events_per_month": None,
+        "guests_included_per_event": 0,
+        "guest_discount": False,
+        "premium_discord": False,
+        "event_access": Tier.EventAccess.ALL,
+        "is_featured": False,
+        "is_guest_pass": False,
+        "is_active": True,
+    }
+    tiers = {}
+    for data in TIERS:
+        values = {**defaults, **data}
+        slug = values.pop("slug")
+        tag_slugs = values.pop("allowed_event_tags", [])
+        tier, _ = Tier.objects.update_or_create(slug=slug, defaults=values)
+        tier.allowed_event_tags.set(EventTag.objects.filter(slug__in=tag_slugs))
+        if tier.is_placeholder != placeholder:
+            Tier.objects.filter(pk=tier.pk).update(is_placeholder=placeholder)
+        tiers[slug] = tier
+    Tier.objects.exclude(slug__in=tiers).update(is_active=False)
+    return tiers
+
+
 def seed_memberships():
     """Returns {display_name: (email, password)} for the demo accounts. DEBUG only."""
     if not settings.DEBUG:
         raise ImproperlyConfigured("Membership demo data is for development only.")
     now = timezone.now()
-    tiers = {}
-    for data in TIERS:
-        values = {"duration_days": None, "grants_feed_access": True, **data}
-        slug = values.pop("slug")
-        tier, _ = Tier.objects.update_or_create(slug=slug, defaults=values)
-        if not tier.is_placeholder:
-            Tier.objects.filter(pk=tier.pk).update(is_placeholder=True)
-        tiers[slug] = tier
+    tiers = upsert_tiers(placeholder=True)
 
     agreement = MembershipAgreement.objects.filter(is_placeholder=True).first()
     if agreement is None:

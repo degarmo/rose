@@ -111,6 +111,7 @@ def test_my_membership_payload_is_minimal(paying_member, signed_in):
         "last_payment_failed",
         "code_expires_at",
         "payments",
+        "events_remaining_this_month",
         "created_at",
     }
     assert data["membership"]["id_checked"] is True  # whether, never what

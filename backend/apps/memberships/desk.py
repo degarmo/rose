@@ -1,10 +1,14 @@
 """Door desk actions. Every one of them is written to the audit log."""
 
+from datetime import datetime, time, timedelta
+
 from django.db import transaction
 from django.utils import timezone
 
 from apps.core.models import AuditLog, audit
 
+from . import usage
+from .access import events_remaining, month_of, party_limit, tier_includes_event
 from .models import IdCheck, Membership, Payment, has_id_check
 from .providers import registry
 
@@ -268,6 +272,60 @@ def refund(staff, payment, amount_cents, note=""):
     )
     _log(staff, "refund", membership, f"{amount_cents / 100:.2f} refunded. {note}".strip())
     return membership
+
+
+def tonight_events(now=None):
+    """Today's members-only events, for checking in members who arrive without an RSVP."""
+    from apps.events.models import Event
+
+    today = timezone.localtime(now or timezone.now()).date()
+    start = timezone.make_aware(datetime.combine(today, time.min))
+    return Event.objects.published().filter(
+        audience=Event.Audience.MEMBERS,
+        starts_at__gte=start,
+        starts_at__lt=start + timedelta(days=1),
+    )
+
+
+@transaction.atomic
+def walk_in(staff, membership, event, party_size):
+    """Check a member in at tonight's members-only event without an RSVP.
+
+    The same tier rules as an RSVP apply, and it uses one of the month's events. Someone
+    already on the list is simply checked in. The audit entry never names the event.
+    """
+    from apps.events.models import RSVP, Event
+
+    membership = _lock(membership)
+    if not membership.is_entitled or membership.user is None:
+        raise DeskError("Only an active membership can be checked in.")
+    event = Event.objects.select_for_update().get(pk=event.pk)
+    if not tonight_events().filter(pk=event.pk).exists():
+        raise DeskError("Choose one of tonight's members-only events.")
+    tier = membership.tier
+    if not tier_includes_event(tier, event):
+        raise DeskError(f"{tier.name} does not include this event.")
+    limit = min(event.max_party_size, party_limit(tier, event))
+    if not 1 <= party_size <= limit:
+        raise DeskError(f"{tier.name} allows a party of {limit} at this event.")
+    rsvp = RSVP.objects.filter(event=event, user=membership.user).first()
+    if rsvp is not None and rsvp.status == RSVP.Status.GOING:
+        rsvp.checked_in = True
+        rsvp.save(update_fields=["checked_in", "updated_at"])
+        _log(staff, "check_in", membership)
+        return rsvp
+    if events_remaining(membership, month_of(event.starts_at)) == 0:
+        raise DeskError(f"No events left this month on {tier.name}.")
+    if rsvp is None:
+        rsvp = RSVP(event=event, user=membership.user)
+    rsvp.status = RSVP.Status.GOING
+    rsvp.party_size = party_size
+    rsvp.waitlisted_at = None
+    rsvp.checked_in = True
+    rsvp.save()
+    usage.sync(rsvp)
+    _log(staff, "walk_in", membership)
+    return rsvp
 
 
 def reveal_signature_name(staff, membership):

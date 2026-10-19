@@ -8,7 +8,7 @@ import { Toggle } from '@/components/ui/Toggle'
 import { ReferenceCode } from '@/components/membership/ReferenceCode'
 import { Badge, Button, ButtonLink, Card, useToast, type BadgeTone } from '@/components/ui'
 import { formatDay, formatMoney } from '@/lib/format'
-import { goTo, isOpen, membershipApi, priceLabel, type MembershipPayload, type MyMembership } from '@/lib/membershipApi'
+import { eventsLeftLabel, goTo, isOpen, membershipApi, priceLabel, type MembershipPayload, type MyMembership } from '@/lib/membershipApi'
 import { useAsync } from '@/lib/useAsync'
 import { WhatToBring } from '../join/JoinConfirmation'
 
@@ -34,7 +34,12 @@ function periodLine(m: MyMembership) {
 
 function Status({ membership }: { membership: MyMembership }) {
   if (membership.status === 'pending_payment' && membership.paid_awaiting_id_check) {
-    return <p className="text-fg-muted">Paid. Staff will start your membership after a quick photo ID check on your first visit.</p>
+    return (
+      <p className="text-fg-muted">
+        {membership.tier.is_free ? 'Nothing to pay.' : 'Paid.'} Staff will start your membership after a quick photo ID check on your first
+        visit.
+      </p>
+    )
   }
   if (membership.status === 'pending_payment') {
     return <p className="text-fg-muted">Waiting for payment. Bring your code on your first visit and staff will start your membership.</p>
@@ -95,7 +100,7 @@ export function MembershipDetails({ payload, onChange }: { payload: MembershipPa
         <p className="text-fg-muted">
           You are not a member yet. Membership opens members&rsquo; evenings, members-only classes and the member community.
         </p>
-        <ButtonLink to="/join" size="lg" className="self-start">
+        <ButtonLink to="/membership" size="lg" className="self-start">
           Become a member
         </ButtonLink>
       </div>
@@ -129,7 +134,8 @@ export function MembershipDetails({ payload, onChange }: { payload: MembershipPa
 
   const open = isOpen(membership)
   const running = membership.status === 'active' || membership.status === 'grace'
-  const pending = membership.status === 'pending_payment' && !membership.paid_awaiting_id_check
+  // Nothing has been paid on an unpaid code, or on a free tier waiting for its ID check.
+  const pending = membership.status === 'pending_payment' && (!membership.paid_awaiting_id_check || membership.tier.is_free)
   const canCancel = (running && !membership.cancel_at_period_end) || pending
 
   return (
@@ -141,6 +147,7 @@ export function MembershipDetails({ payload, onChange }: { payload: MembershipPa
         </div>
         <p className="text-sm text-fg-muted">{priceLabel(membership.tier)}</p>
         <Status membership={membership} />
+        {running && <p className="text-fg-muted">{eventsLeftLabel(membership)}</p>}
       </div>
 
       {membership.last_payment_failed && open && (
@@ -193,7 +200,7 @@ export function MembershipDetails({ payload, onChange }: { payload: MembershipPa
       </div>
 
       {(membership.status === 'expired' || membership.status === 'cancelled') && (
-        <ButtonLink to="/join" size="lg" className="self-start">
+        <ButtonLink to="/membership" size="lg" className="self-start">
           Join again
         </ButtonLink>
       )}

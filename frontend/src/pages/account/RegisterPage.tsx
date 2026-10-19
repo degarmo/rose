@@ -96,7 +96,7 @@ export function RegisterPage() {
             {formError}
           </p>
         )}
-        <FormField label="Email" hint="Private. Never shown to anyone." error={errors.email} required>
+        <FormField label="Email" hint="Private, never shown to anyone. Use an email address that doesn't include your legal name." error={errors.email} required>
           {(props) => <Input {...props} name="email" type="email" autoComplete="email" {...field('email')} />}
         </FormField>
         <FormField

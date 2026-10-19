@@ -25,6 +25,8 @@ function rsvpState(overrides: Partial<RSVPState> = {}): RSVPState {
     opens_at: null,
     closes_at: '2026-11-05T19:00:00-06:00',
     max_party_size: 2,
+    plan_party_limit: null,
+    events_remaining: null,
     mine: null,
     ...overrides,
   }
@@ -143,7 +145,7 @@ describe('RSVPPanel', () => {
   it('offers membership to signed-in non-members on a members-only evening', () => {
     renderPanel(makeEvent({ state: 'members_only', can_rsvp: false, reason: 'members_only' }, { audience: 'members' }))
     expect(screen.getByText('Members only')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Join to RSVP' })).toHaveAttribute('href', '/join')
+    expect(screen.getByRole('link', { name: 'Join to RSVP' })).toHaveAttribute('href', '/membership')
     expect(screen.queryByRole('link', { name: 'Log in' })).not.toBeInTheDocument()
     expect(screen.queryByRole('form', { name: 'RSVP' })).not.toBeInTheDocument()
   })
@@ -151,7 +153,7 @@ describe('RSVPPanel', () => {
   it('asks anonymous visitors to log in or register on a members-only evening', () => {
     renderPanel(makeEvent({ state: 'members_only', can_rsvp: false, reason: 'members_only' }, { audience: 'members' }), null)
     expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/account/login?next=%2Fevents%2Ffriday-social')
-    expect(screen.getByRole('link', { name: 'Join to RSVP' })).toHaveAttribute('href', '/join')
+    expect(screen.getByRole('link', { name: 'Join to RSVP' })).toHaveAttribute('href', '/membership')
   })
 
   it('shows going with calendar download that defaults to discreet', async () => {
@@ -195,5 +197,37 @@ describe('RSVPPanel', () => {
     expect(note).toHaveAttribute('maxLength', '280')
     fireEvent.change(note, { target: { value: 'x'.repeat(10) } })
     expect(screen.getByText('10 / 280')).toBeInTheDocument()
+  })
+
+  it('explains an event the membership does not include, with a way to upgrade', () => {
+    renderPanel(makeEvent({ state: 'tier_event_not_included', can_rsvp: false, reason: 'tier_event_not_included' }))
+    expect(screen.getByText('Not on your plan')).toBeInTheDocument()
+    expect(screen.getByText(/not part of your membership/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'See plans that include it' })).toHaveAttribute('href', '/membership')
+    expect(screen.queryByRole('form', { name: 'RSVP' })).not.toBeInTheDocument()
+  })
+
+  it('explains a used-up month, with a way to upgrade', () => {
+    renderPanel(makeEvent({ state: 'monthly_limit_reached', can_rsvp: false, reason: 'monthly_limit_reached', events_remaining: 0 }))
+    expect(screen.getByText('Monthly limit reached')).toBeInTheDocument()
+    expect(screen.getByText(/used this month.s events on your membership/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'See plans with more events' })).toHaveAttribute('href', '/membership')
+  })
+
+  it('caps the party at what the membership includes and says so', async () => {
+    renderPanel(makeEvent({ max_party_size: 2, plan_party_limit: 1, events_remaining: 1 }))
+    expect(screen.queryByRole('button', { name: 'One more' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Your membership does not include guests here/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'See plans with guests' })).toHaveAttribute('href', '/membership')
+    expect(screen.getByText(/This uses your last event this month/)).toBeInTheDocument()
+  })
+
+  it('shows the error the server gives when the plan refuses a party size', async () => {
+    apiMock.rsvp.mockRejectedValue(new Error('Your membership does not include that many guests here.'))
+    renderPanel(makeEvent({ max_party_size: 2, plan_party_limit: 2 }))
+    const form = screen.getByRole('form', { name: 'RSVP' })
+    await userEvent.click(within(form).getByRole('button', { name: 'One more' }))
+    await userEvent.click(within(form).getByRole('button', { name: 'RSVP for 2' }))
+    expect(await screen.findByText('Your membership does not include that many guests here.')).toBeInTheDocument()
   })
 })
