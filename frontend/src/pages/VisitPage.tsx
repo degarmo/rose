@@ -94,7 +94,8 @@ export function VisitPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="visit-hero.webp" placeholder="rose" />
+      {/* The owner's photograph (photos/Plan.jpeg), framed on the two hands. */}
+      <PageHero copy={copy} image="visit-plan.webp" imagePosition="object-[50%_15%]" placeholder="rose" />
 
       <section aria-labelledby="expect" className={cn('mx-auto max-w-[1440px] pb-6 lg:pb-16', GUTTER)}>
         <Copy copy={copy} k="expect.title" as="h2" id="expect" className="sr-only" />

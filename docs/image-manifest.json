@@ -1,3 +1,33 @@
 {
-  "images": []
+  "images": [
+    {
+      "filename": "visit-plan.webp",
+      "width": 1280,
+      "height": 1920,
+      "variants": [
+        {
+          "width": 427,
+          "height": 640,
+          "filename": "visit-plan-427.webp"
+        },
+        {
+          "width": 853,
+          "height": 1280,
+          "filename": "visit-plan-853.webp"
+        },
+        {
+          "width": 1280,
+          "height": 1920,
+          "filename": "visit-plan-1280.webp"
+        }
+      ],
+      "source": "Supplied by the site owner (photos/Plan.jpeg)",
+      "original_url": "file://photos/Plan.jpeg",
+      "license": "Owner-supplied; rights and the subject's consent to confirm before launch",
+      "credit": "",
+      "faces_visible": false,
+      "consent_confirmed": false,
+      "added_at": "2026-10-19"
+    }
+  ]
 }

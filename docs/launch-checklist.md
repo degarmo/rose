@@ -45,6 +45,10 @@ has an owner; replace `[owner]` with a name before starting.
       `docs/image-sources.txt`, the club confirms it owns the image (Wix stock images
       cannot be reused) and has written consent from anyone recognisable, before the line
       is uncommented and fetched. Owner: [owner]
+- [ ] **The Plan Your Visit photograph** (`visit-plan.webp`, from the owner's
+      `photos/Plan.jpeg`): confirm the club holds the rights and the pictured person's
+      written consent to its use on the public site. No face is visible, so the site shows it
+      now. Owner: [owner]
 - [ ] **Quick-exit destination** chosen (default: a weather site) and set in Site
       settings. Owner: [owner]
 

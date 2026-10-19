@@ -29,3 +29,7 @@ prompts/
 # prompts/. Only the redirect table (paths, no names) is committed.
 /content/*
 !/content/redirects.yaml
+
+# Original photographs supplied by the owner. Only the processed, metadata-free copies
+# in frontend/public/images (made by scripts/fetch_images.py) are committed.
+/photos/
