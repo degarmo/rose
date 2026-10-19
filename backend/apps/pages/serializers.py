@@ -21,6 +21,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "hours_text",
             "address_text",
             "directions_text",
+            "phone_text",
             "contact_email",
             "quick_exit_url",
             "nonprofit_status_text",

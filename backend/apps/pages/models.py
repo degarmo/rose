@@ -17,6 +17,12 @@ class SiteSettings(models.Model):
     directions_text = models.TextField(
         blank=True, help_text="Shown on Plan Your Visit. Transit, parking and entrance notes."
     )
+    phone_text = models.CharField(
+        max_length=40,
+        blank=True,
+        verbose_name="phone number",
+        help_text="Public phone number, shown with the address on Plan Your Visit.",
+    )
     contact_email = models.EmailField(help_text="Public address shown on the site.")
     quick_exit_url = models.URLField(
         blank=True,

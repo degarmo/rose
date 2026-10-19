@@ -42,6 +42,7 @@ SITE_SETTINGS_FIELDS = {
     "tagline",
     "hours_text",
     "address_text",
+    "phone_text",
     "directions_text",
     "contact_email",
     "quick_exit_url",

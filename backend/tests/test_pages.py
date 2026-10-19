@@ -52,6 +52,7 @@ def test_site_settings_endpoint(api_client):
         "hours_text": "Thursdays",
         "address_text": "Chicago",
         "directions_text": "Near the train",
+        "phone_text": "",
         "contact_email": "hello@example.org",
         "quick_exit_url": "https://weather.example",
         "nonprofit_status_text": "",

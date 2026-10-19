@@ -5,10 +5,21 @@ from io import StringIO
 import pytest
 from django.core.management import call_command, get_commands
 from django.core.management.color import no_style
+from django.db import connection
+from django.db.migrations.loader import MigrationLoader
 
 from apps.core.management.commands import runserver
 
 pytestmark = pytest.mark.django_db(transaction=True)
+
+
+def unapply_latest_pages_migration():
+    """Roll back the newest pages migration and return its name."""
+    loader = MigrationLoader(connection)
+    (latest,) = loader.graph.leaf_nodes("pages")
+    (parent,) = loader.graph.node_map[latest].parents
+    call_command("migrate", "pages", parent.key[1], verbosity=0)
+    return latest[1]
 
 
 def outputs():
@@ -20,8 +31,8 @@ def test_the_project_runserver_is_the_one_used():
 
 
 def test_unapplied_migrations_are_applied_before_starting():
-    call_command("migrate", "pages", "0003", verbosity=0)
-    assert ("pages", "0004_membership_is_a_page") in runserver.pending_migrations()
+    name = unapply_latest_pages_migration()
+    assert runserver.pending_migrations() == [("pages", name)]
     stdout, stderr = outputs()
     assert runserver.migrate_for_development(stdout, stderr, no_style()) == 0
     assert runserver.pending_migrations() == []
@@ -36,7 +47,7 @@ def test_nothing_happens_when_up_to_date():
 
 
 def test_a_failed_migration_is_reported_loudly(monkeypatch):
-    call_command("migrate", "pages", "0003", verbosity=0)
+    name = unapply_latest_pages_migration()
 
     def broken(*args, **kwargs):
         raise RuntimeError("boom")
@@ -45,9 +56,7 @@ def test_a_failed_migration_is_reported_loudly(monkeypatch):
     stdout, stderr = outputs()
     assert runserver.migrate_for_development(stdout, stderr, no_style()) == 1
     assert "Migrations failed: boom" in stderr.getvalue()
-    assert "WARNING: 1 migration(s) are still unapplied (pages.0004_membership_is_a_page)" in (
-        stderr.getvalue()
-    )
+    assert f"WARNING: 1 migration(s) are still unapplied (pages.{name})" in stderr.getvalue()
     call_command("migrate", "pages", verbosity=0)
 
 

@@ -10,6 +10,8 @@ export interface SiteSettings {
   hours_text: string
   address_text: string
   directions_text: string
+  /** Public phone number, shown with the address on Plan Your Visit. */
+  phone_text: string
   contact_email: string
   quick_exit_url: string
   nonprofit_status_text: string

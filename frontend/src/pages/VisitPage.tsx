@@ -47,16 +47,49 @@ function Hours() {
   )
 }
 
+/** The address on one line, its lines joined with commas. */
+function oneLineAddress(text: string) {
+  return text
+    .split('\n')
+    .map((line) => line.trim().replace(/,$/, ''))
+    .filter(Boolean)
+    .join(', ')
+}
+
+/** The address and phone number in a small heading size, then the directions in smaller text. */
 function Directions() {
   const settings = useSiteSettings()
   if (settings.status === 'loading') return <LoadingState label="Loading location" className="py-2" />
   if (settings.status === 'error') return <ErrorState title="Location did not load" onRetry={settings.retry} />
+  const { address_text: address, phone_text: phone, directions_text: directions } = settings.data
+  if (!address && !phone && !directions) return <p className="text-fg-muted">Directions are shared with confirmed visitors.</p>
   return (
-    <div className="flex flex-col gap-4 text-sm leading-[1.6] lg:text-[0.9375rem]">
-      {settings.data.address_text && <p className="whitespace-pre-line text-fg">{settings.data.address_text}</p>}
-      {settings.data.directions_text && <p className="whitespace-pre-line text-fg-muted">{settings.data.directions_text}</p>}
-      {!settings.data.address_text && !settings.data.directions_text && (
-        <p className="text-fg-muted">Directions are shared with confirmed visitors.</p>
+    <div className="flex flex-col gap-5">
+      {(address || phone) && (
+        <dl className="flex flex-col gap-1.5 font-display text-xl leading-[1.3] text-fg lg:text-[1.375rem]">
+          {address && (
+            <div>
+              <dt className="inline">Address: </dt>
+              <dd className="inline">{oneLineAddress(address)}</dd>
+            </div>
+          )}
+          {phone && (
+            <div>
+              <dt className="inline">Phone Number: </dt>
+              <dd className="inline">
+                <a href={`tel:${phone.replace(/[^\d+]/g, '')}`} className="text-link hover:text-primary-hover">
+                  {phone}
+                </a>
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {directions && (
+        <div className="flex flex-col gap-1.5 text-[0.8125rem] leading-[1.6] lg:text-sm">
+          <p className="font-semibold text-fg">Directions:</p>
+          <p className="whitespace-pre-line text-fg-muted">{directions}</p>
+        </div>
       )}
     </div>
   )
