@@ -16,14 +16,20 @@ const members = (pick: (module: typeof import('./pages/members/lazy')) => Compon
 export const router = createBrowserRouter([
   {
     path: 'members',
-    lazy: members((m) => m.MembersLayout),
+    lazy: members((m) => m.AppShell),
     children: [
       { index: true, element: <Navigate to="/members/feed" replace /> },
       { path: 'feed', lazy: members((m) => m.FeedPage) },
+      { path: 'explore', lazy: members((m) => m.ExplorePage) },
+      { path: 'search', lazy: members((m) => m.SearchPage) },
+      { path: 'notifications', lazy: members((m) => m.NotificationsPage) },
       { path: 'p/:id', lazy: members((m) => m.PostPage) },
       { path: 'u/:handle', lazy: members((m) => m.MemberProfilePage) },
-      { path: 'directory', lazy: members((m) => m.DirectoryPage) },
-      { path: 'notifications', lazy: members((m) => m.NotificationsPage) },
+      { path: 'u/:handle/saved', lazy: members((m) => m.MemberProfilePage) },
+      { path: 'saved', lazy: members((m) => m.SavedPage) },
+      { path: 'settings', lazy: members((m) => m.SettingsPage) },
+      // The old address of member search.
+      { path: 'directory', element: <Navigate to="/members/search" replace /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

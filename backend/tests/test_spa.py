@@ -35,6 +35,18 @@ def test_index_carries_the_site_images_address(client, dist, settings):
     assert '<meta name="rose-site-images" content="https://media.site.example/site/" />' in html
 
 
+def test_index_preconnects_to_the_storage_origins(client, dist, settings):
+    settings.MEDIA_ORIGINS = ["https://files.example", "https://public.example"]
+    html = client.get("/members/feed").content.decode()
+    assert '<link rel="preconnect" href="https://files.example" />' in html
+    assert '<link rel="preconnect" href="https://public.example" />' in html
+
+
+def test_index_has_no_preconnect_without_object_storage(client, dist, settings):
+    settings.MEDIA_ORIGINS = []
+    assert 'rel="preconnect"' not in client.get("/").content.decode()
+
+
 @pytest.mark.parametrize(
     "path",
     [

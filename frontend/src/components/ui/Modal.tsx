@@ -54,7 +54,7 @@ export function Modal({
         className={cn(
           'relative flex flex-col bg-surface',
           variant === 'sheet'
-            ? 'h-full w-full px-6 pb-10 pt-6'
+            ? 'h-full w-full overflow-y-auto px-6 pb-10 pt-6'
             : cn(
                 'max-h-[92dvh] w-full overflow-y-auto rounded-card border border-border p-6 sm:p-8',
                 size === 'wide' ? 'max-w-5xl' : 'max-w-lg',

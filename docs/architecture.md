@@ -35,7 +35,7 @@ security and restores are in `docs/ops/`.
 | `config/celery.py` | Celery app. Reads `CELERY_*` settings; beat schedule lives in settings. |
 | `config/urls.py` | `/robots.txt`, the admin (path from `DJANGO_ADMIN_PATH`) and everything under `/api/`. |
 | `templates/admin/` | Admin additions: Image review, door list, Repeat weekly form, feed moderation, the membership Door desk and Membership summary, and the index shortcuts. |
-| `apps/core` | `AuditLog` (append-only record of moderation, door desk, export, private-data, staff-security and operations actions, with the `audit()` helper), `SeedMarker`, `checks.py` (deployment safety checks), `dashboard.py` (totals for the admin home page, shown by permission), `spa.py` (serves the built app), `storage.py` (public and private S3 backends), `admin_auth.py` (two-step staff login), `logging.py` (JSON logs and the privacy scrubber, optional Sentry), `backups.py` and `tasks.py` (encrypted nightly backup), commands `migrate_media_to_storage`, `send_test_email`, `verify_restore` and `e2e_fixtures`, and shared helpers: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface: a stream locally, a 60-second signed redirect on S3; stored watermarked copies), `watermark.py` (per-viewer tiled watermark), `images.py` (upload checks, EXIF/GPS stripping, random names, size variants), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py` (health check, staging gate, final header policy), `views.py`. |
+| `apps/core` | `AuditLog` (append-only record of moderation, door desk, export, private-data, staff-security and operations actions, with the `audit()` helper), `SeedMarker`, `checks.py` (deployment safety checks), `dashboard.py` (totals for the admin home page, shown by permission), `spa.py` (serves the built app, with preconnect hints to the storage origins), `storage.py` (public and private S3 backends), `admin_auth.py` (two-step staff login), `logging.py` (JSON logs and the privacy scrubber, optional Sentry), `backups.py` and `tasks.py` (encrypted nightly backup), commands `migrate_media_to_storage`, `send_test_email`, `verify_restore` and `e2e_fixtures`, and shared helpers: `consent_images.py` (the image + alt + faces + consent pattern), `private_media.py` (private storage and the one delivery interface: a stream locally, a 60-second signed redirect on S3; stored watermarked copies), `watermark.py` (per-viewer tiled watermark), `images.py` (upload checks, EXIF/GPS stripping, random names, size variants), `manifest.py` and the `review_images` command, `admin_site.py` (custom AdminSite with the Image review page), `api.py` (CSRF-protected API base view), `ratelimit.py` (hashed, proxy-aware keys), `text.py` (nh3 sanitising), `email.py` (neutral sender, Message-ID, site links), `middleware.py` (health check, staging gate, final header policy), `views.py`. |
 | `apps/accounts` | `User` (email login, `display_name`, private `legal_name`, `phone`, `email_verified_at`, `session_epoch`), `Profile`, registration, verification, login lockout, password reset and change, display-name change, sign out everywhere, account deletion, session rules (`middleware.py`, `sessions.py`, privilege-change signals) and the optional breached-password check (`breach.py`). Email tasks in `tasks.py`. |
 | `apps/pages` | `SiteSettings` (now with the giving details and the staff-only legal name and EIN), `SocialLink`, `FAQItem`, `StaffProfile`, `PageContent` (editable page copy), `Redirect` (old site addresses). `content.py` (cached copy and redirect reads), `middleware.py` (301s before the app's fallback), `site_content.py` and the `load_site_content` command (YAML drafts), `demo_content/` (placeholder copy for development and tests), `seed_demo` and its generated art. |
 | `apps/education` | `Opportunity` (uses the consented image pattern). |
@@ -77,6 +77,11 @@ security and restores are in `docs/ops/`.
 | GET | `/api/journal/posts/[<slug>/]` | Cursor-paginated, 12 per page. |
 | GET, POST | `/api/account/feed/`, `join/`, `guidelines/`, `step-away/`, `erase/`, `export/`, `export/download/` | Feed controls on /account. 404 unless the person is entitled or has feed history. |
 | any | `/api/members/...` | The feed. Every path and method returns 404 unless `can_view_feed` passes, before CSRF or anything else is checked. See below. |
+| GET | `/api/members/home/?tab=` | The app's home feed: member posts with the club's journal posts (as "Rose") interleaved by date. The cursor holds timestamps and public ids, never database ids. |
+| GET | `/api/members/saved/` | The caller's own saved posts. There is no way to see anyone else's. |
+| POST, DELETE | `/api/members/posts/<id>/save/` | Save or unsave (published posts the caller can see). |
+| GET | `/api/members/stories/` | Story circles (Tonight, This week, Journal, News) with the caller's seen state. The same for everyone apart from that state. |
+| POST | `/api/members/stories/seen/` | `{keys: [...]}`: mark story items seen (50 at most). |
 | GET | `/api/membership/tiers/`, `options/` | Tiers on offer; payment methods and the current agreement. Placeholders are never offered with DEBUG off. |
 | GET | `/api/membership/me/` | The caller's own membership, payments and entitlements. |
 | POST | `/api/membership/join/`, `checkout/`, `cancel/`, `auto-renew/` | Join (rate limited, 10 an hour), pay online again, cancel, toggle renewal. |
@@ -154,11 +159,20 @@ erDiagram
     Report }o--|| FeedPost : "or comment, or profile"
     AuditLog }o--|| User : "actor (append-only)"
     User ||--o{ DataExport : requests
+    User ||--o{ SavedPost : "saves (private)"
+    SavedPost }o--|| FeedPost : bookmarks
+    User ||--o{ StorySeen : "has opened"
+    Announcement {
+        string title
+        text body
+        datetime starts_at
+        datetime ends_at
+    }
 ```
 
 - **Access** (`apps/feed/access.py`): `can_view_feed` = signed in, active, email verified, entitled, not banned or suspended, and opted in. `has_feed_entitlement` asks `memberships.access.entitlements`: an active or grace membership whose tier grants the feed, or the staff grant. `can_post` adds the current guidelines version and no posting cooldown.
 - **Opting out** (`Profile.participates_in_feed=False`) hides every post, comment, like, avatar and bio at once through `feed_visible_q()`; nothing is deleted, and rejoining restores it all. Banned members are hidden the same way.
-- **Leave and erase** (`services.erase_feed_data`, run by `tasks.erase_member_feed`) deletes posts, image files, comments, likes, follows, blocks and mutes they created, notifications and exports. Account deletion calls the same routine.
+- **Leave and erase** (`services.erase_feed_data`, run by `tasks.erase_member_feed`) deletes posts, image files, comments, likes, saved posts, seen-story records, follows, blocks and mutes they created, notifications and exports. Account deletion calls the same routine.
 - **Images**: the browser renders redactions on a canvas and uploads only the result. The server stores the raw upload in private `incoming/`, a worker strips metadata and re-encodes to WebP with a random name, and the raw file is deleted. Posts show "Processing" to their author until then.
 - **Private media**: no feed file has a URL of its own. `MediaView` and `AvatarMediaView` re-check access, blocks and post status on every request, then deliver a copy watermarked with the viewer's display name and date (`FEED_WATERMARK`). The copy is rendered once per image, viewer and day and stored under `watermarks/`; on S3 the view answers `302` to a URL signed for 60 seconds, locally it streams the file. Either way the view's response is `Cache-Control: private, no-store`. Deleting an image deletes every copy of it; deleting an account deletes every copy carrying that person's name. `FEED_ENABLED=false` makes every feed path a 404 (docs/ops/incident.md).
 - **Moderation**: `/admin/feed/feedpost/moderation/` lists open reports grouped by item, pending first posts and the action log. Every action writes an append-only `core.AuditLog` entry in the moderation category.
@@ -231,17 +245,45 @@ flowchart LR
   only when a superuser ticks the box, which is logged separately.
 - Every door desk action, export and signature reveal writes `core.AuditLog`.
 
+## Website and member app (prompt 07)
+
+The frontend has two experiences that never mix:
+
+1. **The public website**: Home, About, Events, Education, Journal, Visit, Guests, FAQ,
+   Rentals, Volunteer, Donate, Contact, Membership/Join, Privacy, the account and sign-in
+   pages and the age gate. It uses `components/layout/Layout` (header and footer). Its
+   layout and structure are those of prompts 01 to 06; prompt 07 changed only its colours.
+2. **The member app**: every route under `/members/*` (feed, explore, search,
+   notifications, create, profiles, saved posts, post detail, settings, stories). It has its
+   own shell (`components/members/app/AppShell`) and never renders the website header or
+   footer.
+
+Boundary rules:
+
+- The app shell renders only on `/members/*`, and only for people who pass
+  `can_view_feed`. Everyone else gets the site's ordinary 404 on those routes, in the
+  website's look, so the app is never hinted at.
+- Signed-in members on public pages see the normal website. The header gains one item for
+  entitled members only, "My feed" (`LayoutGrid`), linking to `/members/feed`. It shows
+  when the session payload's `feed_access` is true.
+- In the app, More > Website returns to `/`. Links from the app to events, education or
+  journal posts open the normal website pages.
+- Both experiences share one light palette (and an optional neutral dark one), chosen
+  under Appearance. Quick exit and double-Esc work on every page of both.
+
 ## Frontend (`/frontend/src`)
 
 | Path | Purpose |
 | --- | --- |
 | `App.tsx` | Age gate first; then site settings, auth and toast providers around the router. |
-| `router.tsx` | All routes under the shared `Layout`. |
+| `router.tsx` | Website routes under the shared `Layout`; member app routes under `/members` with `AppShell`. |
 | `components/ui` | Design-system components. See `docs/design-system.md`. |
-| `components/layout` | Header (with `AccountMenu`), footer, `QuickExit`, `AgeGate`, auth and site settings providers. |
+| `components/layout` | Header (with `AccountMenu` and, for entitled members, "My feed"), footer, `QuickExit`, `AgeGate`, auth and site settings providers. |
 | `components/content` | `EventCard`, `MonthCalendar`, `RSVPPanel`, `Carousel`, `PostView`, `JournalTile`, opportunity card, FAQ accordion, states. |
-| `pages` | One file per page; `pages/account/` holds login, register, verify, forgot, reset, export download and the account page (with `FeedSection`); `pages/members/` holds the feed, post, profile, directory, notifications and join flow. |
-| `components/members` | Members area: quieter `MembersLayout`, `PostCard`, `Composer`, `RedactionEditor`, `SensitiveBlur`, `OverflowMenu`, `ReportDialog`, `ProfileSettings`. Loaded as a separate chunk only when a members route is visited. |
+| `pages` | One file per page; `pages/account/` holds login, register, verify, forgot, reset, export download and the account page (with `FeedSection`); `pages/members/` holds the member app's pages (home, explore, search, notifications, post, profile and saved, settings) and the website's join-feed flow. |
+| `components/members/app` | The member app: `AppShell` (access check, sidebar or top bar and tabs, panels, post modal, Create), `Nav`, `PostCard`, `PostDetail`, `MediaCarousel`, `Stories`, `PostGrid`, `RightRail`, `SearchContent`, `NotificationsContent`, `CreatePost`, `ActionSheet`. Loaded as a separate chunk only when a members route is visited. |
+| `components/members` | Pieces shared by the app and the website's feed pages: `Avatar`, `RedactionEditor`, `SensitiveBlur`, `ReportDialog`, `ConfirmDialog`, `EditPostDialog`, `ProfileSettings` (avatar picker, Edit profile, Blocked), `Toggle`, the members context. |
+| `lib/appearance.ts` | Light or dark: the cookie before first paint, the account's choice after sign-in. |
 | `lib/redact.ts`, `lib/membersApi.ts`, `lib/useCursorList.ts` | Canvas redaction pipeline; members API client; cursor pagination with infinite scroll. |
 | `lib/api.ts` | Typed API client; keeps the CSRF token in memory and refreshes it from session responses. |
 | `lib/pageContent.ts`, `components/content/Copy.tsx` | Editable page copy: `usePageContent(page)`, then `<Copy>` and `<CopyHeading>` render a key (formatted or plain) with a skeleton while it loads. |
@@ -255,6 +297,11 @@ flowchart LR
 
 **Prompt 4: paid membership.** Built; see "Membership and payments" above. A real
 processor is one adapter class (see `docs/payments.md`).
+
+**Prompt 7: member app and lighter site.** Built; see "Website and member app" above,
+`docs/design-system.md` (Website and Member app) and decisions 285 onwards. Backend
+additions: `SavedPost`, `StorySeen`, `Announcement`, `User.appearance`, image sizes, the
+home, saved, save and stories endpoints, and `feed_access` in the session payload.
 
 **Prompt 6: parity with the old site.** Built; see "Guests, rentals, volunteers, giving and the
 email list" above, the data retention table, and `docs/content.md` for the copy workflow.
@@ -401,6 +448,12 @@ Check every change against this list.
 - [ ] **No email for feed activity.** Notifications are in-app only; likes are grouped and
       nameless.
 - [ ] **No direct messages.**
+- [ ] **Saved posts are private.** Only the saver's own `saved_by_me` and
+      `/api/members/saved/` mention them; they leave every list when a post is hidden or
+      removed, and are exported and erased with the member's data.
+- [ ] **Stories reveal nothing about members.** They are staff-made (events, journal,
+      announcements) and identical for everyone apart from the viewer's own seen state.
+- [ ] **No suggestions.** The member app never suggests members to each other.
 
 ### RSVP privacy rules
 

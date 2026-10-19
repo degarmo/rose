@@ -16,6 +16,11 @@ export interface FeedImage {
   id: string
   url: string
   alt: string
+  /** Recorded after processing; null for images stored before sizes were kept. */
+  width: number | null
+  height: number | null
+  /** Club (journal) images only: public, resized copies. */
+  srcset?: string | null
 }
 
 export type PostState = 'pending' | 'published' | 'hidden_by_report' | 'removed' | 'processing'
@@ -35,6 +40,10 @@ export interface FeedPost {
   liked_by_me: boolean
   /** Only ever set for the post's author. */
   like_count: number | null
+  /** The viewer's own bookmark; nobody else's saves are ever sent. */
+  saved_by_me: boolean
+  /** The two newest comments the viewer may see, oldest first. */
+  recent_comments: FeedComment[]
   is_own: boolean
   state: PostState | null
   /** Author only: waiting for a moderator before anyone else can see it. */
@@ -53,6 +62,8 @@ export interface MemberProfile {
   handle: string
   avatar: string | null
   bio: string
+  /** Posts only: there are no follower or following counts. */
+  post_count: number
   joined: string
   is_self: boolean
   relationship: { following: boolean; muted: boolean } | null
@@ -100,6 +111,38 @@ export interface FeedNotification {
   posted: Posted
 }
 
+/** A journal post shown in the home feed as the club's own "Rose" account. */
+export interface ClubPost {
+  kind: 'club'
+  id: string
+  slug: string
+  author: MemberCard
+  caption_html: string
+  posted: Posted
+  images: FeedImage[]
+  link: { label: string; url: string }
+}
+
+export type HomeItem = ({ kind: 'member' } & FeedPost) | ClubPost
+
+export interface StoryItem {
+  key: string
+  kind: 'event' | 'journal' | 'announcement'
+  title: string
+  text: string
+  starts_at: string | null
+  image: { url: string; alt: string; srcset: string | null; width: number | null; height: number | null } | null
+  link: { label: string; url: string } | null
+  seen: boolean
+}
+
+export interface StoryGroup {
+  id: string
+  title: string
+  seen: boolean
+  items: StoryItem[]
+}
+
 export type ReportReason = 'no_consent' | 'identifies' | 'harassment' | 'under_18' | 'spam' | 'other'
 export type ReportTarget = 'post' | 'comment' | 'profile'
 export type Relationship = 'follow' | 'block' | 'mute'
@@ -118,9 +161,9 @@ function cursorFrom(url: string | null): string | null {
   return new URL(url, window.location.origin).searchParams.get('cursor')
 }
 
-async function page(path: string, cursor: string | null) {
+async function page<T = FeedPost>(path: string, cursor: string | null) {
   const separator = path.includes('?') ? '&' : '?'
-  const result = await request<Page<FeedPost>>(
+  const result = await request<Page<T>>(
     cursor ? `${path}${separator}cursor=${encodeURIComponent(cursor)}` : path,
   )
   return { items: result.results, nextCursor: cursorFrom(result.next) }
@@ -146,6 +189,13 @@ export const members = {
 
   feed: (tab: 'everyone' | 'following', cursor: string | null = null) =>
     page(`/members/feed/?tab=${tab}`, cursor),
+  home: (tab: 'everyone' | 'following', cursor: string | null = null) =>
+    page<HomeItem>(`/members/home/?tab=${tab}`, cursor),
+  saved: (cursor: string | null = null) => page('/members/saved/', cursor),
+  save: (id: string) => post<FeedPost>(`/members/posts/${enc(id)}/save/`),
+  unsave: (id: string) => send<FeedPost>('DELETE', `/members/posts/${enc(id)}/save/`),
+  stories: () => request<{ results: StoryGroup[] }>('/members/stories/'),
+  markStoriesSeen: (keys: string[]) => post<{ ok: true }>('/members/stories/seen/', { keys }),
   memberPosts: (handle: string, cursor: string | null = null) =>
     page(`/members/u/${enc(handle)}/posts/`, cursor),
   post: (id: string) => request<FeedPost>(`/members/posts/${enc(id)}/`),
@@ -222,4 +272,37 @@ export function postedLabel(posted: Posted, relative: (iso: string) => string): 
     return monthFormatter.format(new Date(Date.UTC(year, month - 1, 1)))
   }
   return ''
+}
+
+type HomePage = Awaited<ReturnType<typeof members.home>>
+type Tab = 'everyone' | 'following'
+let meAhead: Promise<Me> | null = null
+const homeAhead = new Map<Tab, Promise<HomePage | null>>()
+
+/**
+ * Opening /members/feed directly: start the access check and the first page of the feed
+ * together, as soon as the app runs, rather than one after the other once the member
+ * app's code has loaded. Called only after the age gate. Someone without access gets
+ * the same 404 as for any member path.
+ */
+export function prefetchMemberApp(pathname: string, search: string) {
+  if (pathname !== '/members/feed') return
+  meAhead = members.me()
+  meAhead.catch(() => undefined)
+  const tab: Tab = new URLSearchParams(search).get('tab') === 'following' ? 'following' : 'everyone'
+  homeAhead.set(tab, members.home(tab).catch(() => null))
+}
+
+/** The access check: the prefetched one if there is one (used once), otherwise a fresh request. */
+export function firstMe(): Promise<Me> {
+  const ahead = meAhead
+  meAhead = null
+  return ahead ?? members.me()
+}
+
+/** The feed's first page: the prefetched one if there is one (used once), otherwise a fresh request. */
+export async function firstHomePage(tab: Tab): Promise<HomePage> {
+  const ahead = homeAhead.get(tab)
+  homeAhead.delete(tab)
+  return (ahead && (await ahead)) ?? members.home(tab)
 }

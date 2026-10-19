@@ -190,7 +190,7 @@ export function ContactPage() {
                   </FormField>
                 </div>
                 {values.topic === 'concern' && (
-                  <div className="flex gap-3 rounded-xl border border-rose/40 bg-primary-deep/40 p-4 text-sm leading-relaxed text-fg-muted">
+                  <div className="flex gap-3 rounded-xl border border-rose/40 bg-canvas p-4 text-sm leading-relaxed text-fg-muted">
                     <ShieldAlert aria-hidden="true" className="size-5 shrink-0 text-rose" />
                     <Copy copy={copy} k="concern" as="div" lines={2} className="text-sm" />
                   </div>

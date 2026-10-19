@@ -46,30 +46,36 @@ test.describe('Member feed', () => {
 
     // A photo post, with something covered before it ever leaves the device.
     await poster.goto('/members/feed')
-    await poster.getByRole('button', { name: 'Create' }).click()
+    await poster.getByRole('button', { name: 'Create', exact: true }).click()
     await poster.locator('#composer-files').setInputFiles(PHOTO)
-    await poster.getByRole('button', { name: 'Next' }).click()
+    await poster.getByRole('button', { name: 'Next', exact: true }).click()
     const surface = poster.getByTestId('redaction-surface')
     const box = (await surface.boundingBox())!
     await poster.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3)
     await poster.mouse.down()
     await poster.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.6, { steps: 5 })
     await poster.mouse.up()
-    await poster.getByRole('button', { name: 'Next' }).click()
+    await poster.getByRole('button', { name: 'Next', exact: true }).click()
+    // Details: describe, caption, and the consent attestation.
     await poster.getByLabel('Describe photo 1').fill('Gold stripes on red')
-    await poster.getByRole('button', { name: 'Next' }).click()
     await poster.getByRole('textbox', { name: /^Caption/ }).fill(first)
-    const post = poster.getByRole('button', { name: 'Post', exact: true })
-    await expect(post).toBeDisabled() // consent first
+    await poster.getByRole('button', { name: 'Next', exact: true }).click()
+    const share = poster.getByRole('button', { name: 'Share', exact: true })
+    await expect(share).toBeDisabled() // consent first
+    await poster.getByRole('button', { name: 'Back' }).click()
     await poster.getByLabel(/Everyone identifiable in these photos agreed/).check()
-    await post.click()
+    await poster.getByRole('button', { name: 'Next', exact: true }).click()
+    await share.click()
     const mine = postBy(poster, posterHandle).filter({ hasText: first })
     await expect(mine).toBeVisible()
 
     // The image is served through the access-checked view, then a short signed URL.
-    await poster.reload()
+    // Processing runs in the worker, so reload until it is done.
     const image = postBy(poster, posterHandle).filter({ hasText: first }).locator('img').first()
-    await expect(image).toBeVisible({ timeout: 30_000 })
+    await expect(async () => {
+      await poster.reload()
+      await expect(image).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 30_000 })
     await expect.poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0)
 
     // The friend likes and comments.
@@ -77,10 +83,10 @@ test.describe('Member feed', () => {
     const seen = postBy(friend, posterHandle).filter({ hasText: first })
     await seen.getByRole('button', { name: /Like/ }).click()
     await expect(seen.getByRole('button', { name: /Like/ })).toHaveAttribute('aria-pressed', 'true')
-    await seen.getByRole('link', { name: 'Comment' }).click()
-    await friend.getByRole('textbox', { name: 'Add a comment' }).fill(comment)
-    await friend.getByRole('button', { name: 'Comment', exact: true }).click()
-    await expect(friend.getByText(comment)).toBeVisible()
+    await seen.getByRole('textbox', { name: 'Add a comment' }).fill(comment)
+    await seen.getByRole('button', { name: 'Post', exact: true }).click()
+    await expect(seen.getByText(comment)).toBeVisible()
+    await expect(seen.getByText('Liked by you')).toBeVisible()
 
     // The author sees the like count; nobody sees who liked it.
     await poster.goto('/members/feed')
@@ -90,7 +96,7 @@ test.describe('Member feed', () => {
     await friend.goto('/members/feed')
     const reported = postBy(friend, posterHandle).filter({ hasText: first })
     await reported.getByRole('button', { name: 'Post options' }).click()
-    await friend.getByRole('button', { name: 'Report' }).click()
+    await friend.getByRole('dialog', { name: 'Post options' }).getByRole('button', { name: 'Report' }).click()
     const dialog = friend.getByRole('dialog', { name: 'Report this post' })
     await dialog.getByLabel('Posted without consent').check()
     await dialog.getByRole('button', { name: 'Send report' }).click()
@@ -100,15 +106,16 @@ test.describe('Member feed', () => {
     await expect(poster.getByText('Hidden while we review a report')).toBeVisible()
 
     // A text post, then the friend blocks the poster: it disappears for them.
-    await poster.getByRole('button', { name: 'Create' }).click()
+    await poster.getByRole('button', { name: 'Create', exact: true }).click()
     await poster.getByRole('button', { name: 'Write a text post' }).click()
     await poster.getByRole('textbox', { name: /^Caption/ }).fill(second)
-    await poster.getByRole('button', { name: 'Post', exact: true }).click()
+    await poster.getByRole('button', { name: 'Next', exact: true }).click()
+    await poster.getByRole('button', { name: 'Share', exact: true }).click()
     await expect(postBy(poster, posterHandle).filter({ hasText: second })).toBeVisible()
     await friend.reload()
     const secondPost = postBy(friend, posterHandle).filter({ hasText: second })
     await secondPost.getByRole('button', { name: 'Post options' }).click()
-    await friend.getByRole('button', { name: `Block ${posterHandle}` }).click()
+    await friend.getByRole('dialog', { name: 'Post options' }).getByRole('button', { name: `Block ${posterHandle}` }).click()
     await friend.getByRole('dialog', { name: `Block ${posterHandle}?` }).getByRole('button', { name: 'Block' }).click()
     await friend.reload()
     await expect(postBy(friend, posterHandle)).toHaveCount(0)

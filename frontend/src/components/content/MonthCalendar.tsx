@@ -79,7 +79,7 @@ export function MonthCalendar({ month, events, onMonthChange }: MonthCalendarPro
                     <li key={event.id}>
                       <Link
                         to={`/events/${event.slug}`}
-                        className="block size-2 rounded-full bg-rose sm:size-auto sm:truncate sm:rounded-md sm:bg-primary-deep sm:px-1.5 sm:py-0.5 sm:text-xs sm:text-fg sm:hover:bg-primary"
+                        className="block size-2 rounded-full bg-rose sm:size-auto sm:truncate sm:rounded-md sm:bg-primary-deep sm:px-1.5 sm:py-0.5 sm:text-xs sm:text-fg sm:hover:bg-primary sm:hover:text-on-primary"
                       >
                         <span className="sr-only sm:not-sr-only sm:block sm:truncate">{event.title}</span>
                       </Link>

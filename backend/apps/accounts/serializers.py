@@ -30,11 +30,20 @@ class AccountSerializer(serializers.ModelSerializer):
     email_verified = serializers.BooleanField(read_only=True)
     has_membership = serializers.SerializerMethodField()
     staff_guide_url = serializers.SerializerMethodField()
+    feed_access = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["display_name", "email", "email_verified", "has_membership", "staff_guide_url"]
-        read_only_fields = ["email", "email_verified"]
+        fields = [
+            "display_name",
+            "email",
+            "email_verified",
+            "has_membership",
+            "staff_guide_url",
+            "feed_access",
+            "appearance",
+        ]
+        read_only_fields = ["email", "email_verified", "appearance"]
 
     def get_has_membership(self, user):
         return user.memberships.exists()
@@ -42,6 +51,12 @@ class AccountSerializer(serializers.ModelSerializer):
     def get_staff_guide_url(self, user):
         """Staff only, so the admin's address never reaches anyone else's browser."""
         return reverse("admin:staff_guide") if user.is_staff and user.is_active else None
+
+    def get_feed_access(self, user):
+        """Whether the member app opens for this person (the website shows "My feed")."""
+        from apps.feed.access import can_view_feed
+
+        return can_view_feed(user)
 
 
 def validate_display_name_available(value, exclude_pk=None):
@@ -58,6 +73,20 @@ class DisplayNameSerializer(serializers.Serializer):
 
     def validate_display_name(self, value):
         return validate_display_name_available(value, exclude_pk=self.context["user"].pk)
+
+
+class SessionUpdateSerializer(DisplayNameSerializer):
+    """Changes to your own account from the session endpoint: either field, or both."""
+
+    display_name = serializers.CharField(
+        max_length=30, validators=[display_name_validator], required=False
+    )
+    appearance = serializers.ChoiceField(choices=User.Appearance.choices, required=False)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("Nothing to change.")
+        return attrs
 
 
 class RegisterSerializer(serializers.Serializer):

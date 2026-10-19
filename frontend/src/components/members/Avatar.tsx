@@ -1,14 +1,20 @@
 import { cn } from '@/lib/cn'
 import type { MemberCard } from '@/lib/membersApi'
 
-const sizes = { xs: 'size-6 text-xs', sm: 'size-8 text-sm', md: 'size-11 text-base', lg: 'size-20 text-3xl sm:size-36 sm:text-5xl' }
+const sizes = {
+  xs: 'size-6 text-xs',
+  sm: 'size-8 text-sm',
+  md: 'size-11 text-base',
+  story: 'size-14 text-xl',
+  profile: 'size-[77px] text-3xl md:size-[150px] md:text-6xl',
+}
 
 /** Member avatar, or a monogram. Images come only from the private, access-checked view. */
 export function Avatar({ member, size = 'sm', className }: { member: MemberCard; size?: keyof typeof sizes; className?: string }) {
   return (
     <span
       className={cn(
-        'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-deep font-semibold text-fg ring-1 ring-border',
+        'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-hover font-semibold text-fg ring-1 ring-border',
         sizes[size],
         className,
       )}

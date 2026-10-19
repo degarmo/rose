@@ -8,8 +8,13 @@ urlpatterns = [
     path("me/blocks/", views.MyBlocksView.as_view(), name="feed-me-blocks"),
     path("guidelines/", views.GuidelinesView.as_view(), name="feed-guidelines"),
     path("feed/", views.FeedView.as_view(), name="feed-list"),
+    path("home/", views.HomeView.as_view(), name="feed-home"),
+    path("saved/", views.SavedView.as_view(), name="feed-saved"),
+    path("stories/", views.StoriesView.as_view(), name="feed-stories"),
+    path("stories/seen/", views.StoriesSeenView.as_view(), name="feed-stories-seen"),
     path("posts/<str:public_id>/", views.PostDetailView.as_view(), name="feed-post"),
     path("posts/<str:public_id>/like/", views.PostLikeView.as_view(), name="feed-post-like"),
+    path("posts/<str:public_id>/save/", views.PostSaveView.as_view(), name="feed-post-save"),
     path(
         "posts/<str:public_id>/comments/",
         views.PostCommentsView.as_view(),

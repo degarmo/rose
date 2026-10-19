@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile, File
 from django.db import transaction
 from django.utils import timezone
+from PIL import Image as PILImage
 
 from apps.core import images
 from apps.core.models import AuditLog, audit
@@ -34,6 +35,8 @@ from .models import (
     Mute,
     Notification,
     Report,
+    SavedPost,
+    StorySeen,
 )
 from .visibility import counted_likes, visible_posts
 
@@ -162,6 +165,12 @@ def create_post(author, caption, uploads, attested, is_sensitive=False, comments
     return post
 
 
+def stored_size(media, name):
+    """Pixel size of a processed image, read back from storage."""
+    with media.storage.open(name, "rb") as stored, PILImage.open(stored) as picture:
+        return picture.size
+
+
 def process_images(post_id):
     """Strip metadata, re-encode to WebP and discard the raw upload."""
     post = FeedPost.objects.filter(pk=post_id).first()
@@ -177,6 +186,8 @@ def process_images(post_id):
             # A savepoint per image, so one bad file cannot spoil the others.
             with transaction.atomic():
                 image.save()
+                image.width, image.height = stored_size(media, image.image.name)
+                image.save(update_fields=["width", "height"])
         except ValidationError:
             FeedImage.objects.filter(pk=image.pk).delete()
         finally:
@@ -247,6 +258,29 @@ def unlike(viewer, public_id):
     post = _viewable_post(viewer, public_id)
     FeedLike.objects.filter(post=post, user=viewer).delete()
     return post
+
+
+def save_post(viewer, public_id):
+    """Bookmark a post this member can see. Only published posts can be saved."""
+    post = _viewable_post(viewer, public_id)
+    if post.status != FeedPost.Status.PUBLISHED:
+        raise FeedError("not_found", "Not found.", status=404)
+    SavedPost.objects.get_or_create(user=viewer, post=post)
+    return post
+
+
+def unsave_post(viewer, public_id):
+    SavedPost.objects.filter(user=viewer, post__public_id=public_id).delete()
+
+
+def mark_stories_seen(viewer, keys):
+    existing = set(
+        StorySeen.objects.filter(user=viewer, key__in=keys).values_list("key", flat=True)
+    )
+    StorySeen.objects.bulk_create(
+        [StorySeen(user=viewer, key=key) for key in keys if key not in existing],
+        ignore_conflicts=True,
+    )
 
 
 def like_count_for(post, viewer):
@@ -527,6 +561,8 @@ def erase_feed_data(user):
         FeedPost.objects.filter(author=user).delete()
         FeedComment.objects.filter(author=user).delete()
         FeedLike.objects.filter(user=user).delete()
+        SavedPost.objects.filter(user=user).delete()
+        StorySeen.objects.filter(user=user).delete()
         Follow.objects.filter(follower=user).delete()
         Follow.objects.filter(followed=user).delete()
         Block.objects.filter(blocker=user).delete()
@@ -605,6 +641,14 @@ def build_export(export):
             "likes": [
                 {"post": like.post.public_id, "created_at": _when(like.created_at)}
                 for like in FeedLike.objects.filter(user=user).select_related("post")
+            ],
+            "saved": [
+                {"post": saved.post.public_id, "created_at": _when(saved.created_at)}
+                for saved in SavedPost.objects.filter(user=user).select_related("post")
+            ],
+            "stories_seen": [
+                {"story": seen.key, "seen_at": _when(seen.seen_at)}
+                for seen in StorySeen.objects.filter(user=user)
             ],
         }
         if profile.avatar and media.exists(profile.avatar.name):

@@ -22,7 +22,7 @@ export function PageHero({ copy, prefix = 'hero', eyebrow, title, lede, image, p
   return (
     <div className="relative isolate flex min-h-[70svh] items-end overflow-hidden pb-16 pt-32 sm:min-h-[60vh] sm:pb-20">
       <ImageFrame image={image} alt="" fill placeholder={placeholder} priority reveal={false} className="-z-20" />
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/70 to-canvas/10" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/85 to-canvas/40" />
       <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
         {loading ? (
           <CopySkeleton className="mb-5 w-40 text-xs" />

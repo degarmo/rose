@@ -21,11 +21,11 @@ from .serializers import (
     AccountSerializer,
     ChangePasswordSerializer,
     DeleteAccountSerializer,
-    DisplayNameSerializer,
     EmailSerializer,
     LoginSerializer,
     PasswordResetConfirmSerializer,
     RegisterSerializer,
+    SessionUpdateSerializer,
     TokenSerializer,
 )
 from .tokens import user_from_reset_params, user_from_verification_token
@@ -57,10 +57,12 @@ class SessionView(CsrfProtectedAPIView):
     def patch(self, request):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_403_FORBIDDEN)
-        serializer = DisplayNameSerializer(data=request.data, context={"user": request.user})
+        serializer = SessionUpdateSerializer(data=request.data, context={"user": request.user})
         serializer.is_valid(raise_exception=True)
-        request.user.display_name = serializer.validated_data["display_name"]
-        request.user.save(update_fields=["display_name"])
+        changes = serializer.validated_data
+        for field, value in changes.items():
+            setattr(request.user, field, value)
+        request.user.save(update_fields=list(changes))
         return Response(session_payload(request))
 
 

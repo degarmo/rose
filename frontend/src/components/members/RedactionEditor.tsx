@@ -18,7 +18,7 @@ function ToolButton({ active, onClick, label, children }: { active?: boolean; on
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'inline-flex min-h-11 items-center gap-2 rounded-full border px-3 text-sm transition-colors',
+        'inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors',
         active ? 'border-primary bg-primary text-on-primary' : 'border-border-strong text-fg hover:border-highlight',
       )}
     >

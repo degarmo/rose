@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api, type Account, type Session } from '@/lib/api'
+import { adoptAccountAppearance } from '@/lib/appearance'
 import { AuthContext, type AuthState } from './authContext'
 
 /** Session cookie auth. Nothing about the account is stored in the browser. */
@@ -10,6 +11,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applySession = useCallback((session: Session) => {
     setUser(session.user)
     setStatus('ready')
+    adoptAccountAppearance(session.user)
   }, [])
 
   const refresh = useCallback(async () => {

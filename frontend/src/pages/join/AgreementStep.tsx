@@ -64,7 +64,7 @@ export function AgreementStep({ agreement, notice, onBack, onSigned }: Agreement
         {agreement.is_placeholder && <Badge tone="rose">Placeholder text</Badge>}
       </div>
       {notice && (
-        <p role="alert" className="rounded-xl border border-highlight/40 bg-primary-deep/40 p-4 text-sm text-fg">
+        <p role="alert" className="rounded-xl border border-highlight/40 bg-canvas p-4 text-sm text-fg">
           {notice}
         </p>
       )}

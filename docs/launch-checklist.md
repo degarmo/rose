@@ -32,7 +32,9 @@ has an owner; replace `[owner]` with a name before starting.
 - [ ] **Site settings**: tagline, hours, neighbourhood, directions text, public
       contact email. Owner: [owner]
 - [ ] **Privacy page** reviewed and approved (what is stored, for how long, who
-      can see it, how to delete). Owner: [owner]
+      can see it, how to delete). It must list every cookie, including the
+      `appearance` cookie (light or dark, one year) added in prompt 07, and say that
+      saved posts are private and included in the export. Owner: [owner]
 - [ ] **Community guidelines** for the member feed written and published (Admin >
       Feed > Guidelines). Owner: [owner]
 - [ ] **Image consent review**: every site image checked in Admin > Image review;

@@ -128,7 +128,7 @@ export function HomePage() {
     <>
       <section className="relative isolate flex min-h-svh items-end overflow-hidden pb-20 pt-32 sm:items-center sm:pb-24">
         <ImageFrame image="home-hero.webp" alt="" fill placeholder="velvet" priority reveal={false} className="-z-20" />
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/60 to-canvas/20" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/80 to-canvas/50" />
         <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
           <Reveal>
             <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.32em] text-highlight">

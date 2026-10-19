@@ -1,18 +1,22 @@
-import { Grid3x3, Settings } from 'lucide-react'
+import { Bookmark, Ellipsis, Grid3x3, Settings } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { ErrorState, LoadingState } from '@/components/content/States'
+import { ActionSheet } from '@/components/members/app/ActionSheet'
+import { PostGrid } from '@/components/members/app/PostGrid'
+import { profilePath } from '@/components/members/app/postUtils'
+import { IgButton } from '@/components/members/app/primitives'
+import { igButtonClasses } from '@/components/members/app/ui'
 import { Avatar } from '@/components/members/Avatar'
 import { ConfirmDialog } from '@/components/members/ConfirmDialog'
 import { useMembers } from '@/components/members/membersContext'
-import { OverflowMenu } from '@/components/members/OverflowMenu'
-import { ProfileSettings } from '@/components/members/ProfileSettings'
+import { EditProfileDialog } from '@/components/members/ProfileSettings'
 import { ReportDialog } from '@/components/members/ReportDialog'
-import { Button, ImageFrame, useToast } from '@/components/ui'
+import { useToast } from '@/components/ui'
 import { ApiError } from '@/lib/api'
-import { members, type FeedPost, type MemberProfile } from '@/lib/membersApi'
+import { cn } from '@/lib/cn'
+import { members, type MemberProfile } from '@/lib/membersApi'
 import { useAsync } from '@/lib/useAsync'
-import { useCursorList } from '@/lib/useCursorList'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { NotFoundPage } from '../NotFoundPage'
 
@@ -23,50 +27,52 @@ function joinedLabel(month: string) {
   return monthFormatter.format(new Date(Date.UTC(year, value - 1, 1)))
 }
 
-function PostGrid({ handle, version }: { handle: string; version: number }) {
-  const { base, status, loadMore, retry, bindSentinel } = useCursorList(
-    (cursor) => members.memberPosts(handle, cursor),
-    `${handle}|${version}`,
+function Tabs({ profile, saved }: { profile: MemberProfile; saved: boolean }) {
+  const base = profilePath(profile.handle)
+  const tab = (to: string, label: string, Icon: typeof Grid3x3, active: boolean) => (
+    <Link
+      to={to}
+      replace
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        '-mt-px inline-flex h-[52px] items-center gap-1.5 border-t text-xs font-semibold uppercase tracking-[0.1em]',
+        active ? 'border-fg text-fg' : 'border-transparent text-fg-muted hover:text-fg',
+      )}
+    >
+      <Icon aria-hidden="true" className="size-3" strokeWidth={2} />
+      {label}
+    </Link>
   )
   return (
-    <div>
-      <ul className="grid grid-cols-3 gap-1">
-        {base.map((post: FeedPost) => (
-          <li key={post.id}>
-            <Link to={`/members/p/${post.id}`} className="relative block aspect-square overflow-hidden bg-surface-sunken hover:opacity-90" aria-label={`Open post from ${post.posted.at ?? post.posted.month}`}>
-              {post.images[0] ? (
-                <ImageFrame remote={post.blur ? null : post.images[0]} alt="" ratio="1/1" placeholder="velvet" reveal={false} protect className={post.blur ? 'blur-xl' : undefined} />
-              ) : (
-                <span className="absolute inset-0 line-clamp-5 p-2 text-xs leading-snug text-fg-muted" dangerouslySetInnerHTML={{ __html: post.caption_html }} />
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <div ref={bindSentinel} className="mt-6 flex justify-center" aria-live="polite">
-        {status === 'loading' && <LoadingState label="Loading posts" />}
-        {status === 'error' && <ErrorState title="Posts did not load" onRetry={retry} />}
-        {status === 'idle' && <Button variant="ghost" onClick={() => void loadMore()}>Load more</Button>}
-        {status === 'done' && base.length === 0 && <p className="text-sm text-fg-subtle">No posts yet.</p>}
-      </div>
-    </div>
+    <nav aria-label="Profile sections" className="flex justify-center gap-14 border-t border-border">
+      {tab(base, 'Posts', Grid3x3, !saved)}
+      {profile.is_self && tab(`${base}/saved`, 'Saved', Bookmark, saved)}
+    </nav>
   )
 }
 
+/**
+ * A member's profile: picture, name, the number of posts (never followers or
+ * following), bio, then their posts, or your own saved posts on your own profile.
+ */
 export function MemberProfilePage() {
   const { handle = '' } = useParams()
+  const { pathname } = useLocation()
+  const saved = pathname.endsWith('/saved')
   useDocumentMeta({ title: handle, noindex: true })
   const { me, postsVersion } = useMembers()
   const toast = useToast()
   const navigate = useNavigate()
   const [version, setVersion] = useState(0)
   const state = useAsync(() => members.profile(handle), `${handle}|${version}|${me.avatar}|${me.bio}`)
-  const [dialog, setDialog] = useState<'settings' | 'report' | 'block' | null>(null)
+  const [dialog, setDialog] = useState<'edit' | 'sheet' | 'report' | 'block' | null>(null)
 
   if (state.status === 'error' && state.error instanceof ApiError && state.error.isNotFound) return <NotFoundPage />
   if (state.status === 'loading') return <LoadingState label="Loading profile" />
   if (state.status === 'error') return <ErrorState title="This profile did not load" onRetry={state.retry} />
-  const profile: MemberProfile = state.data
+  const profile = state.data
+  // Saved posts are private: the tab exists only on your own profile.
+  if (saved && !profile.is_self) return <NotFoundPage />
 
   async function relate(kind: 'follow' | 'mute', on: boolean) {
     try {
@@ -77,63 +83,81 @@ export function MemberProfilePage() {
     }
   }
 
+  const buttons = profile.is_self ? (
+    <>
+      <IgButton variant="secondary" onClick={() => setDialog('edit')}>
+        Edit profile
+      </IgButton>
+      <Link to="/members/settings" className={igButtonClasses('secondary')}>
+        <Settings aria-hidden="true" className="size-4" />
+        Settings
+      </Link>
+    </>
+  ) : (
+    profile.relationship && (
+      <>
+        <IgButton
+          variant={profile.relationship.following ? 'secondary' : 'primary'}
+          aria-pressed={profile.relationship.following}
+          onClick={() => void relate('follow', !profile.relationship?.following)}
+        >
+          {profile.relationship.following ? 'Following' : 'Follow'}
+        </IgButton>
+        <IgButton variant="secondary" aria-pressed={profile.relationship.muted} onClick={() => void relate('mute', !profile.relationship?.muted)}>
+          {profile.relationship.muted ? 'Unmute' : 'Mute'}
+        </IgButton>
+        <button type="button" onClick={() => setDialog('sheet')} className="inline-flex size-8 items-center justify-center rounded-lg text-fg hover:bg-hover">
+          <Ellipsis aria-hidden="true" className="size-6" strokeWidth={1.75} />
+          <span className="sr-only">Profile options</span>
+        </button>
+      </>
+    )
+  )
+
   return (
-    <div>
-      <header className="flex items-start gap-5 px-2 pb-6 sm:gap-16 sm:px-8">
-        <Avatar member={profile} size="lg" />
-        <div className="min-w-0 flex-1 pt-1 sm:pt-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-            <h1 className="break-all text-xl font-normal text-fg">{profile.handle}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              {profile.is_self ? (
-                <Button variant="secondary" onClick={() => setDialog('settings')}>
-                  <Settings aria-hidden="true" className="size-4" />
-                  Edit profile
-                </Button>
-              ) : (
-                profile.relationship && (
-                  <>
-                    <Button
-                      variant={profile.relationship.following ? 'secondary' : 'primary'}
-                      onClick={() => void relate('follow', !profile.relationship?.following)}
-                    >
-                      {profile.relationship.following ? 'Following' : 'Follow'}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => void relate('mute', !profile.relationship?.muted)}
-                    >
-                      {profile.relationship.muted ? 'Unmute' : 'Mute'}
-                    </Button>
-                  </>
-                )
-              )}
-              {!profile.is_self && (
-                <OverflowMenu
-                  label="Profile options"
-                  items={[
-                    { label: 'Report profile', onSelect: () => setDialog('report') },
-                    { label: `Block ${profile.handle}`, onSelect: () => setDialog('block'), danger: true },
-                  ]}
-                />
-              )}
-            </div>
-          </div>
-          {profile.bio && <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-fg">{profile.bio}</p>}
-          <p className="mt-2 text-sm text-fg-muted">Joined {joinedLabel(profile.joined)}</p>
-          {!profile.is_self && <p className="mt-1 text-xs text-fg-subtle">Follows are private. Nobody sees who follows whom.</p>}
+    <div className="mx-auto w-full max-w-[935px] md:px-5 md:pt-8">
+      <header className="flex flex-col gap-4 px-4 pb-6 pt-4 md:flex-row md:items-start md:gap-0 md:px-0 md:pb-11 md:pt-0">
+        <div className="md:flex md:w-[290px] md:shrink-0 md:justify-center">
+          <Avatar member={profile} size="profile" />
         </div>
+        <section className="min-w-0 flex-1" aria-label="About">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <h1 className="break-all text-xl font-normal text-fg">{profile.handle}</h1>
+            <div className="flex flex-wrap items-center gap-2">{buttons}</div>
+          </div>
+          <p className="mt-4 text-base text-fg md:mt-5">
+            <span className="font-semibold">{profile.post_count}</span> {profile.post_count === 1 ? 'post' : 'posts'}
+          </p>
+          {profile.bio && <p className="mt-3 whitespace-pre-line break-words text-fg">{profile.bio}</p>}
+          <p className="mt-1 text-fg-muted">Joined {joinedLabel(profile.joined)}</p>
+          {!profile.is_self && <p className="mt-1 text-xs text-fg-muted">Follows are private. Nobody sees who follows whom.</p>}
+        </section>
       </header>
-      <div className="border-t border-border">
-        <p className="-mt-px flex justify-center">
-          <span className="inline-flex min-h-12 items-center gap-1.5 border-t border-fg text-xs font-semibold uppercase tracking-widest text-fg">
-            <Grid3x3 aria-hidden="true" className="size-3.5" />
-            Posts
-          </span>
-        </p>
-        <PostGrid handle={profile.handle} version={postsVersion} />
-      </div>
-      {profile.is_self && <ProfileSettings open={dialog === 'settings'} onClose={() => setDialog(null)} />}
+
+      <Tabs profile={profile} saved={saved} />
+      {saved ? (
+        <>
+          <p className="px-4 pb-3 pt-1 text-xs text-fg-muted md:px-0">Only you can see what you have saved.</p>
+          <PostGrid loader={(cursor) => members.saved(cursor)} listKey={`saved|${postsVersion}`} empty={<p className="py-10 text-center text-fg-muted">Save posts with the bookmark to find them here.</p>} />
+        </>
+      ) : (
+        <PostGrid
+          loader={(cursor) => members.memberPosts(profile.handle, cursor)}
+          listKey={`${profile.handle}|${postsVersion}`}
+          empty={<p className="py-10 text-center text-fg-muted">No posts yet.</p>}
+        />
+      )}
+
+      {profile.is_self && <EditProfileDialog open={dialog === 'edit'} onClose={() => setDialog(null)} />}
+      <ActionSheet
+        open={dialog === 'sheet'}
+        onClose={() => setDialog((d) => (d === 'sheet' ? null : d))}
+        label="Profile options"
+        actions={[
+          { label: 'Report profile', onSelect: () => setDialog('report'), danger: true },
+          { label: `Block ${profile.handle}`, onSelect: () => setDialog('block'), danger: true },
+        ]}
+      />
       <ReportDialog open={dialog === 'report'} onClose={() => setDialog(null)} targetType="profile" targetId={profile.handle} />
       <ConfirmDialog
         open={dialog === 'block'}

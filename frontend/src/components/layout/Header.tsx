@@ -1,4 +1,4 @@
-import { Menu, User } from 'lucide-react'
+import { LayoutGrid, Menu, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { cn } from '@/lib/cn'
@@ -10,27 +10,42 @@ import { isGroup, NAV, type NavEntry, type NavLinkItem } from './navigation'
 import { QuickExit } from './QuickExit'
 import { Wordmark } from './Wordmark'
 
+/** "My feed": shown only to people the member app opens for. */
+function MyFeedLink({ onNavigate, className }: { onNavigate?: () => void; className: string }) {
+  const auth = useAuth()
+  if (!auth.user?.feed_access) return null
+  return (
+    <NavLink to="/members/feed" onClick={onNavigate} className={className}>
+      <LayoutGrid aria-hidden="true" className="size-4 shrink-0 text-highlight" />
+      My feed
+    </NavLink>
+  )
+}
+
 function MobileAccountLinks({ onNavigate }: { onNavigate: () => void }) {
   const auth = useAuth()
   const { pathname } = useLocation()
   if (auth.status === 'loading') return null
   return (
-    <p className="mt-8 flex items-center gap-2 text-fg-muted">
-      <User aria-hidden="true" className="size-4 text-highlight" />
-      {auth.user ? (
-        <NavLink to="/account" onClick={onNavigate} className="text-lg text-fg hover:text-accent">
-          {auth.user.display_name}
-        </NavLink>
-      ) : (
-        <NavLink
-          to={`/account/login?next=${encodeURIComponent(pathname)}`}
-          onClick={onNavigate}
-          className="text-lg text-fg hover:text-accent"
-        >
-          Log in
-        </NavLink>
-      )}
-    </p>
+    <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-fg-muted">
+      <MyFeedLink onNavigate={onNavigate} className="inline-flex items-center gap-2 text-lg text-fg hover:text-accent" />
+      <p className="flex items-center gap-2">
+        <User aria-hidden="true" className="size-4 text-highlight" />
+        {auth.user ? (
+          <NavLink to="/account" onClick={onNavigate} className="text-lg text-fg hover:text-accent">
+            {auth.user.display_name}
+          </NavLink>
+        ) : (
+          <NavLink
+            to={`/account/login?next=${encodeURIComponent(pathname)}`}
+            onClick={onNavigate}
+            className="text-lg text-fg hover:text-accent"
+          >
+            Log in
+          </NavLink>
+        )}
+      </p>
+    </div>
   )
 }
 
@@ -128,6 +143,7 @@ export function Header() {
               )
             })}
           </ul>
+          <MyFeedLink className="ml-1 inline-flex min-h-11 items-center gap-2 px-2.5 text-sm tracking-wide text-fg-muted transition-colors duration-300 hover:text-fg" />
           <AccountMenu className="ml-2" />
         </nav>
         <div className="flex items-center gap-2 xl:hidden">

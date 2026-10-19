@@ -155,7 +155,15 @@ def test_profile_shows_month_not_date(member_client, make_member):
     client, _ = member_client()
     make_member(display_name="month_only")
     data = client.get("/api/members/u/month_only/").json()
-    assert set(data) == {"handle", "avatar", "bio", "joined", "is_self", "relationship"}
+    assert set(data) == {
+        "handle",
+        "avatar",
+        "bio",
+        "joined",
+        "is_self",
+        "relationship",
+        "post_count",
+    }
     assert len(data["joined"]) == 7
 
 

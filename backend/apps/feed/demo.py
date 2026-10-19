@@ -89,6 +89,8 @@ def _post(author, caption, images, age, sensitive=False, status=FeedPost.Status.
             image_alt="Abstract candlelight",
             image_faces_visible=True,
             image_consent_confirmed=True,
+            width=720,
+            height=720,
         )
     return post
 

@@ -33,7 +33,7 @@ export function EventPage() {
     <article>
       <div className="relative isolate flex min-h-[50svh] items-end overflow-hidden pb-12 pt-32">
         <ImageFrame remote={event?.hero_image} alt="" fill placeholder="candle" priority reveal={false} className="-z-20" />
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/70 to-canvas/20" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/85 to-canvas/40" />
         <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
           <ButtonLink to="/events" variant="link">
             <ArrowLeft aria-hidden="true" className="size-4" />

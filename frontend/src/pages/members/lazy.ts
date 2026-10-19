@@ -1,9 +1,12 @@
-// One chunk for the members area, loaded only when a members route is visited.
-export { MembersLayout } from '@/components/members/MembersLayout'
+// One chunk for the member app, loaded only when a members route is visited.
+export { AppShell } from '@/components/members/app/AppShell'
 export { ExportDownloadPage } from '../account/ExportDownloadPage'
-export { DirectoryPage } from './DirectoryPage'
+export { ExplorePage } from './ExplorePage'
 export { FeedPage } from './FeedPage'
 export { JoinFeedPage } from './JoinFeedPage'
 export { MemberProfilePage } from './MemberProfilePage'
 export { NotificationsPage } from './NotificationsPage'
 export { PostPage } from './PostPage'
+export { SavedPage } from './SavedPage'
+export { SearchPage } from './SearchPage'
+export { SettingsPage } from './SettingsPage'

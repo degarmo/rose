@@ -13,6 +13,8 @@ export interface Fixtures {
   admin_path: string
   staff: { email: string; totp_secret: string }
   viewports: Record<string, { feed: { poster: string; friend: string }; events: Record<string, string> }>
+  /** A filled-in member app for the screenshot tests. */
+  showcase: { viewer: string; viewer_handle: string; other_handle: string }
 }
 
 export function fixtures(): Fixtures {

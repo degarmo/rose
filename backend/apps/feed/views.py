@@ -14,9 +14,20 @@ from apps.accounts.models import User, feed_visible_q
 from apps.core.private_media import private_media
 from apps.core.text import caption_to_html
 
-from . import access, services
+from . import access, club, services
 from .api import FeedAPIView
-from .models import Block, FeedComment, FeedImage, FeedLike, Follow, Guidelines, Mute, Notification
+from .models import (
+    Block,
+    FeedComment,
+    FeedImage,
+    FeedLike,
+    FeedPost,
+    Follow,
+    Guidelines,
+    Mute,
+    Notification,
+    SavedPost,
+)
 from .serializers import (
     CommentCreateSerializer,
     FeedCommentSerializer,
@@ -54,7 +65,12 @@ def serialize_posts(request, posts):
     liked = set(
         FeedLike.objects.filter(user=request.user, post__in=posts).values_list("post_id", flat=True)
     )
-    context = {"viewer": request.user, "liked_ids": liked}
+    saved = set(
+        SavedPost.objects.filter(user=request.user, post__in=posts).values_list(
+            "post_id", flat=True
+        )
+    )
+    context = {"viewer": request.user, "liked_ids": liked, "saved_ids": saved}
     return FeedPostSerializer(posts, many=True, context=context).data
 
 
@@ -177,6 +193,58 @@ class FeedView(FeedAPIView):
             image.save(update_fields=["image_alt"])
         payload = serialize_posts(request, [post])[0]
         return Response(payload, status=status.HTTP_201_CREATED)
+
+
+class HomeView(FeedAPIView):
+    """The app's home feed: member posts with the club's journal posts interleaved."""
+
+    def get(self, request):
+        tab = "following" if request.query_params.get("tab") == "following" else "everyone"
+        return Response(club.home_page(request, tab, request.query_params.get("cursor")))
+
+
+class SavedPagination(CursorPagination):
+    page_size = 12
+    ordering = ("-created_at", "-pk")
+
+
+class SavedView(FeedAPIView):
+    """Your own saved posts, newest save first. There is no way to see anyone else's."""
+
+    def get(self, request):
+        saves = SavedPost.objects.filter(
+            user=request.user,
+            post__in=visible_posts(request.user).filter(status=FeedPost.Status.PUBLISHED),
+        ).select_related("post", "post__author", "post__author__profile")
+        saves = saves.prefetch_related("post__images")
+        paginator = SavedPagination()
+        page = paginator.paginate_queryset(saves, request, view=self)
+        posts = [saved.post for saved in page]
+        return paginator.get_paginated_response(serialize_posts(request, posts))
+
+
+class PostSaveView(FeedAPIView):
+    def post(self, request, public_id):
+        post = services.save_post(request.user, public_id)
+        return Response(serialize_posts(request, [post])[0])
+
+    def delete(self, request, public_id):
+        services.unsave_post(request.user, public_id)
+        post = get_object_or_404(visible_posts(request.user), public_id=public_id)
+        return Response(serialize_posts(request, [post])[0])
+
+
+class StoriesView(FeedAPIView):
+    def get(self, request):
+        return Response({"results": club.stories(request)})
+
+
+class StoriesSeenView(FeedAPIView):
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        services.mark_stories_seen(request.user, club.clean_story_keys(request.data.get("keys")))
+        return Response({"ok": True})
 
 
 class PostDetailView(FeedAPIView):

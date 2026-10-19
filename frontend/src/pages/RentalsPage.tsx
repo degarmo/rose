@@ -262,7 +262,7 @@ export function RentalInquiryForm() {
         )}
       </FormField>
       {values.type === 'photoshoot' && (
-        <div className="rounded-xl border border-highlight/40 bg-primary-deep/40 p-4">
+        <div className="rounded-xl border border-highlight/40 bg-canvas p-4">
           <Checkbox
             name="photoshoot_acknowledged"
             label={PHOTOSHOOT_PROMISE}

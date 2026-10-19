@@ -7,8 +7,8 @@ export function SensitiveBlur({ blurred, children }: { blurred: boolean; childre
   const [revealed, setRevealed] = useState(false)
   const hidden = blurred && !revealed
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      <div className={cn(hidden && 'pointer-events-none select-none blur-3xl saturate-50')} aria-hidden={hidden || undefined}>
+    <div className="relative size-full overflow-hidden">
+      <div className={cn('size-full', hidden && 'pointer-events-none select-none blur-3xl saturate-50')} aria-hidden={hidden || undefined}>
         {children}
       </div>
       {hidden && (

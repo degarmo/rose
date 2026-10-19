@@ -149,6 +149,11 @@ Profiles ("Grant member feed access"), can join it from `/account`. Moderators w
 (the private bucket in production) and are only ever served through access-checked views;
 never point a web server at that folder.
 
+Once joined, members use the member app at `/members/feed` (the website header shows "My
+feed"): a light, photo-app style shell with stories, a home feed, explore, search,
+notifications, profiles with saved posts, and settings. Staff add story notices from
+Admin > Feed > Announcements. Its design is in `docs/design-system.md` under "Member app".
+
 ## Membership and payments
 
 - **Joining**: `/join` (tier, agreement, then pay at the door or online). Staff work from

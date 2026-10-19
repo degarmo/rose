@@ -2,7 +2,9 @@
 
 Choices made where the brief did not specify. Privacy-over-convenience calls are marked **(privacy)**.
 
-Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173), prompt 05 and its follow-ups (174 to 227) and prompt 06 (228 onwards).
+Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum follow (48 to 99), then prompt 03 (100 to 134), prompt 04 (135 to 173), prompt 05 and its follow-ups (174 to 227), prompt 06 (228 to 284) and prompt 07 (285 onwards).
+
+**Prompt 07:** the member area under `/members/*` uses an Instagram-style app shell and design. The public website keeps its prompt 01–06 layout and structure, with a lighter palette. Where an earlier doc conflicts with prompt 07 on member-area layout or on colors, prompt 07 wins.
 
 ## Prompt 01
 
@@ -435,3 +437,63 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 282. `AuditLog` gained Rentals, Donations, Volunteers, Email list and Site content categories.
 283. The new admin pages share one stylesheet (`core/staff-tools.css`); printing an acknowledgement uses a static script, so the strict CSP stays unchanged.
 284. Forms that start from the signed-in name and email (rentals, volunteering) render once the session is known and take their first values from it, rather than copying it in an effect.
+
+## Prompt 07
+
+### Branch and scope
+
+285. Prompt 07 is built on a branch (`member-app`) started from prompt 06's `feature-parity`, because prompt 07 restyles prompt 06's pages and header; `main` stays as it was until both are merged.
+286. Prompt 07 replaces decisions 221 to 227 where they conflict: the member app now has a top bar and bottom tabs on phones (not a left rail), light by default (not following the device), the rose accent (not blue) and the shared palette (not a separate scoped one). Scoping by `.ig-app` remains, for type, sizes and corners only.
+
+### Palette and appearance
+
+287. Rose text (links, eyebrows, active labels) uses the 8%-darker `#CE2156`, because the accent `#E0245E` is 4.39:1 on `#FAFAFA`. `#E0245E` is used for buttons (white text 4.58:1), the liked heart and unseen story rings.
+288. Error text is `#C62A3A` (5.54:1); `#ED4956` (3.69:1 as text) marks invalid fields and error icons only (`error-mark`).
+289. Form field and ghost button outlines use `#8E8E8E` (3.28:1, the non-text minimum); dividers use `#DBDBDB`.
+290. Dark is neutral: canvas `#0C0C0C`, surfaces `#161616` and `#1F1F1F`, text `#F5F5F5` and `#A8A8A8`, rose text `#FF5C8A`, and the wordmark lightens to `#D4848F` (the oxblood is 1.5:1 on near-black).
+291. Appearance is stored on the account (`User.appearance`, light or dark, default light) and changed through `PATCH /api/account/session/`, which now takes `display_name`, `appearance` or both. **(privacy)** A first-party `appearance` cookie (one year, SameSite=Lax) holds only "light" or "dark". It is read before the first paint, so no request is needed. After sign-in the account's choice wins and is written back to the cookie, so the next visitor on a shared device sees the last choice, and nothing else. The cookie is not HttpOnly because the page must read it before any request.
+292. Appearance can be changed from the website account page, the app's Settings page and the More menu (a switch).
+293. Placeholder textures are rebuilt from the palette variables, so they read as soft rose and neutral washes in light and dark; the scrims over hero images are stronger (`via-canvas/85`, `to-canvas/40` to `/50`) so text stays readable on any photograph in light.
+294. The website wordmark ("R" mark and "Rose") uses the oxblood `wordmark` colour, as the brief asks; Fraunces stays the website's display face.
+295. Dark scrims and controls over photographs (`ink-950`, `cream-100`, white) are fixed colours, unchanged by appearance.
+
+### App shell
+
+296. Search and Notifications open as 397px panels wherever the sidebar exists (768px and up), not only from 1264px; the sidebar collapses to its rail while a panel is open.
+297. The post modal is opened with `?post=<id>` on the current page, so the page stays underneath without a second set of routes; `/members/p/:id` is a page at every width (phones always go there). The arrow keys ignore keystrokes inside text fields and inside the photo carousel, which uses them for its own images.
+298. The quick exit is the sidebar's last item ("Leave") and the phone top bar's `LogOut` icon; double-Esc works everywhere as before.
+299. **(privacy)** The right rail has no suggestions, and own profiles show no "Following" list link: building one would need a new endpoint, and follows stay private and unlisted.
+300. The loading state and the no-access 404 keep the website's look, as before, so nobody without access learns the app exists.
+
+### Feed, posts and stories
+
+301. Journal posts join the home feed on the server (`GET /api/members/home/`), interleaved by date with member posts; `/api/members/feed/` is unchanged and still powers Explore. They appear in both tabs. **(privacy)** The cursor holds timestamps plus public ids or slugs, never database ids.
+302. Club posts cannot be liked, commented on, saved or reported; their action row is the website link (RSVP for an event, the post's own button, or "Read on the website").
+303. Double-tap and double-click only ever like (never unlike), and do nothing on club posts or while a post is blurred.
+304. Posts now carry `recent_comments` (the two newest the viewer may see), `saved_by_me`, and image `width` and `height`; profiles carry `post_count` (posts the viewer can see). Image sizes are recorded after processing; older images without sizes show square.
+305. Stories: Tonight (visible events starting before local midnight), This week (the next seven days after today), Journal (posts from the last 14 days) and News (announcements between their start and end), up to six items each; empty circles are hidden. A circle counts as seen once every item in it is seen. **(privacy)** Stories are the same for every member whether or not they RSVPed; a test checks it.
+306. Announcements are a new staff model (`feed.Announcement`: title, 280-character text, optional link, start, end, published), text only, so no image consent is involved.
+307. `StorySeen` rows record which story items a member opened. They are erased with "Leave and erase" and included in the export.
+308. Saved posts (`SavedPost`) are private to the saver: only `saved_by_me` and `/api/members/saved/` mention them, both for the caller only. Only published posts can be saved. A post that is hidden by a report or removed leaves every saved list for good (even if later reinstated). Saves of posts by people who stepped away or blocked you are hidden, not deleted. Saves are erased with the saver's feed data, and with the post when it is erased. They are included in the export.
+309. Explore shows Everyone posts as a grid (muted members excluded, as in the feed).
+
+### Screens
+
+310. The Create flow's Share step is a summary (first photo, caption, settings) with the Share button; the attestation is on Details, and Share stays disabled until it is ticked.
+311. Profile settings are split: Edit profile (picture and bio) is a dialog; the toggles and the Blocked list live on the Settings page. "Hide me from the member directory" reads "Show me in search" there.
+312. `/members/directory` redirects to `/members/search`; `/members/saved` redirects to your own profile's Saved tab.
+313. The old member-area layout and components (`MembersLayout`, `MembersSidebar`, `OverflowMenu`, `PostList`, the old `PostCard` and `Composer`, `DirectoryPage`, the scoped appearance helper) and the website `Button`'s unused `secondary` variant are removed.
+
+### Verification
+
+314. Screenshots come from `e2e/tests/09-screenshots.spec.ts` at 390x844 and 1440x900 (the desktop test widens its window). `e2e_fixtures` adds a showcase data set for them: four members with generated gradient photos, likes, comments, saves, two journal posts, an announcement, and events tonight and this week.
+315. Lighthouse for the member feed is measured signed in, by passing the session cookie to Lighthouse.
+316. Full-screen layers that cover the app's own quick exit (the story viewer, Create on phones, and the post modal) carry their own Leave icon, so the quick exit stays visible on every screen.
+317. The website's full-screen phone menu now scrolls within its own background. Prompt 06's longer menu could overflow it, and "My feed" landed on the dimmed page behind.
+318. Tinted callouts on the website (Visit, Join, Contact, Rentals, the account page's email banner) sit on the canvas colour with their rose border, because `#737373` text fails AA on any tint. This changes colour only.
+319. Only the first post's first photo loads eagerly, at high priority; every other photo waits until it is near the screen.
+320. A direct visit to `/members/feed` starts the access check and the first page of the feed together, from `main.tsx`, once the age-gate cookie exists. Someone without access gets the same 404 as for any member path. The served page also preconnects to the storage origins (`MEDIA_ORIGINS`).
+321. **(privacy)** Lighthouse on the member feed: accessibility 100, best practices 100, performance 86 to 90, SEO 66. SEO is low because every member page is `noindex`, which the privacy rules require. Performance stays below 90 under Lighthouse's simulated mobile network because the first photo sits behind the access-checked media view and its 60-second signed redirect to storage, which the privacy rules also require. A test also showed that dropping the website font preloads on member pages made no difference, so that change was not kept.
+322. The screenshot spec also runs axe on every screen it captures, including the post modal, the story viewer and each Create step. It found unnamed avatar links beside comment authors' names; those are now hidden from the tab order and from screen readers, since the name link beside them goes to the same profile.
+323. "View all N comments" and "more" are at least 24px tall (WCAG 2.2 target size).
+

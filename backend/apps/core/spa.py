@@ -15,6 +15,8 @@ from django.utils.html import escape
 from django.views.decorators.http import require_safe
 
 SITE_IMAGES_META = '<meta name="rose-site-images" content="{}" />'
+# The storage buckets serve every image, so their connections start with the page.
+PRECONNECT = '<link rel="preconnect" href="{}" />'
 
 
 def _excluded_prefixes():
@@ -31,8 +33,10 @@ def index_html():
     if not path.is_file():
         raise Http404("The site has not been built. Run `npm run build` in frontend/.")
     html = _index_template(path, path.stat().st_mtime)
-    meta = SITE_IMAGES_META.format(escape(settings.SITE_IMAGES_URL))
-    return html.replace("</head>", f"    {meta}\n  </head>", 1)
+    tags = [SITE_IMAGES_META.format(escape(settings.SITE_IMAGES_URL))]
+    tags += [PRECONNECT.format(escape(origin)) for origin in settings.MEDIA_ORIGINS]
+    head = "".join(f"    {tag}\n" for tag in tags)
+    return html.replace("</head>", f"{head}  </head>", 1)
 
 
 @require_safe

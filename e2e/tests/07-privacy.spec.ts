@@ -23,7 +23,14 @@ const PUBLIC_ROUTES = [
   '/account/forgot',
   '/no-such-page',
 ]
-const MEMBER_ROUTES = ['/account', '/members/feed', '/members/directory', '/members/notifications']
+const MEMBER_ROUTES = [
+  '/account',
+  '/members/feed',
+  '/members/explore',
+  '/members/search',
+  '/members/notifications',
+  '/members/settings',
+]
 
 function expectDocumentHeaders(response: Response | null, referrer = 'no-referrer') {
   expect(response, 'navigation response').not.toBeNull()
@@ -119,7 +126,8 @@ test.describe('Members area', () => {
     await confirmAge(page.context(), baseURL!)
     await apiLogin(page, baseURL!, data.feed.friend, fixtures().password)
     const watch = watchRequests(page, baseURL!)
-    for (const path of MEMBER_ROUTES) {
+    const own = `/members/u/e2e_${info.project.name}_friend`
+    for (const path of [...MEMBER_ROUTES, own, `${own}/saved`, `/members/u/${fixtures().showcase.other_handle}`]) {
       const response = await visit(page, path, watch)
       expectDocumentHeaders(response)
       expect(response!.headers()['x-robots-tag']).toBe('noindex, nofollow')

@@ -59,7 +59,7 @@ export function VisitPage() {
                 <Card className="h-full p-8">
                   <div className="flex items-center justify-between">
                     <Icon aria-hidden="true" className="size-6 text-highlight" strokeWidth={1.5} />
-                    <span aria-hidden="true" className="font-display text-5xl text-ink-600">
+                    <span aria-hidden="true" className="font-display text-5xl text-border">
                       {index + 1}
                     </span>
                   </div>
@@ -74,7 +74,7 @@ export function VisitPage() {
 
       <Section tone="surface" spacing="tight" aria-labelledby="id-required">
         <Reveal>
-          <div className="flex flex-col gap-6 rounded-2xl border border-highlight/40 bg-primary-deep/40 p-8 sm:flex-row sm:items-start sm:p-10">
+          <div className="flex flex-col gap-6 rounded-2xl border border-highlight/40 bg-canvas p-8 sm:flex-row sm:items-start sm:p-10">
             <IdCard aria-hidden="true" className="size-10 shrink-0 text-highlight" strokeWidth={1.25} />
             <div>
               <Copy copy={copy} k="id.title" as="h2" id="id-required" className="text-3xl text-fg" />

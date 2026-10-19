@@ -22,7 +22,7 @@ export function ReferenceCode({ code, size = 'lg', className }: { code: string; 
         {qr.status === 'success' ? (
           <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qr.data)}`} alt={`QR code for ${code}`} className="size-full" />
         ) : (
-          <span aria-hidden="true" className="size-full animate-pulse rounded-lg bg-cream-300/40" />
+          <span aria-hidden="true" className="size-full animate-pulse rounded-lg bg-border" />
         )}
       </div>
       <div className="text-center sm:text-left">

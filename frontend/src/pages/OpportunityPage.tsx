@@ -32,7 +32,7 @@ export function OpportunityPage() {
           reveal={false}
           className="-z-20"
         />
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/70 to-canvas/20" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-canvas via-canvas/85 to-canvas/40" />
         <div className="mx-auto w-full max-w-3xl px-5 sm:px-8">
           <ButtonLink to="/education" variant="link">
             <ArrowLeft aria-hidden="true" className="size-4" />

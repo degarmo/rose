@@ -12,7 +12,7 @@ from rest_framework import serializers
 
 from .models import CAPTION_MAX_LENGTH, COMMENT_MAX_LENGTH, FeedPost, Notification, Report
 from .services import like_count_for
-from .visibility import counted_likes, is_block_pair, visible_comments
+from .visibility import counted_likes, is_block_pair, visible_comments, visible_posts
 
 RECENT_WINDOW = timedelta(days=7)
 
@@ -50,6 +50,8 @@ class FeedImageSerializer(serializers.Serializer):
     id = serializers.CharField(source="public_id")
     url = serializers.SerializerMethodField()
     alt = serializers.CharField(source="image_alt")
+    width = serializers.IntegerField()
+    height = serializers.IntegerField()
 
     def get_url(self, image):
         return f"/api/members/media/{image.public_id}/"
@@ -69,6 +71,8 @@ class FeedPostSerializer(serializers.Serializer):
     comment_count = serializers.SerializerMethodField()
     liked_by_me = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
+    saved_by_me = serializers.SerializerMethodField()
+    recent_comments = serializers.SerializerMethodField()
     is_own = serializers.SerializerMethodField()
     state = serializers.SerializerMethodField()
     in_review = serializers.SerializerMethodField()
@@ -113,6 +117,20 @@ class FeedPostSerializer(serializers.Serializer):
     def get_like_count(self, post):
         return like_count_for(post, self._viewer())
 
+    def get_saved_by_me(self, post):
+        """Only the viewer's own bookmark; nobody learns who else saved a post."""
+        saved = self.context.get("saved_ids")
+        if saved is not None:
+            return post.pk in saved
+        return post.saves.filter(user=self._viewer()).exists()
+
+    def get_recent_comments(self, post):
+        """The two newest comments this viewer may see, oldest first."""
+        latest = list(visible_comments(self._viewer(), post).order_by("-created_at", "-pk")[:2])
+        return FeedCommentSerializer(
+            reversed(latest), many=True, context={"viewer": self._viewer()}
+        ).data
+
     def get_is_own(self, post):
         return post.author_id == self._viewer().pk
 
@@ -148,6 +166,8 @@ class MemberProfileSerializer(serializers.Serializer):
     handle = serializers.CharField(source="display_name")
     avatar = serializers.SerializerMethodField()
     bio = serializers.SerializerMethodField()
+    # Posts only: there are no follower or following counts anywhere.
+    post_count = serializers.SerializerMethodField()
     joined = serializers.SerializerMethodField()
     is_self = serializers.SerializerMethodField()
     relationship = serializers.SerializerMethodField()
@@ -157,6 +177,9 @@ class MemberProfileSerializer(serializers.Serializer):
 
     def get_bio(self, user):
         return user.profile.bio
+
+    def get_post_count(self, user):
+        return visible_posts(self.context["viewer"]).filter(author=user).count()
 
     def get_joined(self, user):
         joined = user.profile.joined_feed_at or user.date_joined

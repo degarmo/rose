@@ -16,6 +16,7 @@ from apps.core.private_media import private_media
 
 from . import services
 from .models import (
+    Announcement,
     FeedComment,
     FeedImage,
     FeedPost,
@@ -254,3 +255,13 @@ class ReportAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    """Short notices shown as a "News" story in the member app between start and end."""
+
+    list_display = ["title", "starts_at", "ends_at", "is_published"]
+    list_filter = ["is_published"]
+    search_fields = ["title"]
+    fields = ["title", "body", "link_label", "link_url", "starts_at", "ends_at", "is_published"]

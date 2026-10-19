@@ -87,7 +87,8 @@ export function AvatarPicker({ onSaved }: { onSaved: (me: Me) => void }) {
   )
 }
 
-function BlockedList() {
+/** People you blocked, with Unblock. Never shows who blocked you. */
+export function BlockedList() {
   const toast = useToast()
   const [version, setVersion] = useState(0)
   const state = useAsync(() => members.myBlocks(), `blocks|${version}`)
@@ -119,16 +120,17 @@ function BlockedList() {
   )
 }
 
-export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** Edit profile: picture and bio. Everything else lives on the Settings page. */
+export function EditProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { me, setMe } = useMembers()
   const toast = useToast()
   const [bio, setBio] = useState(me.bio)
   const [busy, setBusy] = useState(false)
 
-  async function update(changes: Parameters<typeof members.updateMe>[0]) {
+  async function saveBio() {
     setBusy(true)
     try {
-      setMe(await members.updateMe(changes))
+      setMe(await members.updateMe({ bio }))
       toast.show({ tone: 'success', title: 'Saved' })
     } catch {
       toast.show({ tone: 'error', title: 'Your change was not saved' })
@@ -138,11 +140,11 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Profile settings" variant="sheet">
-      <div className="mx-auto flex max-w-xl flex-col gap-8 overflow-y-auto pb-10">
+    <Modal open={open} onClose={onClose} title="Edit profile">
+      <div className="flex flex-col gap-8">
         <section>
-          <h3 className="font-display text-xl text-fg">Picture</h3>
-          <div className="mt-3">
+          <h3 className="font-semibold text-fg">Picture</h3>
+          <div className="mt-2">
             <AvatarPicker onSaved={setMe} />
           </div>
           {me.avatar && (
@@ -157,31 +159,9 @@ export function ProfileSettings({ open, onClose }: { open: boolean; onClose: () 
           </FormField>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-xs text-fg-subtle">{bio.length} / {BIO_LIMIT}</span>
-            <Button variant="ghost" disabled={busy || bio === me.bio} onClick={() => void update({ bio })}>
+            <Button disabled={busy || bio === me.bio} onClick={() => void saveBio()}>
               Save bio
             </Button>
-          </div>
-        </section>
-        <section className="flex flex-col gap-5">
-          <Toggle
-            label="Hide me from the member directory"
-            hint="When on, people can only find you through your posts."
-            checked={me.hide_from_directory}
-            disabled={busy}
-            onChange={(value) => void update({ hide_from_directory: value })}
-          />
-          <Toggle
-            label="Always show sensitive posts"
-            hint="Skip the blur on posts marked sensitive."
-            checked={me.always_show_sensitive}
-            disabled={busy}
-            onChange={(value) => void update({ always_show_sensitive: value })}
-          />
-        </section>
-        <section>
-          <h3 className="font-display text-xl text-fg">Blocked</h3>
-          <div className="mt-3">
-            <BlockedList />
           </div>
         </section>
       </div>

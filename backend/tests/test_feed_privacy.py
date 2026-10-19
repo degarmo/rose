@@ -81,7 +81,19 @@ def test_no_endpoint_reveals_likers_followers_or_rsvps(
             if route_name in ("feed-member-relationship",):
                 continue
             body = client.get(url).content.decode(errors="ignore")
-            for secret in secrets:
+            # Stories list upcoming events for everyone, like the public events page; the
+            # check below proves they never depend on who RSVPed.
+            hidden = (
+                secrets
+                if route_name != "feed-stories"
+                else [s for s in secrets if s not in (event.title, event.slug)]
+            )
+            for secret in hidden:
                 assert secret not in body, f"{name} saw {secret!r} at {url}"
         notes = client.get("/api/members/notifications/").content.decode()
         assert "secret_liker" not in notes
+    # The attendee and someone who did not RSVP see exactly the same stories.
+    assert (
+        author_client.get("/api/members/stories/").json()
+        == other_client.get("/api/members/stories/").json()
+    )

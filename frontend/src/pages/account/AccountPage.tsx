@@ -5,7 +5,8 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/content/State
 import { useAuth } from '@/components/layout/authContext'
 import { ConfirmDialog } from '@/components/members/ConfirmDialog'
 import { Badge, Button, Card, FormField, Input, Modal, Section, useToast } from '@/components/ui'
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, type Appearance } from '@/lib/api'
+import { chooseAppearance } from '@/lib/appearance'
 import { formatEventDate } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -58,6 +59,34 @@ function DisplayNameForm({ current }: { current: string }) {
         {submitting ? 'Saving' : 'Save'}
       </Button>
     </form>
+  )
+}
+
+/** Light or dark, for the website and the member app. Saved on the account and in this browser. */
+function AppearanceChoice({ current }: { current: Appearance }) {
+  const auth = useAuth()
+  const toast = useToast()
+
+  async function choose(next: Appearance) {
+    try {
+      const session = await chooseAppearance(next, true)
+      if (session) auth.applySession(session)
+    } catch {
+      toast.show({ tone: 'error', title: 'Your choice was not saved', message: 'It applies in this browser for now.' })
+    }
+  }
+
+  return (
+    <div>
+      <div role="radiogroup" aria-label="Appearance" className="flex flex-wrap gap-3">
+        {(['light', 'dark'] as const).map((value) => (
+          <Button key={value} role="radio" aria-checked={current === value} variant={current === value ? 'primary' : 'ghost'} onClick={() => void choose(value)}>
+            {value === 'light' ? 'Light' : 'Dark'}
+          </Button>
+        ))}
+      </div>
+      <p className="mt-3 text-sm text-fg-muted">Light is the default. Your choice follows you to every device you sign in on.</p>
+    </div>
   )
 }
 
@@ -268,7 +297,7 @@ function VerifyBanner() {
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-highlight/40 bg-primary-deep/40 p-5 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-4 rounded-2xl border border-highlight/40 bg-canvas p-5 sm:flex-row sm:items-center">
       <MailWarning aria-hidden="true" className="size-6 shrink-0 text-highlight" />
       <p className="flex-1 text-sm text-fg-muted">Confirm your email to RSVP. Check your inbox for our link.</p>
       {sent ? (
@@ -338,6 +367,9 @@ export function AccountPage() {
               Only you can see this.
             </p>
           </div>
+        </Panel>
+        <Panel id="appearance" title="Appearance">
+          <AppearanceChoice current={user.appearance} />
         </Panel>
         <Panel id="password" title="Password">
           <PasswordForm />

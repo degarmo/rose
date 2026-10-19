@@ -8,13 +8,16 @@ post status. Nothing here is ever deleted by opting out; only erasure deletes.
 import secrets
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Max, Q
+from django.utils import timezone
 
 from apps.core.consent_images import consented_image
 from apps.core.images import RandomizedUploadTo
 from apps.core.private_media import private_storage
 from apps.core.text import caption_to_html
+from apps.core.validators import cta_url_validator
 
 CAPTION_MAX_LENGTH = 2200
 COMMENT_MAX_LENGTH = 500
@@ -113,6 +116,12 @@ class FeedPost(models.Model):
     def __str__(self):
         return f"Post {self.public_id} by {self.author.display_name}"
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.status in (self.Status.HIDDEN_BY_REPORT, self.Status.REMOVED):
+            # A hidden or removed post leaves everyone's saved list for good.
+            SavedPost.objects.filter(post=self).delete()
+
     @property
     def caption_html(self):
         return caption_to_html(self.caption)
@@ -133,6 +142,9 @@ class FeedImage(
     incoming = models.FileField(
         upload_to=RandomizedUploadTo("incoming"), storage=private_storage, blank=True
     )
+    # Recorded after processing, so the app can reserve the right shape before it loads.
+    width = models.PositiveIntegerField(null=True, blank=True, editable=False)
+    height = models.PositiveIntegerField(null=True, blank=True, editable=False)
 
     class Meta:
         ordering = ["position", "pk"]
@@ -386,3 +398,68 @@ class DataExport(models.Model):
 
     def __str__(self):
         return f"Data export #{self.pk}"
+
+
+class SavedPost(models.Model):
+    """A bookmark. Private to the person who saved it: nobody else can see or count it."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feed_saved"
+    )
+    post = models.ForeignKey(FeedPost, on_delete=models.CASCADE, related_name="saves")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [models.UniqueConstraint(fields=["user", "post"], name="save_once")]
+
+    def __str__(self):
+        # Neutral on purpose: saves are never displayed to anyone else.
+        return f"Saved post #{self.pk}"
+
+
+class Announcement(models.Model):
+    """A short staff notice shown as a story in the member app. Text only, no images."""
+
+    title = models.CharField(max_length=60)
+    body = models.TextField(max_length=280, help_text="Plain text, up to 280 characters.")
+    link_label = models.CharField(max_length=30, blank=True, help_text="For example: Learn more.")
+    link_url = models.CharField(
+        max_length=500,
+        blank=True,
+        validators=[cta_url_validator],
+        help_text="A path on this site (/events/...) or an https:// link.",
+    )
+    starts_at = models.DateTimeField(default=timezone.now)
+    ends_at = models.DateTimeField(help_text="The story disappears after this.")
+    is_published = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-starts_at", "-pk"]
+
+    def __str__(self):
+        return self.title
+
+    def clean(self):
+        super().clean()
+        if bool(self.link_label) != bool(self.link_url):
+            raise ValidationError({"link_url": "Give both a button label and a link, or neither."})
+        if self.ends_at and self.starts_at and self.ends_at <= self.starts_at:
+            raise ValidationError({"ends_at": "The end must be after the start."})
+
+
+class StorySeen(models.Model):
+    """Which story items one member has opened, so the tray can show seen and unseen rings."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feed_stories_seen"
+    )
+    key = models.CharField(max_length=80)
+    seen_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "key"], name="see_story_once")]
+
+    def __str__(self):
+        return f"Story seen #{self.pk}"

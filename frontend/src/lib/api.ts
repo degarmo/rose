@@ -291,7 +291,12 @@ export interface Account {
   has_membership: boolean
   /** Set for staff only: where the staff guide lives in the admin. */
   staff_guide_url: string | null
+  /** The member app opens for them (entitled and joined): the header shows "My feed". */
+  feed_access: boolean
+  appearance: Appearance
 }
+
+export type Appearance = 'light' | 'dark'
 
 export interface Session {
   user: Account | null
@@ -434,6 +439,7 @@ export const api = {
     post<Session>('/account/password/', { current_password, new_password }),
   changeDisplayName: (display_name: string) =>
     send<Session>('PATCH', '/account/session/', { display_name }),
+  changeAppearance: (appearance: Appearance) => send<Session>('PATCH', '/account/session/', { appearance }),
   deleteAccount: (password: string) => post<Session>('/account/delete/', { password }),
   signOutEverywhere: () => post<Session>('/account/sign-out-everywhere/'),
   myRSVPs: () => request<MyRSVPItem[]>('/account/rsvps/'),

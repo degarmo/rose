@@ -70,6 +70,10 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     """Account holder. Logs in with email; is known to others by display_name."""
 
+    class Appearance(models.TextChoices):
+        LIGHT = "light", "Light"
+        DARK = "dark", "Dark"
+
     email = models.EmailField("email address", unique=True)
     display_name = models.CharField(
         max_length=30,
@@ -90,6 +94,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Part of the session hash: raising it ends every session this person has
     # ("Sign out everywhere", and any change to staff or active status).
     session_epoch = models.PositiveIntegerField(default=0, editable=False)
+    # Light unless the person picks dark, whatever the device prefers.
+    appearance = models.CharField(
+        max_length=5, choices=Appearance.choices, default=Appearance.LIGHT
+    )
 
     objects = UserManager()
 

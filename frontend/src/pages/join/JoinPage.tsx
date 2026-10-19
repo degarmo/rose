@@ -288,7 +288,7 @@ function JoinFlow({
             </p>
           )}
           {auth.user && !auth.user.email_verified && (
-            <p role="status" className="rounded-2xl border border-highlight/40 bg-primary-deep/40 p-5 text-fg-muted">
+            <p role="status" className="rounded-2xl border border-highlight/40 bg-canvas p-5 text-fg-muted">
               Confirm your email first. Open the link we sent to {auth.user.email}, then come back here.
             </p>
           )}
