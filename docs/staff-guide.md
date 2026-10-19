@@ -16,6 +16,14 @@ Keep them in a password manager or somewhere locked, never in a photo.
 
 You are logged out when you close the browser, and after 12 hours anyway.
 
+## The home page
+
+After you log in you see a dashboard: **Needs attention** at the top (reports to review,
+concerns from the contact form, people who paid online and need an ID check, hidden
+images), then cards with totals for membership, income, events, accounts, the member
+feed, messages and images. It only shows numbers, never names, and you only see the
+cards your role allows. Each card links to the page where you can act.
+
 ## Posting to the journal
 
 1. **Journal** > **Posts** > **Add post**.

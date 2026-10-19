@@ -7,6 +7,7 @@ from django.urls import path
 
 from . import admin_auth
 from .consent_images import consent_image_field_names, consent_image_models
+from .dashboard import build_dashboard
 from .manifest import STATUS_LABELS, entry_status, find_entry, image_file, load_manifest
 
 
@@ -18,6 +19,11 @@ class RoseAdminSite(admin.AdminSite):
     def has_permission(self, request):
         """Staff only, and only after the two-step check (apps.core.admin_auth)."""
         return super().has_permission(request) and request.user.is_verified()
+
+    def index(self, request, extra_context=None):
+        """The admin home page, with a metrics dashboard above the model list."""
+        context = {"dashboard": build_dashboard(request.user), **(extra_context or {})}
+        return super().index(request, extra_context=context)
 
     def login(self, request, extra_context=None):
         return admin_auth.admin_login(request, self)

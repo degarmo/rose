@@ -327,3 +327,7 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 215. The composer and avatar pickers list the accepted formats (`image/jpeg,png,webp,heic,heif`) instead of `image/*`.
 216. The CSP needs no nonce or hash: nothing inline runs. It adds `worker-src 'none'` and `manifest-src 'self'`. The Permissions-Policy denies every device feature by name and drops `interest-cohort`, which browsers no longer recognise.
 
+### Admin dashboard
+
+217. The admin home page shows a dashboard: a "Needs attention" list (open feed reports, first posts awaiting review, unhandled concerns, online payments waiting for an ID check, hidden images, failed payment events, an overdue backup) and cards of totals for membership, income, events, accounts, the feed, messages, images and, for superusers, the system. **(privacy)** It shows totals only, never a name, email or who did what. Each card appears only to staff holding the permission its own admin page needs; income follows the membership view permission, because the Membership summary already shows revenue to the same people. Upcoming events show places taken with a `<meter>`, so no inline style is needed under the CSP. Zero-count attention items are left out.
+
