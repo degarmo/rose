@@ -11,7 +11,7 @@ from django.utils.safestring import mark_safe
 from unfold.sites import UnfoldAdminSite
 
 from . import admin_auth
-from .branding import site_name
+from .branding import display_name
 from .consent_images import consent_image_field_names, consent_image_models
 from .manifest import STATUS_LABELS, entry_status, find_entry, image_file, load_manifest
 
@@ -36,11 +36,11 @@ class RoseAdminSite(UnfoldAdminSite):
     # The club's name from settings (apps.core.branding), never written into the code.
     @property
     def site_header(self):
-        return site_name()
+        return display_name()
 
     @property
     def site_title(self):
-        return site_name()
+        return display_name()
 
     def has_permission(self, request):
         """Staff only, and only after the two-step check (apps.core.admin_auth)."""

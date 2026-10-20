@@ -14,7 +14,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from apps.core.branding import site_name
+from apps.core.branding import display_name
 from apps.core.consent_images import consent_image_payload
 from apps.events.models import Event
 from apps.journal.models import Post as JournalPost
@@ -32,8 +32,8 @@ STORY_KEY_MAX_LENGTH = 80
 
 
 def club_handle():
-    """The club's account in the feed carries the site's name (apps.core.branding)."""
-    return site_name()
+    """The club's account in the feed carries the club's name (apps.core.branding)."""
+    return display_name()
 
 
 # The home feed

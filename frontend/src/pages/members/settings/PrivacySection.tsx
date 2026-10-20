@@ -134,7 +134,7 @@ function CalendarDefault() {
       <SwitchRow
         icon={CalendarDays}
         label="Name the event in calendar files"
-        sub={preferences.calendar_details ? 'Calendar files show the event and the place' : `Off: calendar files say only “${config.siteName} - Evening”`}
+        sub={preferences.calendar_details ? 'Calendar files show the event and the place' : `Off: calendar files say only “${config.neutralName} - Evening”`}
         checked={preferences.calendar_details}
         disabled={saving}
         onChange={(value) =>

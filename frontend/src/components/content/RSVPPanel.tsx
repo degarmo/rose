@@ -59,7 +59,7 @@ function CalendarDownload({ slug }: { slug: string }) {
         Add to calendar
       </a>
       <Checkbox
-        label={<span className="text-[0.8125rem] text-fg-muted">Include the event name and address. Leave this off and your calendar just says &ldquo;{config.siteName} - Evening&rdquo;.</span>}
+        label={<span className="text-[0.8125rem] text-fg-muted">Include the event name and address. Leave this off and your calendar just says &ldquo;{config.neutralName} - Evening&rdquo;.</span>}
         checked={details}
         onChange={(event) => setDetails(event.target.checked)}
       />

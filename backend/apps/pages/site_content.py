@@ -16,8 +16,12 @@ file starts with a status and the source pages it was drafted from:
     social_links: [{label: Discord, url: https://...}]
     faqs: [{slug: parking, question: ..., answer: ...}]
     staff: [{slug: venus, display_name: Venus, role_title: ..., bio: ...}]
-    tiers: [{slug: rose, name: ..., price_cents: 4000, allowed_event_tags: [community]}]
+    tiers: [{slug: rose, name: "{display_name}", price_cents: 4000, allowed_event_tags: [x]}]
     redirects: [{from: /old-path, to: /new-path}]
+
+Copy, FAQs and tier names write {display_name} or {short_name} for the club's name
+(apps.core.branding), so no file names the club. Copy and FAQs fill it in when they are
+read; a tier's name and description are filled in as they load.
 
 Loading is idempotent: rows are matched on slug (or page and key, or old path)
 and updated. Nothing is ever deleted.
@@ -36,6 +40,7 @@ from apps.core.text import sanitize_rich_text
 from apps.events.models import EventTag
 from apps.memberships.models import Tier
 
+from .content import with_club_name
 from .models import FAQItem, PageContent, Redirect, SiteSettings, SocialLink, StaffProfile
 
 SITE_SETTINGS_FIELDS = {
@@ -294,6 +299,9 @@ def apply_file(content, report):
     for item in data.get("tiers", []):
         _require(name, item, ("slug",))
         values = {k: v for k, v in item.items() if k in TIER_FIELDS}
+        for text in ("name", "description"):
+            if isinstance(values.get(text), str):
+                values[text] = with_club_name(values[text])
         unknown = set(item) - TIER_FIELDS - {"slug", "allowed_event_tags"}
         if unknown:
             raise ContentError(f"{name}: tier {item['slug']} has unknown fields {sorted(unknown)}.")

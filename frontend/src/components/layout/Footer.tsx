@@ -95,7 +95,7 @@ export function Footer() {
       <div className={cn('mx-auto grid max-w-[1440px] gap-4 lg:grid-cols-3 lg:gap-8', GUTTER)}>
         <div className="flex flex-col gap-1.5 text-fg-muted lg:gap-1.5">
           <Link to="/" className="self-start font-display text-[1.375rem] leading-tight text-wordmark">
-            {config.siteName}
+            {config.displayName}
           </Link>
           {contact}
           {data && data.social_links.length > 0 && (

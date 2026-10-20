@@ -13,7 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.core.branding import site_name
+from apps.core import branding
 from apps.education.models import Opportunity
 from apps.events.models import EventTag
 
@@ -95,7 +95,7 @@ TIERS = [
     },
     {
         "slug": "rose",
-        "name": "{site_name}",
+        "name": "{display_name}",
         "description": "Every club event, as often as you like.",
         "perks": ["Unlimited club events", "Discounted guest entry", "Premium Discord access"],
         "price_cents": 4000,
@@ -108,7 +108,7 @@ TIERS = [
     },
     {
         "slug": "rose-plus",
-        "name": "{site_name} +",
+        "name": "{display_name} +",
         "description": "Every club event, with a guest.",
         "perks": [
             "Unlimited club events",
@@ -358,7 +358,7 @@ def upsert_tiers(placeholder):
     for data in TIERS:
         values = {**defaults, **data}
         # The club's own tiers carry its name, from the setting.
-        values["name"] = values["name"].replace("{site_name}", site_name())
+        values["name"] = values["name"].replace("{display_name}", branding.display_name())
         slug = values.pop("slug")
         tag_slugs = values.pop("allowed_event_tags", [])
         tier, _ = Tier.objects.update_or_create(slug=slug, defaults=values)

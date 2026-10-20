@@ -138,7 +138,7 @@ export function RightRail() {
           </li>
         </ul>
       </nav>
-      <p className="text-[0.6875rem] text-fg-muted">© {YEAR} {config.siteName}</p>
+      <p className="text-[0.6875rem] text-fg-muted">© {YEAR} {config.displayName}</p>
     </aside>
   )
 }

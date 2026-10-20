@@ -11,7 +11,7 @@ copy:
     title: Who we are
     lede:
       rich: >-
-        <p>{site_name} is a volunteer-run nonprofit club with a members' venue on Chicago's north side.
+        <p>{display_name} is a volunteer-run nonprofit club with a members' venue on Chicago's north side.
         We host a class every Thursday, social evenings on Fridays and Saturdays, and workshops
         and community events through the month.</p>
         <p>We are inclusive, consent-first and non-judgmental. Nobody here will assume what you

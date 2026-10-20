@@ -1,55 +1,84 @@
-"""The club's name, from one setting.
+"""The club's name, and the neutral name used wherever discretion matters.
 
-`SITE_NAME` in the environment is the default ("Rose" when unset, so the real name
-never has to be written into the repository), and Admin > Site settings can override
-it. Everything that shows the name reads it here: the site's wordmark and page titles
-(through a meta tag the server adds to the page), the admin, email senders, receipts,
-calendar files and the authenticator app. `EMAIL_SENDER_NAME`, `MERCHANT_DISPLAY_NAME`
-and `OTP_ISSUER` can still give those three their own name when set.
+Where people read the site (the public pages, the member app, the admin) the name
+comes from one setting: `SITE_DISPLAY_NAME`, with `SITE_SHORT_NAME` for tight spots,
+both overridable in Admin > Site settings. Neither is ever written into the
+repository; unset, both are "Rose".
+
+Discreet places never use it, for members' privacy: email sender names and subjects,
+calendar files, receipts and billing descriptors, the authenticator app, member-app
+tab titles and notification text. Those read the neutral settings below
+(`EMAIL_SENDER_NAME`, `MERCHANT_DISPLAY_NAME`, `OTP_TOTP_ISSUER`, all "Rose" by default).
 """
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import DatabaseError
 
-CACHE_KEY = "site-name:v1"
+CACHE_KEY = "site-names:v1"
 CACHE_SECONDS = 300
 
 
-def site_name():
-    name = cache.get(CACHE_KEY)
-    if name is None:
+def _names():
+    names = cache.get(CACHE_KEY)
+    if names is None:
         from apps.pages.models import SiteSettings
 
         try:
-            stored = SiteSettings.objects.filter(pk=1).values_list("site_name", flat=True).first()
+            stored = (
+                SiteSettings.objects.filter(pk=1)
+                .values("site_display_name", "site_short_name")
+                .first()
+            )
         except DatabaseError:
             # Before the first migration there is no table yet.
             stored = None
-        name = (stored or "").strip() or settings.SITE_NAME
-        cache.set(CACHE_KEY, name, CACHE_SECONDS)
-    return name
+        stored = stored or {}
+        stored_display = (stored.get("site_display_name") or "").strip()
+        stored_short = (stored.get("site_short_name") or "").strip()
+        display = stored_display or settings.SITE_DISPLAY_NAME
+        # A short form set in the admin wins; a name set there without one is its own
+        # short form; otherwise the environment's short form.
+        short = stored_short or stored_display or settings.SITE_SHORT_NAME
+        names = {"display": display, "short": short}
+        cache.set(CACHE_KEY, names, CACHE_SECONDS)
+    return names
 
 
-def forget_site_name():
+def display_name():
+    """The club's name where people read the site, the member app and the admin."""
+    return _names()["display"]
+
+
+def short_name():
+    """The short form for tight spots: the phone header and the member sidebar."""
+    return _names()["short"]
+
+
+def forget_names():
     cache.delete(CACHE_KEY)
 
 
+def neutral_name():
+    """The plain "Rose" for every discreet place (EMAIL_SENDER_NAME's value)."""
+    return settings.EMAIL_SENDER_NAME
+
+
 def sender_name():
-    """The From name on every email."""
-    return settings.EMAIL_SENDER_NAME or site_name()
+    """Neutral: the From name on every email. Never the club's name."""
+    return settings.EMAIL_SENDER_NAME
 
 
 def merchant_name():
-    """The merchant name on receipts; set the processor's billing descriptor to match."""
-    return settings.MERCHANT_DISPLAY_NAME or site_name()
+    """Neutral: the merchant name on receipts and the billing descriptor."""
+    return settings.MERCHANT_DISPLAY_NAME
 
 
 def otp_issuer():
-    """The name authenticator apps show for the staff login."""
-    return settings.OTP_TOTP_ISSUER or site_name()
+    """Neutral: the name authenticator apps show on a staff member's phone."""
+    return settings.OTP_TOTP_ISSUER
 
 
 def admin_site_name(request=None):
     """For django-unfold's SITE_TITLE and SITE_HEADER, which accept a callable."""
-    return site_name()
+    return display_name()

@@ -33,6 +33,10 @@ projects:
                 value: manual
               - key: EMAIL_PROVIDER
                 value: postmark
+              - key: EMAIL_SENDER_NAME
+                value: Rose
+              - key: MERCHANT_DISPLAY_NAME
+                value: Rose
               - key: BACKUP_ENABLED
                 value: "true"
               - key: FEED_ENABLED
@@ -41,10 +45,12 @@ projects:
             envVars:
               - key: DJANGO_SECRET_KEY
                 sync: false
-              # The club's name on the site, in email, on receipts and in calendar files.
-              # Entered in the dashboard so it is never written into the repository.
-              # EMAIL_SENDER_NAME, MERCHANT_DISPLAY_NAME and OTP_ISSUER follow it unless set.
-              - key: SITE_NAME
+              # The club's name on the website, in the member app and in the admin, and its
+              # short form for tight spots. Entered in the dashboard so it is never written
+              # into the repository. Email, receipts and the authenticator stay "Rose" above.
+              - key: SITE_DISPLAY_NAME
+                sync: false
+              - key: SITE_SHORT_NAME
                 sync: false
               - key: DJANGO_ALLOWED_HOSTS
                 sync: false
@@ -156,6 +162,10 @@ projects:
                 value: manual
               - key: EMAIL_PROVIDER
                 value: postmark
+              - key: EMAIL_SENDER_NAME
+                value: Rose
+              - key: MERCHANT_DISPLAY_NAME
+                value: Rose
               - key: BACKUP_ENABLED
                 value: "true"
               - key: FEED_ENABLED
@@ -172,10 +182,12 @@ projects:
             envVars:
               - key: DJANGO_SECRET_KEY
                 sync: false
-              # The club's name on the site, in email, on receipts and in calendar files.
-              # Entered in the dashboard so it is never written into the repository.
-              # EMAIL_SENDER_NAME, MERCHANT_DISPLAY_NAME and OTP_ISSUER follow it unless set.
-              - key: SITE_NAME
+              # The club's name on the website, in the member app and in the admin, and its
+              # short form for tight spots. Entered in the dashboard so it is never written
+              # into the repository. Email, receipts and the authenticator stay "Rose" above.
+              - key: SITE_DISPLAY_NAME
+                sync: false
+              - key: SITE_SHORT_NAME
                 sync: false
               - key: DJANGO_ALLOWED_HOSTS
                 sync: false

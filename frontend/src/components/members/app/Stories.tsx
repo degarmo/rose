@@ -140,7 +140,7 @@ export function StoryViewer({ groups, start, onClose }: { groups: StoryGroup[]; 
       className="m-0 h-dvh max-h-none w-screen max-w-none bg-story p-0 text-white open:flex open:items-center open:justify-center"
     >
       <span aria-hidden="true" className="absolute left-6 top-5 hidden font-serif text-[1.625rem] leading-none md:block">
-        {config.siteName}
+        {config.shortName}
       </span>
       <div className="absolute right-4 top-4 hidden items-center gap-1 md:flex">
         <LeaveIcon className="text-white" />
@@ -171,7 +171,7 @@ export function StoryViewer({ groups, start, onClose }: { groups: StoryGroup[]; 
         <header className="relative z-10 flex items-center gap-2.5 pt-3">
           <RoseMark className="size-8 border border-white/50 text-sm" />
           <span className="min-w-0 flex-1 truncate text-[0.8125rem]">
-            <span className="font-semibold">{config.siteName}</span> <span className="opacity-70">{[group.title, itemMeta(item)].filter(Boolean).join(' · ')}</span>
+            <span className="font-semibold">{config.shortName}</span> <span className="opacity-70">{[group.title, itemMeta(item)].filter(Boolean).join(' · ')}</span>
           </span>
           <span className="flex items-center md:hidden">
             <LeaveIcon className="text-white" />

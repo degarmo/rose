@@ -328,7 +328,15 @@ try to clean it up yourself.
 
 ## The club's name
 
-The name shown on the website, in the admin, as the sender of every email, on receipts,
-in calendar files and in the authenticator app comes from **Site settings** > **Site name**.
-Leave it blank to use the name set when the site was installed. A change shows within a few
-minutes everywhere.
+The name shown on the website, in the member app and in the admin comes from **Site
+settings** > **Club name**, and **Short club name** is used where space is tight (the phone
+header and the member sidebar). Leave them blank to use the names set when the site was
+installed. A change shows within a few minutes.
+
+Anywhere a member's privacy matters, the plain name "Rose" is used instead and does not
+change: the sender of every email and its subject, receipts and bank statements, calendar
+files, the authenticator app, browser tabs in the member app and the name under a
+home-screen icon.
+
+In page copy and FAQs, write `{display_name}` (or `{short_name}`) where the club's name
+should appear; the site fills it in.

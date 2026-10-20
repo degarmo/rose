@@ -24,8 +24,8 @@ Also switch tracking off in the provider's own dashboard, and turn off any
 "message archive" or "content retention" it offers, or set it to the shortest
 period.
 
-`EMAIL_SENDER_NAME` (default: the site's name, `SITE_NAME`) and `EMAIL_SENDER_ADDRESS` set the From
-header. Message-IDs use the sender's domain, never the server's host name.
+`EMAIL_SENDER_NAME` (default and recommended: "Rose", never the club's full name) and
+`EMAIL_SENDER_ADDRESS` set the From header. Message-IDs use the sender's domain, never the server's host name.
 
 ## Sending domain
 

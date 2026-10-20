@@ -423,11 +423,13 @@ Check every change against this list.
 - [ ] **Uploads are sanitised** by `SanitizedImageField`.
 - [ ] **Email subjects are neutral.** Subjects never name the organisation, the event or its
       category ("Your plans for Friday"). Notifications about contact messages carry no content.
-      The sender name is the site's name (`SITE_NAME`, decision 486), which the club chose to
-      show in full.
-- [ ] **The club's name is configuration.** `SITE_NAME` (or Site settings) supplies it to the
-      site, admin, email, receipts, calendar files and authenticator app through
-      `apps.core.branding`; the real name is never written into the repository.
+      The sender name is the neutral `EMAIL_SENDER_NAME` ("Rose"), never the club's name.
+- [ ] **The club's name is configuration, and only where people read the site.**
+      `SITE_DISPLAY_NAME` and `SITE_SHORT_NAME` (or Site settings) supply it to the website,
+      member app and admin through `apps.core.branding` (decision 486); the real name is never
+      written into the repository. Email, receipts, calendar files, the authenticator app,
+      member-app tab titles and home-screen names keep the neutral "Rose"
+      (`tests/test_branding.py`).
 - [ ] **Security baseline.** Session auth with CSRF on every write; Argon2; 12-character
       passwords checked against email and display name; secure cookies, HSTS, CSP; rate
       limits on contact, login, registration and password reset (per IP and per email,

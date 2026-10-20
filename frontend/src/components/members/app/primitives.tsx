@@ -15,11 +15,14 @@ export function AppButton({
   return <button type={type} className={appButtonClasses(variant, className)} {...rest} />
 }
 
-/** The club's name in Fraunces, oxblood (lighter in dark appearance). The only Fraunces in the app. */
+/**
+ * The club's short name in Fraunces, oxblood (lighter in dark appearance), for the
+ * sidebar and the phone bar. The only Fraunces in the app.
+ */
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span aria-hidden="true" className={cn('whitespace-nowrap font-serif text-[1.75rem] leading-none text-wordmark', className)}>
-      {config.siteName}
+      {config.shortName}
     </span>
   )
 }
