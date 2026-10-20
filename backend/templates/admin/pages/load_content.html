@@ -1,29 +1,25 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-  <a href="{% url 'admin:pages_pagecontent_changelist' %}">Page copy</a> &rsaquo; Load site content
-</div>
-{% endblock %}
+{% block title %}Load site content | Rose{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block content %}
-<div id="content-main" class="tool-page">
-  <p>Upload the copy files from <code>/content</code>. Loading updates page copy, site settings, FAQs, staff profiles, tier prices and redirects by their keys and never deletes anything. Run it once without "Write the changes" to see what would change.</p>
-  {% if error %}<p class="tool-warning">{{ error }}</p>{% endif %}
+<div class="rose-stack rose-narrow">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Load site content</h1>
+    <p class="rose-subtle">Upload the copy files from <code>/content</code>. Loading updates page copy, site settings, FAQs, staff profiles, tier prices and redirects by their keys and never deletes anything. Run it once without "Write the changes" to see what would change.</p>
+  </header>
+  {% if error %}<p class="rose-alert">{{ error }}</p>{% endif %}
   {% if report %}
-  <div class="tool-note">
-    <p><strong>{% if committed %}Loaded:{% else %}Dry run, nothing written:{% endif %}</strong></p>
-    <ul>{% for line in report %}<li>{{ line }}</li>{% endfor %}</ul>
-  </div>
+  <section class="rose-card">
+    <h2>{% if committed %}Loaded{% else %}Dry run, nothing written{% endif %}</h2>
+    <ul class="rose-bullets">{% for line in report %}<li>{{ line }}</li>{% endfor %}</ul>
+  </section>
   {% endif %}
-  <form method="post" enctype="multipart/form-data" class="tool-form">
+  <form method="post" enctype="multipart/form-data" class="rose-card rose-form">
     {% csrf_token %}
-    {{ form.as_div }}
-    <button type="submit" class="button default">Load</button>
+    {% include "admin/rose/form_fields.html" %}
+    <button type="submit" class="rose-button">Load</button>
   </form>
 </div>
 {% endblock %}

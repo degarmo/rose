@@ -1,202 +1,189 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'memberships/door_desk.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Door desk</div>
-{% endblock %}
+{% block title %}Door desk | Rose{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block content %}
-<div id="content-main" class="desk">
-  <p class="desk-reminder">Check a valid photo ID showing 18+ before any first activation.</p>
+<div class="rose-desk">
+  <header class="rose-page-head rose-page-head-row">
+    <div>
+      <h1 class="rose-title">Door desk</h1>
+      <p class="rose-subtle">Check a valid photo ID showing 18+ before any first activation.</p>
+    </div>
+    <a class="rose-button-secondary" href="{{ staff_door_url }}">Open the tablet door desk</a>
+  </header>
 
-  <form method="get" class="desk-search" role="search">
-    <label for="desk-q">Reference code or display name</label>
-    <div class="desk-search-row">
-      <input id="desk-q" name="q" value="{{ query }}" autocomplete="off" autocapitalize="characters" spellcheck="false" autofocus>
-      <button type="submit" class="desk-button primary">Search</button>
-      <button type="button" class="desk-button" id="desk-scan">Scan QR</button>
+  <form method="get" class="rose-card rose-desk-search" role="search">
+    <label class="rose-label" for="desk-q">Reference code or display name</label>
+    <div class="rose-desk-search-row">
+      <input id="desk-q" class="rose-input" name="q" value="{{ query }}" autocomplete="off" autocapitalize="characters" spellcheck="false" autofocus>
+      <button type="submit" class="rose-button">Search</button>
+      <button type="button" class="rose-button-secondary" id="desk-scan">Scan QR</button>
+    </div>
+    <div class="rose-desk-camera" id="desk-camera" hidden>
+      <video id="desk-video" playsinline muted></video>
+      <p id="desk-camera-status" class="rose-subtle">Point the camera at the member's code.</p>
+      <button type="button" class="rose-button-secondary" id="desk-camera-stop">Stop camera</button>
     </div>
   </form>
-  <div class="desk-camera" id="desk-camera" hidden>
-    <video id="desk-video" playsinline muted></video>
-    <p id="desk-camera-status">Point the camera at the member's code.</p>
-    <button type="button" class="desk-button" id="desk-camera-stop">Stop camera</button>
-  </div>
 
-  {% if searched and not results %}<p class="desk-empty">Nothing found for “{{ query }}”.</p>{% endif %}
+  {% if searched and not results %}<p class="rose-card rose-subtle">Nothing found for “{{ query }}”.</p>{% endif %}
 
-  <details class="desk-donation">
-    <summary class="desk-button">Record donation</summary>
-    <form method="post" class="desk-form">{% csrf_token %}
+  <details class="rose-card rose-disclosure">
+    <summary>Record a donation</summary>
+    <form method="post" class="rose-form">{% csrf_token %}
       <input type="hidden" name="q" value="{{ query }}">
-      <h3>Record a donation</h3>
-      <div class="desk-row">
-        <label>Method <select name="method">{% for value, label in donation_methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
-        <label>Amount <input name="amount" inputmode="decimal" required></label>
+      <div class="rose-form-row">
+        <div class="rose-field"><label for="donation-method">Method</label><select id="donation-method" name="method">{% for value, label in donation_methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="rose-field"><label for="donation-amount">Amount</label><input id="donation-amount" name="amount" inputmode="decimal" required></div>
       </div>
-      <label>Name to record <input name="donor_display" maxlength="60" placeholder="Anonymous"></label>
-      <label>Email for an acknowledgement (optional) <input name="acknowledgement_email" type="email" maxlength="254"></label>
-      <label>Note <input name="note" maxlength="300"></label>
-      <button name="action" value="record_donation" class="desk-button primary">Record donation</button>
+      <div class="rose-field"><label for="donation-name">Name to record</label><input id="donation-name" name="donor_display" maxlength="60" placeholder="Anonymous"></div>
+      <div class="rose-field"><label for="donation-email">Email for an acknowledgement (optional)</label><input id="donation-email" name="acknowledgement_email" type="email" maxlength="254"></div>
+      <div class="rose-field"><label for="donation-note">Note</label><input id="donation-note" name="note" maxlength="300"></div>
+      <button name="action" value="record_donation" class="rose-button">Record donation</button>
     </form>
   </details>
 
   {% for r in results %}
   {% with m=r.membership %}
-  <section class="desk-card status-{{ m.status }}{% if r.flags.do_not_admit %} desk-barred{% endif %}">
-    {% if r.flags.do_not_admit %}<p class="desk-flag" role="alert">Do not admit</p>{% endif %}
-    {% if r.flags.events_suspended_until %}<p class="desk-flag desk-flag-wait" role="alert">Event access suspended until {{ r.flags.events_suspended_until|date:"M j, Y" }}</p>{% endif %}
-    <header>
+  <section class="rose-card rose-desk-card{% if r.flags.do_not_admit %} rose-desk-barred{% endif %}" aria-labelledby="desk-{{ m.pk }}">
+    {% if r.flags.do_not_admit %}<p class="rose-alert" role="alert">Do not admit</p>{% endif %}
+    {% if r.flags.events_suspended_until %}<p class="rose-chip rose-chip-wait" role="alert">Event access suspended until {{ r.flags.events_suspended_until|date:"M j, Y" }}</p>{% endif %}
+    <header class="rose-desk-head">
       <div>
-        <p class="desk-code">{{ m.reference_code }}</p>
-        <h2>{% if m.user %}{{ m.user.display_name }}{% else %}Deleted account{% endif %}</h2>
+        <p class="rose-desk-code">{{ m.reference_code }}</p>
+        <h2 id="desk-{{ m.pk }}" class="rose-desk-name">{% if m.user %}{{ m.user.display_name }}{% else %}Deleted account{% endif %}</h2>
       </div>
-      <p class="desk-status">{% if r.is_guest_pass %}Guest pass · {% endif %}{{ m.get_status_display }}{% if m.paid_awaiting_id_check %} · {% if m.tier.is_free %}free{% else %}paid online{% endif %}, needs ID check{% endif %}</p>
+      <div class="rose-desk-chips">
+        {% if r.is_guest_pass %}<span class="rose-chip">Guest pass</span>{% endif %}
+        <span class="rose-chip {% if m.status == 'active' %}rose-chip-open{% elif m.status == 'grace' or m.status == 'pending_payment' %}rose-chip-wait{% elif m.status == 'suspended' %}rose-chip-alert{% endif %}">{{ m.get_status_display }}</span>
+        {% if r.id_checked %}<span class="rose-chip rose-chip-open">ID verified</span>{% else %}<span class="rose-chip rose-chip-alert">ID check needed</span>{% endif %}
+        {% if m.paid_awaiting_id_check %}<span class="rose-chip rose-chip-wait">{% if m.tier.is_free %}Free{% else %}Paid online{% endif %}, waiting for ID</span>{% endif %}
+      </div>
     </header>
-    <dl class="desk-facts">
-      <div><dt>Tier</dt><dd>{{ m.tier.name }} ({{ r.default_amount }} {{ m.tier.currency }}, {{ m.tier.get_interval_display }})</dd></div>
-      <div><dt>Period ends</dt><dd>{% if m.current_period_end %}{{ m.current_period_end|date:"M j, Y" }}{% else %}Not started{% endif %}</dd></div>
-      <div><dt>ID check</dt><dd>{% if r.id_checked %}On file{% else %}<strong>None yet</strong>{% endif %}</dd></div>
-      <div><dt>Source</dt><dd>{{ m.get_source_display }}</dd></div>
+    <ul class="rose-facts">
+      <li><span>Tier</span><strong>{{ m.tier.name }} ({{ r.default_amount }} {{ m.tier.currency }}, {{ m.tier.get_interval_display }})</strong></li>
+      <li><span>Period ends</span><strong>{% if m.current_period_end %}{{ m.current_period_end|date:"M j, Y" }}{% else %}Not started{% endif %}</strong></li>
+      <li><span>Source</span><strong>{{ m.get_source_display }}</strong></li>
       {% if not r.is_guest_pass %}
-      <div><dt>Events this month</dt><dd>{% if r.events_remaining is None %}Unlimited{% else %}{{ r.events_remaining }} left{% endif %}</dd></div>
-      <div><dt>Guests</dt><dd>{{ m.tier.guests_included_per_event }} included per event{% if m.tier.guest_discount %} · <strong>Guest discount</strong>{% endif %}</dd></div>
+      <li><span>Events this month</span><strong>{% if r.events_remaining is None %}Unlimited{% else %}{{ r.events_remaining }} left{% endif %}</strong></li>
+      <li><span>Guests</span><strong>{{ m.tier.guests_included_per_event }} included per event{% if m.tier.guest_discount %} · Guest discount{% endif %}</strong></li>
       {% endif %}
-    </dl>
+    </ul>
 
     {% if r.signature_name %}
-    <p class="desk-signature">Signature name: <strong>{{ r.signature_name }}</strong> <span>(this view was logged)</span></p>
+    <p class="rose-desk-signature">Signature name: <strong>{{ r.signature_name }}</strong> <span class="rose-subtle">(this view was logged)</span></p>
     {% else %}
-    <form method="post" class="desk-inline">{% csrf_token %}
+    <form method="post">{% csrf_token %}
       <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
-      <button name="action" value="show_signature" class="desk-button subtle">Show signature name</button>
+      <button name="action" value="show_signature" class="rose-button-secondary">Show signature name</button>
     </form>
     {% endif %}
 
-    <div class="desk-actions">
-      {% if r.is_guest_pass %}
-      {% if m.status == "pending_payment" or m.status == "expired" or m.status == "cancelled" %}
-      <form method="post" class="desk-form">{% csrf_token %}
+    <div class="rose-desk-actions">
+      {% if "guest_visit" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Guest visit</h3>
-        <div class="desk-row">
-          <label>Method <select name="method"><option value="cash">Cash</option><option value="card_in_person">Card in person</option></select></label>
-          <label>Amount <input name="amount" inputmode="decimal" value="{{ r.default_amount }}"></label>
-        </div>
-        <label>Note <input name="note" maxlength="300"></label>
-        {% if not r.id_checked %}<label class="desk-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
-        <button name="action" value="guest_visit" class="desk-button primary">Record payment, in for tonight</button>
+        {% include "admin/memberships/desk_payment_fields.html" %}
+        <button name="action" value="guest_visit" class="rose-button">Record payment, in for tonight</button>
       </form>
       {% endif %}
-      <details class="desk-form desk-convert">
-        <summary><h3>Convert to member</h3></summary>
+      {% if r.is_guest_pass %}
+      <details class="rose-desk-form rose-disclosure">
+        <summary>Convert to member</summary>
         <p>Ask them to scan this on their own phone, signed in to the same account. They choose a membership and sign there; then search for them here and record the payment. Their ID check carries over.</p>
-        {% if join_qr %}<img src="{{ join_qr }}" alt="QR code for {{ join_url }}" width="180" height="180">{% endif %}
-        <p class="desk-code">{{ join_url }}</p>
+        {% if join_qr %}<img class="rose-qr" src="{{ join_qr }}" alt="QR code for {{ join_url }}" width="180" height="180">{% endif %}
+        <p class="rose-desk-code">{{ join_url }}</p>
       </details>
-      {% else %}
-      {% if m.paid_awaiting_id_check %}
-      <form method="post" class="desk-form">{% csrf_token %}
+      {% endif %}
+
+      {% if "activate_paid" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Check ID and activate</h3>
-        {% if not r.id_checked %}<label class="desk-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
-        <button name="action" value="activate_paid" class="desk-button primary">Activate</button>
+        {% if not r.id_checked %}<label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
+        <button name="action" value="activate_paid" class="rose-button">Activate</button>
       </form>
       {% endif %}
 
-      {% if m.status == "pending_payment" and not m.paid_awaiting_id_check or m.status == "expired" or m.status == "cancelled" %}
-      <form method="post" class="desk-form">{% csrf_token %}
+      {% if "activate" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Record payment and activate</h3>
-        <div class="desk-row">
-          <label>Method <select name="method"><option value="cash">Cash</option><option value="card_in_person">Card in person</option></select></label>
-          <label>Amount <input name="amount" inputmode="decimal" value="{{ r.default_amount }}"></label>
-        </div>
-        <label>Note <input name="note" maxlength="300"></label>
-        {% if not r.id_checked %}<label class="desk-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
-        <button name="action" value="activate" class="desk-button primary">Record payment and activate</button>
+        {% include "admin/memberships/desk_payment_fields.html" %}
+        <button name="action" value="activate" class="rose-button">Record payment and activate</button>
       </form>
       {% endif %}
 
-      {% if tonight_events and m.status == "active" or tonight_events and m.status == "grace" %}
-      <form method="post" class="desk-form">{% csrf_token %}
+      {% if "walk_in" in r.actions and tonight_events %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Check in tonight</h3>
-        <div class="desk-row">
-          <label>Event <select name="event">{% for event in tonight_events %}<option value="{{ event.pk }}">{{ event.title }} ({{ event.starts_at|time:"g:i A" }})</option>{% endfor %}</select></label>
-          <label>Party <select name="party_size"><option value="1">Just them</option><option value="2">With a guest</option></select></label>
+        <div class="rose-form-row">
+          <div class="rose-field"><label for="event-{{ m.pk }}">Event</label><select id="event-{{ m.pk }}" name="event">{% for event in tonight_events %}<option value="{{ event.pk }}">{{ event.title }} ({{ event.starts_at|time:"g:i A" }})</option>{% endfor %}</select></div>
+          <div class="rose-field"><label for="party-{{ m.pk }}">Party</label><select id="party-{{ m.pk }}" name="party_size"><option value="1">Just them</option><option value="2">With a guest</option></select></div>
         </div>
-        <button name="action" value="walk_in" class="desk-button primary">Check in</button>
+        <button name="action" value="walk_in" class="rose-button">Check in</button>
       </form>
       {% endif %}
 
-      {% if m.status == "active" or m.status == "grace" or m.status == "expired" %}
-      <form method="post" class="desk-form">{% csrf_token %}
+      {% if "renew" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Renew</h3>
-        <div class="desk-row">
-          <label>Method <select name="method"><option value="cash">Cash</option><option value="card_in_person">Card in person</option></select></label>
-          <label>Amount <input name="amount" inputmode="decimal" value="{{ r.default_amount }}"></label>
-        </div>
-        <label>Note <input name="note" maxlength="300"></label>
-        <button name="action" value="renew" class="desk-button primary">Renew</button>
+        {% include "admin/memberships/desk_payment_fields.html" with no_id=True %}
+        <button name="action" value="renew" class="rose-button">Renew</button>
       </form>
       {% endif %}
 
-      {% if m.status == "pending_payment" and not m.paid_awaiting_id_check or m.status == "expired" or m.status == "cancelled" %}
-      <form method="post" class="desk-form">{% csrf_token %}
+      {% if "comp" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Complimentary membership</h3>
-        <label>Reason <input name="reason" maxlength="300" required></label>
-        {% if not r.id_checked %}<label class="desk-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
-        <button name="action" value="comp" class="desk-button">Comp membership</button>
+        <div class="rose-field"><label for="comp-{{ m.pk }}">Reason</label><input id="comp-{{ m.pk }}" name="reason" maxlength="300" required></div>
+        {% if not r.id_checked %}<label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
+        <button name="action" value="comp" class="rose-button-secondary">Comp membership</button>
       </form>
       {% endif %}
 
-      {% if m.status == "active" or m.status == "grace" %}
-      <form method="post" class="desk-form">{% csrf_token %}
+      {% if "suspend" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Suspend</h3>
-        <label>Reason <input name="reason" maxlength="300" required></label>
-        <button name="action" value="suspend" class="desk-button danger">Suspend</button>
+        <div class="rose-field"><label for="suspend-{{ m.pk }}">Reason</label><input id="suspend-{{ m.pk }}" name="reason" maxlength="300" required></div>
+        <button name="action" value="suspend" class="rose-button-danger">Suspend</button>
       </form>
       {% endif %}
 
-      {% if m.status == "suspended" %}
-      <form method="post" class="desk-form">{% csrf_token %}
+      {% if "reinstate" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
         <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Reinstate</h3>
-        <label>Reason <input name="reason" maxlength="300" required></label>
-        <button name="action" value="reinstate" class="desk-button primary">Reinstate</button>
+        <div class="rose-field"><label for="reinstate-{{ m.pk }}">Reason</label><input id="reinstate-{{ m.pk }}" name="reason" maxlength="300" required></div>
+        <button name="action" value="reinstate" class="rose-button">Reinstate</button>
       </form>
-      {% endif %}
       {% endif %}
     </div>
 
     {% if r.payments %}
-    <table class="desk-payments">
-      <thead><tr><th>Date</th><th>Payment</th><th>Amount</th><th></th></tr></thead>
-      <tbody>
-        {% for p in r.payments %}
-        <tr>
-          <td>{{ p.created_at|date:"M j, Y" }}</td>
-          <td>{{ p.get_status_display }} · {{ p.get_method_display }}</td>
-          <td>{{ p.amount_cents|floatformat:0 }}¢</td>
-          <td>
-            {% if p.status == "succeeded" and p.method != "comp" %}
-            <form method="post" class="desk-refund">{% csrf_token %}
-              <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="payment" value="{{ p.pk }}">
-              <input name="amount" inputmode="decimal" placeholder="Amount" aria-label="Refund amount" required>
-              <button name="action" value="refund" class="desk-button subtle">Refund</button>
-            </form>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <h3 class="rose-desk-subhead">Recent payments</h3>
+    <ul class="rose-rows rose-desk-payments">
+      {% for p in r.payments %}
+      <li class="rose-row">
+        <span class="rose-row-main"><span class="rose-row-title">{{ p.get_status_display }} · {{ p.get_method_display }}</span><span class="rose-subtle">{{ p.created_at|date:"M j, Y" }}</span></span>
+        <strong>${{ p.amount_display }}</strong>
+        {% if p.status == "succeeded" and p.method != "comp" %}
+        <form method="post" class="rose-desk-refund">{% csrf_token %}
+          <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="payment" value="{{ p.pk }}">
+          <input class="rose-input" name="amount" inputmode="decimal" placeholder="Amount" aria-label="Refund amount" required>
+          <button name="action" value="refund" class="rose-button-secondary">Refund</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
     {% endif %}
   </section>
   {% endwith %}

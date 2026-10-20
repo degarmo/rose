@@ -1,29 +1,27 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-  <a href="{% url 'admin:rentals_rentalinquiry_changelist' %}">Rental inquiries</a> &rsaquo;
-  <a href="{% url 'admin:rentals_rentalinquiry_change' inquiry.pk %}">{{ inquiry.label }}</a> &rsaquo; Confirm
-</div>
-{% endblock %}
+{% block title %}Confirm a rental | Rose{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block content %}
-<div id="content-main" class="tool-page">
-  <p>{{ inquiry.get_type_display }} on {{ inquiry.preferred_date|date:"l, F j, Y" }}{% if inquiry.start_time %} at {{ inquiry.start_time|time:"g:i A" }}{% endif %}{% if inquiry.duration_hours %} for {{ inquiry.duration_hours }} hours{% endif %}.</p>
+<div class="rose-stack rose-narrow">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Confirm {{ inquiry.label }}</h1>
+    <p class="rose-subtle">{{ inquiry.get_type_display }} on {{ inquiry.preferred_date|date:"l, F j, Y" }}{% if inquiry.start_time %} at {{ inquiry.start_time|time:"g:i A" }}{% endif %}{% if inquiry.duration_hours %} for {{ inquiry.duration_hours }} hours{% endif %}.</p>
+  </header>
   {% if conflicts.preferred %}
-  <div class="tool-warning">
-    <p><strong>This time overlaps:</strong></p>
-    <ul>{% for event in conflicts.preferred %}<li>{% if event.is_private_hold %}Another private booking{% else %}{{ event.title }}{% endif %} ({{ event.starts_at|date:"D M j, g:i A" }} to {{ event.ends_at|date:"g:i A" }})</li>{% endfor %}</ul>
+  <div class="rose-alert">
+    <p>This time overlaps:</p>
+    <ul class="rose-bullets">{% for event in conflicts.preferred %}<li>{% if event.is_private_hold %}Another private booking{% else %}{{ event.title }}{% endif %} ({{ event.starts_at|date:"D M j, g:i A" }} to {{ event.ends_at|date:"g:i A" }})</li>{% endfor %}</ul>
   </div>
   {% endif %}
-  <form method="post" class="tool-form">
+  <form method="post" class="rose-card rose-form">
     {% csrf_token %}
-    {{ form.as_div }}
-    <button type="submit" class="button default">Mark confirmed</button>
+    {% include "admin/rose/form_fields.html" %}
+    <div class="rose-buttons">
+      <button type="submit" class="rose-button">Mark confirmed</button>
+      <a class="rose-button-secondary" href="{% url 'admin:rentals_rentalinquiry_change' inquiry.pk %}">Cancel</a>
+    </div>
   </form>
 </div>
 {% endblock %}

@@ -1,8 +1,11 @@
 from django.urls import path
 
+from apps.memberships.door_api import DoorDeskView
+
 from . import views
 
 urlpatterns = [
+    path("door/", DoorDeskView.as_view(), name="staff-door"),
     path("overview/", views.OverviewView.as_view(), name="staff-overview"),
     path("metrics/", views.MetricsView.as_view(), name="staff-metrics"),
     path("metrics/export/", views.MetricsExportView.as_view(), name="staff-metrics-export"),

@@ -1,56 +1,59 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'memberships/door_desk.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Membership summary</div>
-{% endblock %}
+{% block title %}Membership summary | Rose{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block content %}
-<div id="content-main" class="summary">
-  <div class="summary-grid">
-    <section class="module">
-      <h2>By status</h2>
-      <table><tbody>{% for label, n in status_rows %}<tr><th>{{ label }}</th><td>{{ n }}</td></tr>{% endfor %}</tbody></table>
+<div class="rose-stack">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Membership summary</h1>
+    <p class="rose-subtle">Counts and totals only. Every export is logged.</p>
+  </header>
+
+  <div class="rose-dashboard-grid">
+    <section class="rose-card" aria-labelledby="by-status">
+      <h2 id="by-status">By status</h2>
+      <table class="rose-table"><tbody>{% for label, n in status_rows %}<tr><th scope="row">{{ label }}</th><td class="rose-num">{{ n }}</td></tr>{% endfor %}</tbody></table>
     </section>
-    <section class="module">
-      <h2>Active and grace, by tier</h2>
-      <table><tbody>{% for row in tier_rows %}<tr><th>{{ row.tier__name }}</th><td>{{ row.n }}</td></tr>{% empty %}<tr><td>None yet</td></tr>{% endfor %}</tbody></table>
+    <section class="rose-card" aria-labelledby="by-tier">
+      <h2 id="by-tier">Active and grace, by tier</h2>
+      <table class="rose-table"><tbody>{% for row in tier_rows %}<tr><th scope="row">{{ row.tier__name }}</th><td class="rose-num">{{ row.n }}</td></tr>{% empty %}<tr><td class="rose-subtle">None yet</td></tr>{% endfor %}</tbody></table>
     </section>
-    <section class="module">
-      <h2>This month</h2>
-      <table><tbody>
-        <tr><th>New</th><td>{{ new_this_month }}</td></tr>
-        <tr><th>Renewed</th><td>{{ renewed_this_month }}</td></tr>
-        <tr><th>Expired</th><td>{{ expired_this_month }}</td></tr>
+    <section class="rose-card" aria-labelledby="this-month">
+      <h2 id="this-month">This month</h2>
+      <table class="rose-table"><tbody>
+        <tr><th scope="row">New</th><td class="rose-num">{{ new_this_month }}</td></tr>
+        <tr><th scope="row">Renewed</th><td class="rose-num">{{ renewed_this_month }}</td></tr>
+        <tr><th scope="row">Expired</th><td class="rose-num">{{ expired_this_month }}</td></tr>
       </tbody></table>
     </section>
   </div>
 
-  <section class="module">
-    <h2>Revenue, last 12 months (refunds subtracted)</h2>
-    <table class="summary-revenue">
-      <thead><tr><th>Month</th>{% for label in method_labels %}<th>{{ label }}</th>{% endfor %}<th>Total</th></tr></thead>
-      <tbody>{% for row in revenue_rows %}<tr><th>{{ row.month }}</th>{% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}<td><strong>{{ row.total }}</strong></td></tr>{% endfor %}</tbody>
+  <section class="rose-card" aria-labelledby="revenue">
+    <h2 id="revenue">Revenue, last 12 months (refunds subtracted)</h2>
+    <div class="rose-table-wrap">
+      <table class="rose-table">
+        <thead><tr><th scope="col">Month</th>{% for label in method_labels %}<th scope="col" class="rose-num">{{ label }}</th>{% endfor %}<th scope="col" class="rose-num">Total</th></tr></thead>
+        <tbody>{% for row in revenue_rows %}<tr><th scope="row">{{ row.month }}</th>{% for cell in row.cells %}<td class="rose-num">{{ cell }}</td>{% endfor %}<td class="rose-num"><strong>{{ row.total }}</strong></td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rose-card" aria-labelledby="guests">
+    <h2 id="guests">Guest visits, last 12 months</h2>
+    <table class="rose-table">
+      <thead><tr><th scope="col">Month</th><th scope="col" class="rose-num">Visits</th></tr></thead>
+      <tbody>{% for row in guest_rows %}<tr><th scope="row">{{ row.month }}</th><td class="rose-num">{{ row.visits }}</td></tr>{% endfor %}</tbody>
     </table>
   </section>
 
-  <section class="module">
-    <h2>Guest visits, last 12 months</h2>
-    <table class="summary-revenue">
-      <thead><tr><th>Month</th><th>Visits</th></tr></thead>
-      <tbody>{% for row in guest_rows %}<tr><th>{{ row.month }}</th><td>{{ row.visits }}</td></tr>{% endfor %}</tbody>
-    </table>
-  </section>
-
-  <section class="module summary-export">
-    <h2>Export</h2>
-    <form method="post" action="{% url 'admin:memberships_export' %}">
+  <section class="rose-card" aria-labelledby="export">
+    <h2 id="export">Export</h2>
+    <form method="post" action="{% url 'admin:memberships_export' %}" class="rose-form">
       {% csrf_token %}
       <p>Display name, tier, status, period end and source. Every export is logged.</p>
-      {% if can_include_email %}<label><input type="checkbox" name="include_email"> Include contact email (logged separately)</label>{% endif %}
-      <p><button type="submit" class="button">Download CSV</button></p>
+      {% if can_include_email %}<label class="rose-check"><input type="checkbox" name="include_email"> Include contact email (logged separately)</label>{% endif %}
+      <button type="submit" class="rose-button">Download CSV</button>
     </form>
   </section>
 </div>

@@ -1,69 +1,76 @@
-{% extends "admin/index.html" %}
-{% load static %}
+{% extends "admin/base_site.html" %}
+{% load static unfold %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/dashboard.css' %}">{% endblock %}
-
-{% block coltype %}colM{% endblock %}
-{% block content_title %}{% endblock %}
+{% block title %}Dashboard | Rose{% endblock %}
 
 {% block content %}
-<div class="ig-dashboard">
-  {% if dashboard.attention %}
-  <section id="needs-attention" class="ig-post dashboard-attention" aria-labelledby="attention-heading">
-    <header class="ig-post-head">
-      <span class="ig-avatar ig-avatar-alert"><svg class="ig-icon" aria-hidden="true"><use href="{% static 'core/icons.svg' %}#heart"></use></svg></span>
-      <div><h2 id="attention-heading">Needs attention</h2><p class="ig-post-sub">Right now</p></div>
-    </header>
-    <ul class="dashboard-attention-list">
-      {% for item in dashboard.attention %}
-      <li><a href="{{ item.url }}"><strong>{{ item.count }}</strong> {{ item.label }}</a></li>
-      {% endfor %}
-    </ul>
+<div class="rose-dashboard">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Today</h1>
+    <p class="rose-subtle">Totals only. Any number under {{ small }} shows as "fewer than {{ small }}".</p>
+  </header>
+
+  {% if kpis %}
+  <section class="rose-kpis" aria-label="Key figures">
+    {% for kpi in kpis %}
+      {% component "unfold/components/card.html" with href=kpi.url size="md" %}
+        <div class="rose-kpi">
+          <svg class="rose-kpi-icon" aria-hidden="true"><use href="{% static 'core/icons.svg' %}#{{ kpi.icon }}"></use></svg>
+          <p class="rose-kpi-label">{{ kpi.label }}</p>
+          <p class="rose-kpi-value">{{ kpi.value }}</p>
+        </div>
+      {% endcomponent %}
+    {% endfor %}
   </section>
-  {% else %}
-  <p id="needs-attention" class="dashboard-clear">You're all caught up. Nothing needs attention right now.</p>
   {% endif %}
 
-  {% for section in dashboard.sections %}
-  <article class="ig-post dashboard-card" aria-labelledby="section-{{ forloop.counter }}">
-    <header class="ig-post-head">
-      <span class="ig-avatar"><svg class="ig-icon" aria-hidden="true"><use href="{% static 'core/icons.svg' %}#{{ section.icon }}"></use></svg></span>
-      <div><h2 id="section-{{ forloop.counter }}">{{ section.title }}</h2><p class="ig-post-sub">Totals</p></div>
-    </header>
-    <dl class="dashboard-stats">
-      {% for stat in section.stats %}
-      <div>
-        <dt>{{ stat.label }}</dt>
-        <dd><span class="dashboard-value">{{ stat.value }}</span>{% if stat.hint %} <span class="dashboard-hint">{{ stat.hint }}</span>{% endif %}</dd>
-      </div>
-      {% endfor %}
-    </dl>
-    {% if section.rows %}
-    <h3>Coming up</h3>
-    <ul class="dashboard-events">
-      {% for row in section.rows %}
-      <li>
-        <a href="{{ row.url }}">{{ row.title }}</a>
-        <span class="dashboard-hint">{{ row.when|date:"D M j, g:i a" }}</span>
-        {% if row.capacity %}
-        <meter min="0" max="{{ row.capacity }}" value="{{ row.going }}" high="{{ row.capacity }}" aria-label="{{ row.going }} of {{ row.capacity }} places taken">{{ row.going }} of {{ row.capacity }}</meter>
-        <span class="dashboard-hint">{{ row.going }} of {{ row.capacity }}</span>
+  <div class="rose-dashboard-grid">
+    {% if revenue_chart %}
+      {% component "unfold/components/card.html" with title="Revenue, last 12 months" %}
+        {% component "unfold/components/chart/bar.html" with data=revenue_chart height=260 %}{% endcomponent %}
+        <p class="rose-subtle rose-note">A month with fewer than {{ small }} payments has no bar.</p>
+      {% endcomponent %}
+    {% endif %}
+    {% if tier_chart %}
+      {% component "unfold/components/card.html" with title="Active members by tier" %}
+        {% component "unfold/components/chart/bar.html" with data=tier_chart height=260 %}{% endcomponent %}
+        <p class="rose-subtle rose-note">A tier with fewer than {{ small }} active members has no bar.</p>
+      {% endcomponent %}
+    {% endif %}
+  </div>
+
+  <div class="rose-dashboard-grid">
+    {% if next_events is not None %}
+      {% component "unfold/components/card.html" with title="Coming up" %}
+        {% if next_events %}
+        <ul class="rose-rows">
+          {% for event in next_events %}
+          <li>
+            <a href="{{ event.url }}" class="rose-row-link">
+              <span class="rose-date"><span>{{ event.starts_at|date:"D" }}</span><strong>{{ event.starts_at|date:"j" }}</strong></span>
+              <span class="rose-row-main"><span class="rose-row-title">{{ event.title }}</span><span class="rose-subtle">{{ event.starts_at|date:"F j, g:i a" }}</span></span>
+              <span class="rose-chip">{{ event.rsvps }} going</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
         {% else %}
-        <span class="dashboard-hint">{{ row.going }} going, no limit</span>
+        <p class="rose-subtle">Nothing on the calendar yet.</p>
         {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
+      {% endcomponent %}
     {% endif %}
-    {% if section.links %}
-    <footer class="dashboard-links">{% for label, url in section.links %}<a href="{{ url }}">{{ label }}</a>{% endfor %}</footer>
+    {% if quick_actions %}
+      {% component "unfold/components/card.html" with title="Quick actions" %}
+        <div class="rose-actions">
+          {% for label, icon, url in quick_actions %}
+          <a class="rose-action" href="{{ url }}">
+            <svg aria-hidden="true"><use href="{% static 'core/icons.svg' %}#{{ icon }}"></use></svg>
+            {{ label }}
+          </a>
+          {% endfor %}
+        </div>
+      {% endcomponent %}
     {% endif %}
-  </article>
-  {% endfor %}
-  <p class="dashboard-note">Totals only. Who did what is never shown here.</p>
-</div>
-<div id="all-sections">
-  <h2 class="ig-section-title">All sections</h2>
-  {{ block.super }}
+  </div>
 </div>
 {% endblock %}

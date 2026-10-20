@@ -1,10 +1,11 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from .models import AuditLog
 
 
 @admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
+class AuditLogAdmin(ModelAdmin):
     """Read-only. Nothing here can be added, edited or deleted."""
 
     list_display = ("created_at", "category", "action", "target_label", "actor_label", "reason")

@@ -69,25 +69,29 @@ export function AccountMenu({ className }: { className?: string }) {
             <li className="border-b border-border pb-1">
               <p className="flex items-center gap-2 px-4 pb-1 pt-2 text-xs text-fg-muted">
                 <span className="rounded-full bg-fg px-2 py-0.5 font-semibold uppercase tracking-[0.06em] text-canvas">Staff</span>
-                {ROLE_LABELS[staff.role]}
+                {staff.role ? ROLE_LABELS[staff.role] : 'Door desk'}
               </p>
               <ul aria-label="Staff">
-                <li>
-                  <Link to="/members/staff" className={ITEM}>
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/members/staff/reports" className={ITEM}>
-                    Reports
-                  </Link>
-                </li>
-                {staff.door_desk_url && (
+                {staff.door_desk && (
                   <li>
-                    <a href={staff.door_desk_url} className={ITEM}>
+                    <Link to="/members/staff/door" reloadDocument className={ITEM}>
                       Door desk
-                    </a>
+                    </Link>
                   </li>
+                )}
+                {staff.role && (
+                  <>
+                    <li>
+                      <Link to="/members/staff" className={ITEM}>
+                        Dashboard
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/members/staff/reports" className={ITEM}>
+                        Reports
+                      </Link>
+                    </li>
+                  </>
                 )}
                 <li>
                   <Link to={memberAppPath(auth.user)} className={ITEM}>

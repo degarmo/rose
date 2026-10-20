@@ -381,6 +381,11 @@ class Payment(models.Model):
     def refunded_cents(self):
         return sum(r.amount_cents for r in self.refunds.all())
 
+    @property
+    def amount_display(self):
+        """Dollars and cents, as staff read them: "25.00"."""
+        return f"{self.amount_cents / 100:,.2f}"
+
 
 class IdCheck(models.Model):
     """Only that a valid photo ID showing 18+ was seen, by whom and when. Nothing else."""

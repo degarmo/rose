@@ -3,40 +3,40 @@ import mimetypes
 import markdown
 import nh3
 from django.conf import settings
-from django.contrib import admin
+from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils.safestring import mark_safe
+from unfold.sites import UnfoldAdminSite
 
 from . import admin_auth
-from .admin_nav import build_nav
 from .consent_images import consent_image_field_names, consent_image_models
-from .dashboard import build_dashboard
 from .manifest import STATUS_LABELS, entry_status, find_entry, image_file, load_manifest
 
+# Staff who look after the pages that carry images may open Image review.
+IMAGE_PERMISSIONS = (
+    "events.change_event",
+    "journal.change_post",
+    "pages.change_staffprofile",
+    "education.change_opportunity",
+)
 
-class RoseAdminSite(admin.AdminSite):
-    site_header = "Rose administration"
+
+def can_review_images(user):
+    return user.is_superuser or any(user.has_perm(perm) for perm in IMAGE_PERMISSIONS)
+
+
+class RoseAdminSite(UnfoldAdminSite):
+    """The admin in Rose's look (django-unfold, config/unfold.py), behind the two-step login."""
+
+    site_header = "Rose"
     site_title = "Rose"
-    index_title = "Site content"
-    # Our own Instagram-style sidebar (admin/base_site.html) replaces Django's.
-    enable_nav_sidebar = False
-
-    def each_context(self, request):
-        context = super().each_context(request)
-        if context.get("has_permission"):
-            context["ig_nav"] = build_nav(request)
-        return context
+    index_title = "Dashboard"
 
     def has_permission(self, request):
         """Staff only, and only after the two-step check (apps.core.admin_auth)."""
         return super().has_permission(request) and request.user.is_verified()
-
-    def index(self, request, extra_context=None):
-        """The admin home page, with a metrics dashboard above the model list."""
-        context = {"dashboard": build_dashboard(request.user), **(extra_context or {})}
-        return super().index(request, extra_context=context)
 
     def login(self, request, extra_context=None):
         return admin_auth.admin_login(request, self)
@@ -72,6 +72,8 @@ class RoseAdminSite(admin.AdminSite):
 
     def image_review_view(self, request):
         """Read-only overview of every site image and why it is shown or hidden."""
+        if not can_review_images(request.user):
+            raise PermissionDenied
         manifest_rows = []
         for entry in load_manifest()["images"]:
             status = entry_status(entry)
@@ -113,6 +115,8 @@ class RoseAdminSite(admin.AdminSite):
 
     def image_file_view(self, request, filename):
         """Serve a manifest image to staff only, so hidden images never go public."""
+        if not can_review_images(request.user):
+            raise PermissionDenied
         entry = find_entry(load_manifest(), filename)
         if entry is None:
             raise Http404

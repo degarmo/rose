@@ -1,6 +1,0 @@
-.door-list .id-reminder { font-size: 1.25rem; font-weight: 700; padding: 0.75rem 1rem; border-left: 4px solid var(--error-fg); background: var(--darkened-bg); }
-.door-list .door-totals { font-size: 1rem; }
-.door-list table { width: 100%; max-width: 60rem; }
-.door-list td, .door-list th { vertical-align: middle; font-size: 0.95rem; }
-.door-list tr.is-in td { opacity: 0.65; }
-.door-list form { margin: 0; }

@@ -7,6 +7,10 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html, format_html_join
+from unfold.admin import ModelAdmin
+from unfold.decorators import action
+
+from apps.core.admin_display import chip
 
 from . import services
 from .models import RentalInquiry
@@ -40,19 +44,25 @@ class ConfirmForm(forms.Form):
 
 
 @admin.register(RentalInquiry)
-class RentalInquiryAdmin(admin.ModelAdmin):
+class RentalInquiryAdmin(ModelAdmin):
     list_display = (
         "__str__",
         "type",
         "preferred_date",
-        "status",
+        "status_chip",
         "conflict",
         "created_at",
     )
+    status_chip = chip(
+        "status",
+        {"New": "warning", "In discussion": "info", "Quoted": "info", "Confirmed": "success"},
+    )
     list_filter = ("status", "type")
     date_hierarchy = "preferred_date"
-    change_form_template = "admin/rentals/change_form.html"
-    change_list_template = "admin/rentals/change_list.html"
+    # The status form sits outside the change form (forms cannot be nested).
+    change_form_outer_before_template = "admin/rentals/status_tools.html"
+    actions_list = ["open_pipeline"]
+    actions_detail = ["confirm_inquiry", "open_pipeline_from_detail"]
     readonly_fields = (
         "conflict_warning",
         "status",
@@ -146,6 +156,18 @@ class RentalInquiryAdmin(admin.ModelAdmin):
     @admin.action(description="Mark cancelled", permissions=["change"])
     def mark_cancelled(self, request, queryset):
         self._bulk(request, queryset, RentalInquiry.Status.CANCELLED)
+
+    @action(description="Pipeline view", icon="view_kanban", url_path="pipeline-view")
+    def open_pipeline(self, request):
+        return HttpResponseRedirect(reverse("admin:rentals_pipeline"))
+
+    @action(description="Pipeline view", icon="view_kanban", url_path="pipeline-view-from-inquiry")
+    def open_pipeline_from_detail(self, request, object_id):
+        return HttpResponseRedirect(reverse("admin:rentals_pipeline"))
+
+    @action(description="Mark confirmed", icon="event_available", permissions=["change"])
+    def confirm_inquiry(self, request, object_id):
+        return HttpResponseRedirect(reverse("admin:rentals_confirm", args=[object_id]))
 
     def get_urls(self):
         extra = [

@@ -41,6 +41,7 @@ export const router = createBrowserRouter([
           { path: 'report', lazy: members((m) => m.ReportConcernPage) },
           // The staff section: team roles only, after the staff two-step login.
           { path: 'staff', lazy: members((m) => m.StaffDashboardPage) },
+          { path: 'staff/door', lazy: members((m) => m.StaffDoorPage) },
           { path: 'staff/reports', lazy: members((m) => m.StaffReportsPage) },
           { path: 'staff/reports/:id', lazy: members((m) => m.StaffReportPage) },
           { path: 'staff/appeals/:id', lazy: members((m) => m.StaffAppealPage) },

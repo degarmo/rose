@@ -1,6 +1,15 @@
 from django.contrib import admin
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group
 from django.utils import timezone
+from django_otp.plugins.otp_static.admin import StaticDeviceAdmin as BaseStaticDeviceAdmin
+from django_otp.plugins.otp_static.models import StaticDevice, StaticToken
+from django_otp.plugins.otp_totp.admin import TOTPDeviceAdmin as BaseTOTPDeviceAdmin
+from django_otp.plugins.otp_totp.models import TOTPDevice
+from unfold.admin import ModelAdmin, StackedInline, TabularInline
+from unfold.decorators import display
+from unfold.forms import AdminPasswordChangeForm
 
 from .forms import UserChangeForm, UserCreationForm
 from .models import Profile, User
@@ -25,7 +34,7 @@ PROFILE_READONLY = (
 )
 
 
-class ProfileInline(admin.StackedInline):
+class ProfileInline(StackedInline):
     model = Profile
     fk_name = "user"
     can_delete = False
@@ -42,9 +51,12 @@ class ProfileInline(admin.StackedInline):
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(BaseUserAdmin, ModelAdmin):
+    """Members: everyone with an account. The legal name and phone stay private."""
+
     form = UserChangeForm
     add_form = UserCreationForm
+    change_password_form = AdminPasswordChangeForm
     inlines = [ProfileInline]
 
     def save_formset(self, request, form, formset, change):
@@ -55,18 +67,57 @@ class UserAdmin(BaseUserAdmin):
         super().save_formset(request, form, formset, change)
 
     ordering = ("display_name",)
-    list_display = ("display_name", "email", "is_active", "is_staff", "date_joined")
-    list_filter = ("is_active", "is_staff", "profile__participates_in_feed")
+    list_display = ("display_name", "email", "account_status", "team", "in_feed", "date_joined")
+    list_filter = ("is_active", "is_staff", "profile__participates_in_feed", "groups")
     search_fields = ("display_name", "email", "legal_name")
+    # Long page: one tab per part (Unfold shows fieldsets with the "tab" class as tabs).
     fieldsets = (
-        (None, {"fields": ("email", "display_name", "password")}),
-        ("Private details", {"fields": ("legal_name", "phone")}),
+        (
+            "Account",
+            {
+                "classes": ["tab"],
+                "fields": ("email", "display_name", "password"),
+                "description": "The display name is the only name other members ever see.",
+            },
+        ),
+        (
+            "Private details",
+            {
+                "classes": ["tab"],
+                "fields": ("legal_name", "phone"),
+                "description": "Never shown to members or the public. Leave empty unless needed.",
+            },
+        ),
         (
             "Permissions",
-            {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")},
+            {
+                "classes": ["tab"],
+                "fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions"),
+                "description": "Staff can sign in to the admin. Roles (Moderator, Staff, Admin) "
+                "are the groups; manage them in the staff section's Team page.",
+            },
         ),
-        ("Dates", {"fields": ("last_login", "date_joined")}),
+        ("Dates", {"classes": ["tab"], "fields": ("last_login", "date_joined")}),
     )
+
+    @display(description="Status", label={"Active": "success", "Inactive": "danger"})
+    def account_status(self, obj):
+        return "Active" if obj.is_active else "Inactive"
+
+    @display(description="Team", label=True)
+    def team(self, obj):
+        if obj.is_superuser:
+            return "Owner"
+        roles = ", ".join(group.name for group in obj.groups.all())
+        return roles or ("Staff" if obj.is_staff else "")
+
+    @display(description="In the feed", boolean=True)
+    def in_feed(self, obj):
+        return obj.profile.participates_in_feed
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("profile").prefetch_related("groups")
+
     add_fieldsets = (
         (
             None,
@@ -78,8 +129,43 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
+admin.site.unregister(Group)
+
+
+@admin.register(Group)
+class GroupAdmin(BaseGroupAdmin, ModelAdmin):
+    """Team and roles: the Moderator, Staff and Admin roles, and the door desk group."""
+
+    list_display = ("name", "members")
+
+    @display(description="People")
+    def members(self, obj):
+        return obj.user_set.count()
+
+
+# The two-step login's authenticators and backup codes, in the admin's look (django-otp
+# registers them with Django's own classes).
+admin.site.unregister(TOTPDevice)
+admin.site.unregister(StaticDevice)
+
+
+@admin.register(TOTPDevice)
+class TOTPDeviceAdmin(BaseTOTPDeviceAdmin, ModelAdmin):
+    pass
+
+
+class StaticTokenInline(TabularInline):
+    model = StaticToken
+    extra = 0
+
+
+@admin.register(StaticDevice)
+class StaticDeviceAdmin(BaseStaticDeviceAdmin, ModelAdmin):
+    inlines = [StaticTokenInline]
+
+
 @admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
+class ProfileAdmin(ModelAdmin):
     list_display = (
         "user",
         "feed_access_granted",
@@ -115,7 +201,7 @@ class ProfileAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
-    @admin.display(boolean=True, description="Banned")
+    @display(boolean=True, description="Banned")
     def banned(self, obj):
         return obj.is_feed_banned
 

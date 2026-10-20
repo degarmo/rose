@@ -75,8 +75,8 @@ Asserted on a public page, a member page, an admin page and the media view in
 
 | Header | Value |
 | --- | --- |
-| `Content-Security-Policy` | `default-src 'self'`; `script-src 'self'` (no inline scripts, no `unsafe-inline` or `unsafe-eval`); `style-src 'self'`; `img-src 'self' data: blob:` plus the public bucket and the private bucket's signing host; `font-src 'self'`; `connect-src 'self'`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'`; `worker-src 'none'` |
-| `Permissions-Policy` | Every device feature denied (`camera=()`, `microphone=()`, `geolocation=()`, `payment=()`, `usb=()`, `browsing-topics=()` and more). Only the door desk page has `camera=(self)`, for scanning codes |
+| `Content-Security-Policy` | `default-src 'self'`; `script-src 'self'` (no inline scripts, no `unsafe-inline` or `unsafe-eval`); `style-src 'self'` plus three `sha256` hashes for the fixed `<style>` elements of the admin's rich-text editor (Trix); `img-src 'self' data: blob:` plus the public bucket and the private bucket's signing host; `font-src 'self'`; `connect-src 'self'`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'`; `worker-src 'none'` |
+| `Permissions-Policy` | Every device feature denied (`camera=()`, `microphone=()`, `geolocation=()`, `payment=()`, `usb=()`, `browsing-topics=()` and more). Only the door desk pages (the admin's and `/members/staff/door`) have `camera=(self)`, for scanning codes |
 | `Referrer-Policy` | `no-referrer`. The admin alone uses `same-origin`, because Django's admin forms post with an `Origin` header that `no-referrer` would turn into `null` (decision 174) |
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |

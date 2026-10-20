@@ -6,7 +6,9 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
+from apps.core.admin_display import chip
 from apps.core.models import AuditLog, audit
 
 from . import services
@@ -15,7 +17,7 @@ from .models import Acknowledgement, AcknowledgementTemplate, Donation
 VIEW_PERMISSION = "donations.view_donation"
 
 
-class ReadOnlyAdmin(admin.ModelAdmin):
+class ReadOnlyAdmin(ModelAdmin):
     def has_add_permission(self, request):
         return False
 
@@ -37,9 +39,10 @@ class DonationAdmin(ReadOnlyAdmin):
         "donor_display",
         "amount",
         "method",
-        "status",
+        "status_chip",
         "acknowledgement_link",
     )
+    status_chip = chip("status", {"Received": "success", "Failed": "danger", "Refund": "warning"})
     list_filter = ("status", "method", "acknowledgement_requested")
     search_fields = ("reference",)
     fields = (
@@ -135,7 +138,7 @@ class DonationAdmin(ReadOnlyAdmin):
 
 
 @admin.register(AcknowledgementTemplate)
-class AcknowledgementTemplateAdmin(admin.ModelAdmin):
+class AcknowledgementTemplateAdmin(ModelAdmin):
     fields = ("subject", "body", "is_placeholder", "updated_at")
     readonly_fields = ("is_placeholder", "updated_at")
 

@@ -1,6 +1,0 @@
-{% extends "admin/change_list.html" %}
-
-{% block object-tools-items %}
-{% if request.user.is_superuser %}<li><a href="{% url 'admin:pages_load_content' %}">Load site content</a></li>{% endif %}
-{{ block.super }}
-{% endblock %}

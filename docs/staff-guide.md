@@ -18,24 +18,33 @@ You are logged out when you close the browser, and after 12 hours anyway.
 
 ## Finding your way
 
-The menu down the left side works like a photo app: **Home**, **Door desk**,
-**Messages** (contact form), **Notifications** (a red dot means something needs
-you), **Create** (a new journal post), **Events**, **Moderation**, **Images**,
-**Dashboard** (membership numbers and income) and **All sections**. A red number on
-an icon is how many things are waiting there. You only see the items your role
-allows. On a tablet or phone the menu shrinks to icons only; hold your finger or
-mouse over an icon to see its name.
+The menu down the left side is grouped by job:
 
-**Settings** is the gear at the bottom left. It has site settings, your password,
-light or dark appearance, a link to the public site, and **Log out**.
+- **Today**: the **Dashboard**, the **Door desk** and **Reports**.
+- **Members**: members, memberships, ID checks and tiers (plans).
+- **Events**: events, **RSVPs (counts only)** and event tags.
+- **Content**: the journal, announcements, education, the words on the site (**Page copy**),
+  the FAQ, the community guidelines and the membership agreement.
+- **Community**: feed posts, the moderation log and appeals.
+- **Money**: payments, donations and the membership summary.
+- **Outreach**: newsletters, subscribers, rentals, volunteers and contact messages.
+- **Settings**: site settings, **Team and roles**, **Image review** and the audit log.
+
+You only see what your role allows; a group with nothing in it for you is not shown. A red
+number beside an item is how many things are waiting there (people who paid online and need
+an ID check, reports and first posts, unanswered messages). The search box at the top finds
+any section. Your name at the bottom opens the staff guide, your password and a link to the
+public site; the sun or moon there switches between light and dark. On a tablet or phone the
+menu hides behind the button at the top left.
 
 ## The home page
 
-After you log in you see a dashboard: **Needs attention** at the top (reports to review,
-concerns from the contact form, people who paid online and need an ID check, hidden
-images), then cards with totals for membership, income, events, accounts, the member
-feed, messages and images. It only shows numbers, never names, and you only see the
-cards your role allows. Each card links to the page where you can act.
+After you log in you see **Today**: totals for active members, new members this month,
+income this month, open reports and ID checks waiting, each linking to where you act. Below
+them are income for the last 12 months, active members by plan, the next three events with
+how many are going, and buttons for a new event, a new journal post, the door desk and the
+reports. It only shows numbers, never names, and any number below 5 shows as "fewer than 5"
+so nobody can be picked out. You only see the parts your role allows.
 
 ## Posting to the journal
 
@@ -61,16 +70,28 @@ The site will not publish an image showing faces without confirmed consent.
 4. Tick **Published** when it is ready.
 
 **Repeat weekly**: tick the event in the list, choose **Repeat weekly** from the
-actions menu, pick how many weeks, and press Go. Copies keep the same time of day.
+actions box that appears above the list, press **Run**, pick how many weeks, and confirm. Copies keep the same time of day.
 Copies that already exist are skipped.
 
-**Door list**: open the event, then **Door list**. It shows display names and
+**Door list**: press **Door list** on the event's row in **Events**, or in
+**Events > RSVPs (counts only)**, which shows how many are going, waiting and checked in. It shows display names and
 party sizes, never emails. Tick people in as they arrive.
 
 ## The door desk
 
-Use it on the tablet at the door: **Door desk** on the staff home page. This guide is also
-in the admin: the **Staff guide** link at the bottom of the public site (shown only to staff).
+On the tablet at the door, sign in on the website as usual (email, password, then the
+six-digit code) and you land on the **Door desk** in the member app, at
+`/members/staff/door`: a big search box, a **Scan QR** button and large buttons, made for a
+tablet or a phone. If you are on the team it is also under **Door desk** beside **Staff** in
+the member app's menu. The same desk is in the admin (**Today > Door desk**), with a link to
+the tablet one; both do exactly the same thing and record the same way. This guide is also in
+the admin: click your name at the bottom of the menu, then **Staff guide**.
+
+On the tablet desk each person shows as a card with their display name, plan, status,
+**ID verified** or **ID check needed**, events left this month and guests included, and a
+red **Do not admit** banner when that applies (then no buttons are offered: ask a member of
+the team). Press a big button (**Check in**, **ID check**, **Record payment and activate**,
+**Guest visit**, **Renew**) and a box opens with what that action needs.
 
 1. **Find the person**: type their reference code (like `R7K-42Q`, with or
    without the dash) or display name, or press **Scan QR** and point the camera
@@ -144,8 +165,8 @@ A red **Clash** means the requested time overlaps a published event or another b
 
 ## Volunteers
 
-**Volunteer signups** lists everyone who offered to help. Filter by interest or status on
-the right. Use the actions menu to mark people contacted, active or inactive. **Export CSV**
+**Outreach > Volunteers** lists everyone who offered to help. Filter by interest or status
+under **Filters**. Use the actions box above the list to mark people contacted, active or inactive. **Export CSV**
 downloads a list without email addresses; only an administrator can add them, and every
 download is recorded. Delete the file when you are done with it.
 
@@ -192,8 +213,9 @@ the live site unless an administrator deliberately allows them, which is recorde
 
 ## Moderation queue
 
-**Feed moderation** on the staff home page lists reports and first posts
-waiting for review.
+**Today > Reports** in the admin lists reported posts, comments and profiles, and first
+posts waiting for review. The dashboard's **Open reports** counts reports; one post can have
+several. Most of this work now happens in the member app's staff section, below.
 
 - **Approve** puts a post back. **Remove** takes it down (you must give a reason;
   the author sees it). **Dismiss** closes a report that needs no action.
@@ -236,14 +258,14 @@ anyone more, and never tell a member who reported them.
 
 ## Image review
 
-**Image review** on the staff home page shows every site image and whether it
-is shown or hidden, and why. An image with faces visible and no confirmed
+**Settings > Image review** (for staff who edit events, the journal, education or the staff
+page) shows every site image and whether it is shown or hidden, and why. An image with faces visible and no confirmed
 consent is always hidden. To change one, open the record it belongs to and fix
 the alt text or consent boxes.
 
 ## Membership summary
 
-**Membership summary** shows how many memberships are in each state, new,
+**Money > Membership summary** shows how many memberships are in each state, new,
 renewed and lapsed this month, and income by month. **Download CSV** gives a
 list of display names, tiers and dates; only an administrator can add email
 addresses, and every download is recorded.

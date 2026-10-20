@@ -1,0 +1,998 @@
+/*
+ * Rose's look for the admin (django-unfold), from docs/design/tokens.md: the rose accent,
+ * soft neutrals, 8px corners, Manrope for the interface and Fraunces for titles and the
+ * wordmark. Fonts are served from this site (no Google Fonts). Light is the default; the
+ * dark appearance uses the member app's dark tokens.
+ */
+
+@font-face {
+  font-family: "Manrope Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("fonts/manrope-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Manrope Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("fonts/manrope-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fraunces Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("fonts/fraunces-latin-ext-opsz-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Fraunces Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("fonts/fraunces-latin-opsz-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Unfold's charts name "Inter" for their labels; the name is given Manrope's file here,
+   so charts read like the rest of the admin (Inter itself is never loaded). */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("fonts/manrope-latin-wght-normal.woff2") format("woff2-variations");
+}
+
+:root {
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, serif;
+  --border-radius: 8px;
+
+  /* Neutrals (canvas, surface, control, border, fg-faint, fg-muted, fg; dark canvas). */
+  --color-base-50: #fafafa;
+  --color-base-100: #f0f0f0;
+  --color-base-200: #dbdbdb;
+  --color-base-300: #c7c7c7;
+  --color-base-400: #a3a3a3;
+  --color-base-500: #737373;
+  --color-base-600: #525252;
+  --color-base-700: #404040;
+  --color-base-800: #262626;
+  --color-base-900: #141414;
+  --color-base-950: #0a0a0a;
+
+  /* Rose: tint, links, primary #CE2156, hover #A3123F, oxblood #5A0F23. */
+  --color-primary-50: #fdf5f8;
+  --color-primary-100: #fdeef2;
+  --color-primary-200: #f9d2de;
+  --color-primary-300: #f1a6bd;
+  --color-primary-400: #e0527d;
+  --color-primary-500: #d63a69;
+  --color-primary-600: #ce2156;
+  --color-primary-700: #a3123f;
+  --color-primary-800: #7e0f31;
+  --color-primary-900: #5a0f23;
+  --color-primary-950: #3a0816;
+
+  /* No stock blue: informational colour is the rose scale. */
+  --color-blue-50: var(--color-primary-50);
+  --color-blue-100: var(--color-primary-100);
+  --color-blue-200: var(--color-primary-200);
+  --color-blue-300: var(--color-primary-300);
+  --color-blue-400: var(--color-primary-400);
+  --color-blue-500: var(--color-primary-500);
+  --color-blue-600: var(--color-primary-600);
+  --color-blue-700: var(--color-primary-700);
+  --color-blue-800: var(--color-primary-800);
+  --color-blue-900: var(--color-primary-900);
+  --color-blue-950: var(--color-primary-950);
+
+  /* Status, from the design's danger and waitlist tones. */
+  --color-red-100: #fdecec;
+  --color-red-500: #c62828;
+  --color-red-600: #c62828;
+  --color-red-700: #a31f1f;
+  --color-orange-100: #fff4de;
+  --color-orange-500: #b7791f;
+  --color-orange-600: #9a6200;
+  --color-orange-700: #7a4e00;
+
+  --color-font-subtle-light: #737373;
+  --color-font-subtle-dark: #a3a3a3;
+  --color-font-default-light: #404040;
+  --color-font-default-dark: #d4d4d4;
+  --color-font-important-light: #262626;
+  --color-font-important-dark: #fafafa;
+}
+
+/* Titles in Fraunces, as on the site. */
+#content h1,
+.rose-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* The wordmark: "Rose" in Fraunces, oxblood (blush in the dark). */
+.rose-wordmark {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+  color: #5a0f23;
+}
+.dark .rose-wordmark {
+  color: #f1d9df;
+}
+
+/* Lucide icons in the sidebar, sized as Unfold's own (18px). */
+.rose-nav-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.active > .rose-nav-icon {
+  stroke-width: 2.4;
+}
+
+/* Shared pieces for the dashboard and the custom pages. */
+.rose-subtle {
+  color: var(--color-font-subtle-light);
+}
+.dark .rose-subtle {
+  color: var(--color-font-subtle-dark);
+}
+.rose-page-head {
+  margin-bottom: 24px;
+}
+.rose-page-head h1 {
+  font-size: 32px;
+  line-height: 1.15;
+  color: var(--color-font-important-light);
+}
+.dark .rose-page-head h1 {
+  color: var(--color-font-important-dark);
+}
+.rose-page-head p {
+  margin-top: 4px;
+}
+.rose-note {
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.rose-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.rose-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.rose-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rose-kpi-icon {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 6px;
+  fill: none;
+  stroke: var(--color-primary-600);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rose-kpi-label {
+  color: var(--color-font-subtle-light);
+  font-size: 13px;
+}
+.dark .rose-kpi-label {
+  color: var(--color-font-subtle-dark);
+}
+.rose-kpi-value {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--color-font-important-light);
+}
+.dark .rose-kpi-value {
+  color: var(--color-font-important-dark);
+}
+.rose-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 24px;
+}
+
+.rose-rows {
+  display: flex;
+  flex-direction: column;
+}
+.rose-rows > li + li {
+  border-top: 1px solid var(--color-base-200);
+}
+.dark .rose-rows > li + li {
+  border-color: var(--color-base-800);
+}
+.rose-row-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+.rose-row-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.rose-row-title {
+  color: var(--color-font-important-light);
+  font-weight: 600;
+}
+.dark .rose-row-title {
+  color: var(--color-font-important-dark);
+}
+.rose-row-link:hover .rose-row-title {
+  color: var(--color-primary-600);
+}
+.rose-date {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.rose-date strong {
+  font-size: 16px;
+}
+.dark .rose-date {
+  background: #2a1218;
+  color: #f1a6bd;
+}
+
+/* Status chips: open (rose tint), waiting (amber), done (neutral), alert (danger). */
+.rose-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--color-base-100);
+  color: var(--color-font-important-light);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rose-chip-open {
+  background: #fdeef2;
+  color: #a3123f;
+}
+.rose-chip-wait {
+  background: #fff4de;
+  color: #7a4e00;
+}
+.rose-chip-alert {
+  background: #fdecec;
+  color: #a31f1f;
+}
+.dark .rose-chip {
+  background: var(--color-base-800);
+  color: var(--color-font-important-dark);
+}
+.dark .rose-chip-open {
+  background: #2a1218;
+  color: #f1a6bd;
+}
+.dark .rose-chip-wait {
+  background: #2b2210;
+  color: #f5c76b;
+}
+.dark .rose-chip-alert {
+  background: #3a1212;
+  color: #f87171;
+}
+
+.rose-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.rose-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--color-base-200);
+  border-radius: 8px;
+  color: var(--color-font-important-light);
+  font-weight: 600;
+}
+.rose-action:hover {
+  border-color: var(--color-primary-600);
+  color: var(--color-primary-600);
+}
+.dark .rose-action {
+  border-color: var(--color-base-800);
+  color: var(--color-font-important-dark);
+}
+.rose-action svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rose-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* Sign-in pages. */
+.rose-sign-in {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--color-font-default-light);
+}
+.dark .rose-sign-in {
+  color: var(--color-font-default-dark);
+}
+.rose-sign-in-mark {
+  font-size: 36px;
+}
+.rose-sign-in h1 {
+  font-size: 26px;
+  color: var(--color-font-important-light);
+}
+.dark .rose-sign-in h1 {
+  color: var(--color-font-important-dark);
+}
+.rose-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 20px;
+  list-style: decimal;
+}
+.rose-qr {
+  align-self: center;
+  border: 1px solid var(--color-base-200);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+}
+.rose-key code,
+.rose-codes code {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.rose-codes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--color-base-50);
+}
+.dark .rose-codes {
+  background: var(--color-base-800);
+}
+
+/* Forms in the custom pages (Unfold styles the model forms itself). */
+.rose-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rose-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rose-field label,
+.rose-label {
+  color: var(--color-font-important-light);
+  font-weight: 600;
+}
+.dark .rose-field label,
+.dark .rose-label {
+  color: var(--color-font-important-dark);
+}
+.rose-field input:not([type="checkbox"]):not([type="radio"]),
+.rose-field select,
+.rose-field textarea,
+.rose-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-base-200);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-font-important-light);
+  font: inherit;
+}
+.rose-field textarea {
+  min-height: 96px;
+}
+.dark .rose-field input:not([type="checkbox"]):not([type="radio"]),
+.dark .rose-field select,
+.dark .rose-field textarea,
+.dark .rose-input {
+  border-color: var(--color-base-700);
+  background: var(--color-base-900);
+  color: var(--color-font-important-dark);
+}
+.rose-field input:focus,
+.rose-field select:focus,
+.rose-field textarea:focus,
+.rose-input:focus {
+  border-color: var(--color-primary-600);
+  outline: 2px solid var(--color-primary-200);
+  outline-offset: 0;
+}
+.rose-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+}
+.rose-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary-600);
+}
+.rose-help {
+  color: var(--color-font-subtle-light);
+  font-size: 12px;
+}
+.dark .rose-help {
+  color: var(--color-font-subtle-dark);
+}
+
+.rose-button,
+.rose-button-secondary,
+.rose-button-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rose-button {
+  background: var(--color-primary-600);
+  color: #fff;
+}
+.rose-button:hover {
+  background: var(--color-primary-700);
+}
+.rose-button-secondary {
+  border-color: var(--color-base-200);
+  background: #fff;
+  color: var(--color-font-important-light);
+}
+.rose-button-secondary:hover {
+  border-color: var(--color-base-300);
+  background: var(--color-base-50);
+}
+.dark .rose-button-secondary {
+  border-color: var(--color-base-700);
+  background: transparent;
+  color: var(--color-font-important-dark);
+}
+.rose-button-danger {
+  background: var(--color-red-600);
+  color: #fff;
+}
+.rose-button[disabled],
+.rose-button-secondary[disabled],
+.rose-button-danger[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.rose-button svg,
+.rose-button-secondary svg,
+.rose-button-danger svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rose-alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #a31f1f;
+  font-weight: 600;
+}
+.dark .rose-alert {
+  background: #3a1212;
+  color: #f87171;
+}
+.rose-success {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+  font-weight: 600;
+}
+
+/* Cards, rows and disclosures for the custom pages. */
+.rose-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--color-base-200);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-font-default-light);
+}
+.dark .rose-card {
+  border-color: var(--color-base-800);
+  background: var(--color-base-900);
+  color: var(--color-font-default-dark);
+}
+.rose-card h2,
+.rose-card h3 {
+  color: var(--color-font-important-light);
+  font-weight: 600;
+}
+.dark .rose-card h2,
+.dark .rose-card h3 {
+  color: var(--color-font-important-dark);
+}
+.rose-card h2 {
+  font-size: 18px;
+}
+.rose-card h3 {
+  font-size: 15px;
+}
+.rose-page-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.rose-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rose-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.rose-disclosure > summary {
+  cursor: pointer;
+  color: var(--color-font-important-light);
+  font-weight: 600;
+  list-style: none;
+}
+.rose-disclosure > summary::before {
+  content: "+ ";
+  color: var(--color-primary-600);
+}
+.rose-disclosure[open] > summary::before {
+  content: "– ";
+}
+.dark .rose-disclosure > summary {
+  color: var(--color-font-important-dark);
+}
+.rose-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+.rose-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 24px;
+}
+.rose-facts li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rose-facts span {
+  color: var(--color-font-subtle-light);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dark .rose-facts span {
+  color: var(--color-font-subtle-dark);
+}
+.rose-facts strong {
+  color: var(--color-font-important-light);
+  font-weight: 600;
+}
+.dark .rose-facts strong {
+  color: var(--color-font-important-dark);
+}
+
+/* A table on a custom page: hairline rows, figures right-aligned. */
+.rose-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rose-table th,
+.rose-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-base-200);
+  text-align: left;
+  vertical-align: middle;
+}
+.rose-table th {
+  color: var(--color-font-subtle-light);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.rose-table td.rose-num,
+.rose-table th.rose-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rose-table tr:last-child th,
+.rose-table tr:last-child td {
+  border-bottom: 0;
+}
+.dark .rose-table th,
+.dark .rose-table td {
+  border-color: var(--color-base-800);
+}
+.rose-table-wrap {
+  overflow-x: auto;
+}
+
+/* Door desk (admin): large controls for a tablet. */
+.rose-desk {
+  display: flex;
+  max-width: 960px;
+  flex-direction: column;
+  gap: 16px;
+}
+.rose-desk-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rose-desk-search-row .rose-input {
+  flex: 1 1 16rem;
+  min-height: 52px;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+.rose-desk-search-row .rose-button,
+.rose-desk-search-row .rose-button-secondary {
+  min-height: 52px;
+}
+.rose-desk-camera video {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 8px;
+  background: #000;
+}
+.rose-desk-barred {
+  border: 2px solid var(--color-red-600);
+}
+.rose-desk-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rose-desk-code {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: var(--color-font-subtle-light);
+}
+.rose-desk-name {
+  font-family: var(--font-display);
+  font-size: 26px !important;
+  font-weight: 400 !important;
+}
+.rose-desk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rose-desk-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.rose-desk-form {
+  padding: 16px;
+  border: 1px solid var(--color-base-200);
+  border-radius: 8px;
+  background: var(--color-base-50);
+}
+.dark .rose-desk-form {
+  border-color: var(--color-base-800);
+  background: var(--color-base-950);
+}
+.rose-desk-signature {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--color-base-50);
+}
+.rose-desk-subhead {
+  margin-top: 4px;
+}
+.rose-desk-refund {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.rose-desk-refund .rose-input {
+  width: 120px;
+}
+
+.rose-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--color-font-important-light);
+  font-size: 18px;
+  font-weight: 600;
+}
+.dark .rose-section-title {
+  color: var(--color-font-important-dark);
+}
+.rose-card-muted {
+  background: var(--color-base-50);
+}
+.rose-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rose-thumbs img {
+  width: 140px;
+  height: 175px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.rose-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.rose-narrow {
+  max-width: 720px;
+}
+.rose-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rose-chip-inline {
+  align-self: flex-start;
+}
+.rose-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.rose-gallery-card {
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
+}
+.rose-gallery-card img,
+.rose-gallery-empty {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--color-base-100);
+}
+.rose-gallery-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-font-subtle-light);
+}
+.rose-gallery-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px 16px;
+}
+.rose-facts-compact {
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+.rose-prose {
+  max-width: 760px;
+  line-height: 1.6;
+}
+.rose-prose h1,
+.rose-prose h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--color-font-important-light);
+}
+.rose-prose h1 {
+  font-size: 30px;
+}
+.rose-prose h2 {
+  margin-top: 16px;
+  font-size: 22px;
+}
+.rose-prose h3 {
+  margin-top: 8px;
+}
+.rose-prose ul,
+.rose-prose ol {
+  padding-left: 20px;
+  list-style: disc;
+}
+.rose-prose ol {
+  list-style: decimal;
+}
+.rose-prose li + li {
+  margin-top: 4px;
+}
+.rose-prose a {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+.rose-prose code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.dark .rose-prose h1,
+.dark .rose-prose h2 {
+  color: var(--color-font-important-dark);
+}
+.rose-letter {
+  max-width: 640px;
+  line-height: 1.6;
+}
+@media print {
+  .rose-no-print,
+  #nav-sidebar,
+  header,
+  nav {
+    display: none !important;
+  }
+  .rose-letter {
+    border: 0;
+    padding: 0;
+  }
+}
+
+/* Tools shown above a change form (rental status, newsletter sending). */
+.rose-tool-card {
+  margin-bottom: 24px;
+}
+.rose-inbox {
+  max-width: 36rem;
+  padding: 12px 16px;
+  border: 1px solid var(--color-base-200);
+  border-radius: 8px;
+}
+.rose-inbox-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rose-inbox-from,
+.rose-inbox-subject {
+  color: var(--color-font-important-light);
+  font-weight: 600;
+}
+.dark .rose-inbox-from,
+.dark .rose-inbox-subject {
+  color: var(--color-font-important-dark);
+}
+
+.rose-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.rose-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rose-column-card {
+  gap: 6px;
+  padding: 14px;
+}
+.rose-column-card a:hover {
+  color: var(--color-primary-600);
+}
+
+.rose-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rose-link {
+  color: var(--color-primary-600);
+  font-weight: 600;
+}
+.rose-link:hover {
+  text-decoration: underline;
+}
+.rose-preview {
+  max-width: 320px;
+  border-radius: 8px;
+}
+
+/* Switches are rose when on, as in the member app (Unfold draws them green). */
+input.checked\:bg-green-500:checked,
+.dark input.dark\:checked\:bg-green-700:checked,
+.dark input.checked\:bg-green-500:checked {
+  background-color: var(--color-primary-600);
+}

@@ -1,0 +1,22 @@
+{% comment %} Unfold's sidebar (django-unfold 0.108.0); its resizing expressions are methods of
+   roseTheme (core/rose-admin.js), which Alpine's CSP build can run. {% endcomment %}
+{% load i18n unfold %}
+
+<div class="relative z-60" x-bind:class="{'select-none': sidebarResizing}" x-on:mousemove.window="resizeSidebar($event)" x-on:mouseup.window="sidebarResizing = false">
+    <div class="fixed xl:relative {% element_classes 'navigation_wrapper' %}" x-show="sidebarOpen" x-bind:style="sidebarStyle()">
+        <div class="bg-base-50 relative z-30 dark:bg-base-900">
+            <div id="nav-sidebar" class="bg-base-50 border-e border-base-200 bottom-0 fixed max-h-screen top-0  dark:border-base-800 dark:bg-base-900 {% element_classes 'navigation' %}" x-bind:style="sidebarStyle()">
+                {% if templates.navigation %}
+                    {% include templates.navigation %}
+                {% else %}
+                    {% include "unfold/helpers/navigation.html" %}
+                {% endif %}
+
+                <div class="absolute bottom-0 cursor-col-resize flex group items-center justify-center right-[-3px] top-0 resize w-[7px]" x-on:mousedown="sidebarResizing = true">
+                    <div class="h-full w-[3px] transition-colors group-hover:bg-base-300 group-hover:dark:bg-base-700">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

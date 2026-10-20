@@ -1,10 +1,15 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
+
+from apps.core.admin_display import ButtonFields, image_preview
 
 from .models import Opportunity
 
 
 @admin.register(Opportunity)
-class OpportunityAdmin(admin.ModelAdmin):
+class OpportunityAdmin(ButtonFields, ModelAdmin):
+    hero_image_preview = image_preview("hero_image")
+    readonly_fields = ("hero_image_preview",)
     list_display = (
         "title",
         "category",
@@ -21,11 +26,12 @@ class OpportunityAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("title", "slug", "summary", "body")}),
         ("Details", {"fields": ("category", "level", "starts_at", "location_label")}),
-        ("Call to action", {"fields": ("cta_label", "cta_url")}),
+        ("Button", {"fields": ("cta_label", "cta_url")}),
         (
             "Image",
             {
                 "fields": (
+                    "hero_image_preview",
                     "hero_image",
                     "hero_image_alt",
                     "hero_image_faces_visible",

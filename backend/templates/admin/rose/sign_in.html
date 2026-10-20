@@ -1,0 +1,16 @@
+{% extends "unfold/layouts/unauthenticated.html" %}
+{% comment %}
+  The admin's sign-in pages (password, code, set-up, backup codes): plain and discreet,
+  the wordmark and nothing about the club.
+{% endcomment %}
+
+{% block title %}{{ title }} | Rose{% endblock %}
+
+{% block content %}
+<div class="rose-sign-in">
+  <p class="rose-wordmark rose-sign-in-mark">Rose</p>
+  <h1 class="rose-title">{{ title }}</h1>
+  {% if error %}<p class="rose-alert" role="alert">{{ error }}</p>{% endif %}
+  {% block sign_in %}{% endblock %}
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+<section class="rose-card rose-tool-card" aria-labelledby="inbox-preview-title">
+  <h2 id="inbox-preview-title">Inbox preview</h2>
+  <p class="rose-help">How it looks in an inbox, before anyone opens it. The sender and subject show on lock screens and shared computers, so keep them neutral.</p>
+  <div class="rose-inbox" data-inbox-preview>
+    <p class="rose-inbox-line rose-inbox-from" data-preview-from>{{ sender_name|default:"Rose" }}</p>
+    <p class="rose-inbox-line"><span class="rose-inbox-subject" data-preview-subject>{{ original.subject|default:"(no subject yet)" }}</span>
+      <span class="rose-subtle" data-preview-preheader>{% if original.preheader %} - {{ original.preheader }}{% endif %}</span></p>
+  </div>
+  {% if original and original.status != "sent" %}
+  <div class="rose-buttons">
+    <form method="post" action="{% url 'admin:newsletter_send_test' original.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="rose-button-secondary">Send test to me</button>
+    </form>
+    <form method="post" action="{% url 'admin:newsletter_send' original.pk %}" class="rose-buttons">
+      {% csrf_token %}
+      <label class="rose-check"><input type="checkbox" name="confirm"> Send now to {{ recipient_count }} confirmed subscriber{{ recipient_count|pluralize }}</label>
+      <button type="submit" class="rose-button">Send</button>
+    </form>
+  </div>
+  <p class="rose-help">Save your changes first. A test goes only to your own address. No opens or clicks are tracked.</p>
+  {% endif %}
+</section>

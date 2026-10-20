@@ -1,14 +1,9 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Staff guide</div>
-{% endblock %}
+{% block title %}Staff guide | Rose{% endblock %}
 
 {% block content %}
-<div id="content-main" class="staff-guide">
+<article class="rose-card rose-prose">
 {{ guide }}
-</div>
+</article>
 {% endblock %}

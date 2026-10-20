@@ -1,11 +1,15 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
+
+from apps.core.admin_display import flag
 
 from .models import ContactMessage
 
 
 @admin.register(ContactMessage)
-class ContactMessageAdmin(admin.ModelAdmin):
-    list_display = ("priority_flag", "topic", "name", "created_at", "handled")
+class ContactMessageAdmin(ModelAdmin):
+    list_display = ("priority_flag", "topic", "name", "created_at", "handled_chip")
+    handled_chip = flag("handled", "Handled", "Waiting", "Status")
     list_display_links = ("topic", "name")
     list_filter = ("is_priority", "topic", "handled", "created_at")
     search_fields = ("name", "email", "message")

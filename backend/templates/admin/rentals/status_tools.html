@@ -1,0 +1,20 @@
+{% if original and not original.contact_purged_at %}
+<form method="post" action="{% url 'admin:rentals_status' original.pk %}" class="rose-card rose-form rose-tool-card">
+  {% csrf_token %}
+  <h2>Move along the pipeline</h2>
+  <div class="rose-form-row">
+    <label class="rose-field">Move to
+      <select name="status">
+        {% for value, label in status_choices %}<option value="{{ value }}"{% if value == original.status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="rose-field">Note for the log (optional)<input name="reason" maxlength="300"></label>
+  </div>
+  <div class="rose-buttons">
+    <button type="submit" class="rose-button-secondary">Change status</button>
+    <span class="rose-help">Status changes are recorded in the audit log. Confirming opens a page where you can hold the date on the calendar.</span>
+  </div>
+</form>
+{% elif original %}
+<p class="rose-card rose-subtle rose-tool-card">Past its retention period: only the type, date and status are kept.</p>
+{% endif %}

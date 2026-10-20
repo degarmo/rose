@@ -3,11 +3,15 @@ import csv
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
-from django.urls import path
+from django.urls import path, reverse
 from django.utils import timezone
+from unfold.admin import ModelAdmin
+from unfold.decorators import action
+from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget
 
+from apps.core.admin_display import chip
 from apps.core.models import AuditLog, audit
 
 from .models import Availability, Interest, VolunteerSignup
@@ -49,10 +53,10 @@ class AvailabilityFilter(admin.SimpleListFilter):
 
 class SignupForm(forms.ModelForm):
     interests = forms.MultipleChoiceField(
-        choices=Interest.choices, widget=forms.CheckboxSelectMultiple
+        choices=Interest.choices, widget=UnfoldAdminCheckboxSelectMultipleWidget
     )
     availability = forms.MultipleChoiceField(
-        choices=Availability.choices, widget=forms.CheckboxSelectMultiple
+        choices=Availability.choices, widget=UnfoldAdminCheckboxSelectMultipleWidget
     )
 
     class Meta:
@@ -78,13 +82,14 @@ class ExportForm(forms.Form):
 
 
 @admin.register(VolunteerSignup)
-class VolunteerSignupAdmin(admin.ModelAdmin):
+class VolunteerSignupAdmin(ModelAdmin):
     form = SignupForm
-    list_display = ("__str__", "contact_name", "interest_list", "status", "created_at")
+    list_display = ("__str__", "contact_name", "interest_list", "status_chip", "created_at")
+    status_chip = chip("status", {"New": "warning", "Contacted": "info", "Active": "success"})
     list_filter = ("status", InterestFilter, AvailabilityFilter)
     search_fields = ("contact_name",)
     readonly_fields = ("user", "created_at", "updated_at")
-    change_list_template = "admin/volunteers/change_list.html"
+    actions_list = ["export_csv"]
     actions = ["mark_contacted", "mark_active", "mark_inactive"]
 
     def has_add_permission(self, request):
@@ -113,6 +118,10 @@ class VolunteerSignupAdmin(admin.ModelAdmin):
     @admin.action(description="Mark inactive", permissions=["change"])
     def mark_inactive(self, request, queryset):
         self._mark(request, queryset, VolunteerSignup.Status.INACTIVE)
+
+    @action(description="Export CSV", icon="download", permissions=["view"])
+    def export_csv(self, request):
+        return HttpResponseRedirect(reverse("admin:volunteers_export"))
 
     def get_urls(self):
         extra = [

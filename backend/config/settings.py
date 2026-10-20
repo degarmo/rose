@@ -81,6 +81,11 @@ ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
+    # The admin's look (Rose-themed in config/unfold.py); before the admin itself. The
+    # basic config leaves the admin site to RoseAdminSite (the default one replaces it).
+    "unfold.apps.BasicAppConfig",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
     "apps.core.apps.RoseAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -89,6 +94,8 @@ INSTALLED_APPS = [
     # Before staticfiles, so its development `runserver` (which migrates first) is the one used.
     "apps.core",
     "django.contrib.staticfiles",
+    # Form widgets render through TEMPLATES (FORM_RENDERER below), so project overrides apply.
+    "django.forms",
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
@@ -147,6 +154,10 @@ TEMPLATES = [
         },
     },
 ]
+
+# Widgets render through the project's templates, so the admin's widget overrides
+# (templates/unfold/widgets) apply.
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 WSGI_APPLICATION = "config.wsgi.application"
 
@@ -345,6 +356,8 @@ LOGIN_LOCKOUT_SECONDS = 15 * 60
 # Staff two-factor (TOTP plus single-use backup codes) for the whole admin.
 OTP_TOTP_ISSUER = env("OTP_ISSUER", default="Rose")
 OTP_BACKUP_CODE_COUNT = 10
+# The device admin never shows an authenticator's secret key, QR code or backup codes.
+OTP_ADMIN_HIDE_SENSITIVE_DATA = True
 
 # --- Events ---------------------------------------------------------------
 RSVP_RETENTION_DAYS = env("RSVP_RETENTION_DAYS")
@@ -558,9 +571,19 @@ if IS_DEPLOYED:
 STAGING_BASIC_AUTH_USER = env("STAGING_BASIC_AUTH_USER", default="")
 STAGING_BASIC_AUTH_PASSWORD = env("STAGING_BASIC_AUTH_PASSWORD", default="")
 
+# --- Admin appearance ------------------------------------------------------
+from config.unfold import UNFOLD  # noqa: E402, F401  (read by django-unfold)
+
 # --- Content Security Policy ----------------------------------------------
 # One policy for the app, API and admin. No inline scripts or styles anywhere,
-# so neither nonces nor 'unsafe-inline' are needed.
+# so neither nonces nor 'unsafe-inline' are needed. The one exception is by hash:
+# the admin's rich-text editor (Trix 2.1.1, served by Unfold) adds two fixed <style>
+# elements for its own layout (one created empty, then filled). Nothing else can match.
+TRIX_STYLE_HASHES = [
+    "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+    "'sha256-JDgngvYGBXjCEm5edwNK0gSIH1v4MowQ29dRjjv54IY='",
+    "'sha256-jAP18ioNeNaQBBU5RJvT96kjJnVxHvZs+s8WUNiLnvA='",
+]
 
 
 def _origin(url):
@@ -581,7 +604,7 @@ CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": [SELF],
         "script-src": [SELF],
-        "style-src": [SELF],
+        "style-src": [SELF, *TRIX_STYLE_HASHES],
         "img-src": [SELF, "data:", "blob:", *MEDIA_ORIGINS],
         "font-src": [SELF],
         "connect-src": [SELF],

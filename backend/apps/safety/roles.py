@@ -49,13 +49,31 @@ def dev_skip_two_step():
 
 def is_verified(user):
     """Whether this session passed the staff two-step login."""
-    if dev_skip_two_step() and role_of(user) is not None:
+    if dev_skip_two_step() and getattr(user, "is_staff", False) and user.is_active:
         return True
     return bool(getattr(user, "is_verified", lambda: False)())
 
 
 def can_use_staff_section(user, minimum=MODERATOR):
     return has_role(user, minimum) and is_verified(user)
+
+
+def can_use_door_desk(user):
+    """The door desk: anyone the admin's door desk allows, after the two-step login.
+
+    Door volunteers hold the permission without a team role, so it is checked here
+    rather than through the roles.
+    """
+    from apps.memberships.desk import DESK_PERMISSION
+
+    return bool(
+        user
+        and user.is_authenticated
+        and user.is_active
+        and user.is_staff
+        and user.has_perm(DESK_PERMISSION)
+        and is_verified(user)
+    )
 
 
 def team_members(minimum=MODERATOR):

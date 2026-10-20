@@ -142,7 +142,8 @@ async function freshCode(secret: string): Promise<string> {
   return code
 }
 
-async function twoStepLogin(page: Page, account: { email: string; totp_secret: string }) {
+/** The admin login with its second step, for any account with an authenticator. */
+export async function twoStepLogin(page: Page, account: { email: string; totp_secret: string }) {
   const data = fixtures()
   await page.goto(`${data.admin_path}login/`)
   await page.getByLabel('Email').fill(account.email)

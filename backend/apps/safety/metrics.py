@@ -76,11 +76,10 @@ def _tiers():
     )
 
 
-def membership_section(today):
-    from apps.memberships.models import Membership, Payment
+def _month_payments(start, stop):
+    """Each membership's first successful payment, and the memberships paid in the month."""
+    from apps.memberships.models import Payment
 
-    start, stop = _month_bounds(today)
-    entitled = Membership.objects.filter(status__in=Membership.ENTITLED)
     first_paid = (
         Payment.objects.filter(status=Payment.Status.SUCCEEDED)
         .values("membership")
@@ -92,21 +91,47 @@ def membership_section(today):
             status=Payment.Status.SUCCEEDED, created_at__gte=start, created_at__lt=stop
         ).values_list("membership", flat=True)
     )
+    return first_by_membership, paid_this_month
+
+
+def _new_in(memberships, start, stop, first_by_membership, paid_this_month):
+    """New in the month: a first payment in it, or a comp that started in it."""
+    from apps.memberships.models import Membership
+
+    return (
+        sum(
+            1
+            for pk in memberships.filter(pk__in=paid_this_month).values_list("pk", flat=True)
+            if first_by_membership.get(pk) and first_by_membership[pk] >= start
+        )
+        + memberships.filter(
+            source=Membership.Source.COMP,
+            current_period_start__gte=start,
+            current_period_start__lt=stop,
+        ).count()
+    )
+
+
+def new_members(today):
+    """New memberships this month, every tier (guest passes excluded)."""
+    from apps.memberships.models import Membership
+
+    start, stop = _month_bounds(today)
+    first_by_membership, paid_this_month = _month_payments(start, stop)
+    memberships = Membership.objects.filter(tier__is_guest_pass=False)
+    return count(_new_in(memberships, start, stop, first_by_membership, paid_this_month))
+
+
+def membership_section(today):
+    from apps.memberships.models import Membership
+
+    start, stop = _month_bounds(today)
+    entitled = Membership.objects.filter(status__in=Membership.ENTITLED)
+    first_by_membership, paid_this_month = _month_payments(start, stop)
     rows = []
     for tier in _tiers():
         mine = Membership.objects.filter(tier=tier)
-        new = (
-            sum(
-                1
-                for pk in mine.filter(pk__in=paid_this_month).values_list("pk", flat=True)
-                if first_by_membership.get(pk) and first_by_membership[pk] >= start
-            )
-            + mine.filter(
-                source=Membership.Source.COMP,
-                current_period_start__gte=start,
-                current_period_start__lt=stop,
-            ).count()
-        )
+        new = _new_in(mine, start, stop, first_by_membership, paid_this_month)
         renewing = sum(
             1
             for pk in mine.filter(pk__in=paid_this_month).values_list("pk", flat=True)

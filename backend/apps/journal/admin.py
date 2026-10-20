@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet
+from unfold.admin import ModelAdmin, TabularInline
+
+from apps.core.admin_display import ButtonFields, flag
 
 from .models import MAX_IMAGES, MIN_IMAGES, Post, PostImage
 
@@ -19,7 +22,7 @@ class PostImageFormSet(BaseInlineFormSet):
             raise ValidationError(f"A post can have at most {MAX_IMAGES} images.")
 
 
-class PostImageInline(admin.TabularInline):
+class PostImageInline(TabularInline):
     model = PostImage
     formset = PostImageFormSet
     extra = 1
@@ -28,9 +31,10 @@ class PostImageInline(admin.TabularInline):
 
 
 @admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+class PostAdmin(ButtonFields, ModelAdmin):
     inlines = [PostImageInline]
-    list_display = ("slug", "published_at", "is_published", "image_count", "event")
+    list_display = ("slug", "published_at", "is_published_chip", "image_count", "event")
+    is_published_chip = flag("is_published", "Published", "Draft", "Status")
     list_filter = ("is_published",)
     search_fields = ("slug", "caption")
     autocomplete_fields = ("event",)

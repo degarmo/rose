@@ -685,3 +685,69 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 436. The app decides from the session's `feed_access` whether to ask the feed anything. Without it, no `/api/members/` request is made at all: the shell renders the account-only screens or the website's 404 straight away. The boot-time prefetch for a direct visit to `/members/feed` now waits for the session check it shares with the rest of the app, and starts the feed requests only when the feed is open (this refines decision 320). The feed endpoints still answer 404 to anyone without access.
 437. The session is refreshed whenever access changes in the person's own hands: after joining the feed or accepting new guidelines (before the app opens), and after stepping away or leaving and erasing. Changes made elsewhere (a membership started at the door, an appeal upheld, a staff grant) reach an open tab because the shell re-reads a session older than 30 seconds once when someone without the feed comes into the app. A full page load always reads it.
 438. The feed and the account-only screens share one shell tree, so losing or gaining the feed swaps the navigation without remounting the open screen (for example, "Erasing everything you shared" stays in view after Leave and erase).
+
+## Prompt 12 (not done)
+
+Prompt 12 (an age verification gate for the member feed) was stopped before any change was made. Nothing from it is in the code.
+
+## Prompt 13
+
+### The admin in Rose's look
+
+439. The admin uses django-unfold 0.108.0 (pinned) for every registered model, replacing the photo-app style of decisions 218 to 220. All `ModelAdmin` and inline classes come from `unfold.admin`. The user and group admins combine Django's auth admins with Unfold's, and django-otp's authenticator and backup-code admins are registered again the same way (`apps/accounts/admin.py`). `apps/core/admin_site.RoseAdminSite` is Unfold's site plus the two-step login. `unfold.apps.BasicAppConfig` is installed so the project's own site stays `admin.site`.
+440. **(security)** Nothing in the admin loads from another site, and the content security policy is unchanged apart from three style hashes. Unfold's Inter stylesheet, its inline colour `<style>` and its Alpine build are replaced in `templates/unfold/layouts/skeleton.html`. Manrope and Fraunces (OFL) are served from `core/fonts/`. Alpine is the official CSP build (`@alpinejs/csp` 3.16.1, vendored in `core/vendor/`, with a README), and the few Unfold helpers it cannot evaluate are registered as `Alpine.data` components in `core/rose-admin.js`. Templates whose expressions the CSP build cannot run, or that bind a style string, are overridden: the sidebar, change form, actions and the small file input. htmx's injected indicator style is turned off by its meta setting. The only exception is three `sha256` hashes in `style-src` for the fixed `<style>` elements Trix adds (`TRIX_STYLE_HASHES`); `script-src` is still `'self'` alone, with no `unsafe-inline` or `unsafe-eval`.
+441. Colours, fonts and radii live in `core/rose-admin.css`, as CSS variables on `:root` and `.dark`, rather than in Unfold's `COLORS` setting (which is written as an inline style). The variables are:
+    - Unfold's primary scale is the rose accent.
+    - Its blue is mapped to the same rose, so no stock blue appears.
+    - Base neutrals are soft greys.
+    - Radii are 8px.
+    - Dark mode uses the member app's dark tokens.
+
+    The wordmark is "Rose" in oxblood Fraunces. Titles are Fraunces; everything else is Manrope. Chart.js, which Unfold serves, asks for "Inter", so an `@font-face` named Inter points at the Manrope file. The light theme is the default; Unfold remembers each person's choice in their browser.
+442. The sidebar (`apps/core/admin_nav.py`) has eight groups: Today, Members, Events, Content, Community, Money, Outreach and Settings, with Lucide icons from `core/icons.svg`.
+    - Each item shows only to people with the permission its page checks: `view_` for a model, the queue permission for Reports, `events.view_rsvp` for RSVP counts, editing a page with images for Image review, and superuser for the audit log. A group with nothing in it disappears.
+    - Badges are waiting counts and never names: online payments waiting for an ID check, open reports plus first posts, unanswered messages.
+    - Only one item is highlighted at a time: the one whose address is the longest match. So the door desk is not also highlighted as Memberships.
+    - Unfold's own app list stays under "All applications" for anything not in a group.
+443. The dashboard (`apps/core/dashboard.py`, Unfold's `DASHBOARD_CALLBACK`) follows the staff metrics' rules (`apps.safety.metrics`): counts and totals only, and any number under 5 shows as "fewer than 5".
+    - KPIs, each needing the permission of the page behind it: active members, new this month, revenue this month, open reports and ID checks needed.
+    - Charts, drawn in the browser by Unfold's local Chart.js: revenue for 12 months and active members by tier, where a withheld month or tier has no bar.
+    - The next three events, each with "going" as a count.
+    - Quick actions for New event, New journal post, Open door desk and Open reports.
+
+    The sidebar badges stay exact, because they are a to-do list for people who can already open the list behind them.
+444. Lists and forms:
+    - Status chips come from `apps/core/admin_display.py` (`chip`, `flag`), and image previews show whether the image is shown or why it is hidden.
+    - Events, tiers and members have tabs. Unfold's form tabs are buttons with `aria-pressed` (`templates/unfold/helpers/fieldsets_tabs.html`), because its own are links without an address that the keyboard cannot reach.
+    - Every field uses an Unfold widget; `tests/test_admin_theme.py` checks every registered form and inline. Django's filter-horizontal and autocomplete widgets count, because Unfold's stylesheet styles them.
+    - The breadcrumb shows an object's name as written, so display names stay lowercase.
+    - Journal posts and classes say "Button label" and "Button link".
+    - Editable published flags in list views stay checkboxes, because Django requires them to be form fields.
+445. The rich-text editor for event bodies, the agreement and newsletters is Unfold's Trix. Its toolbar is cut down to what `apps.core.text.RICH_TEXT_TAGS` keeps. Unfold's paragraph block was grouped, so Trix joined neighbouring paragraphs into one `<p>` and would have merged them on save. `core/rose-trix.js` makes each paragraph its own block, loaded after Unfold's settings. The sanitiser also turns Trix's `<div>` blocks into paragraphs and drops empty spacer blocks.
+446. Every custom page uses the same templates and classes:
+    - the dashboard and the door desk
+    - Reports (the moderation queue)
+    - image review, the membership summary and the staff guide
+    - repeat weekly and the door lists
+    - the rental pipeline and confirm pages
+    - the newsletter preview and send tools
+    - loading site content
+    - the volunteer export and donation acknowledgement
+
+    The old per-page stylesheets are deleted. A new **RSVPs (counts only)** page lists going, waitlist and checked-in numbers per event, with a link to each door list, and never names.
+447. **(security)** Image review and its file view are limited to superusers and staff who can change events, journal posts, staff profiles or classes. A door volunteer no longer sees it.
+448. **(security)** `OTP_ADMIN_HIDE_SENSITIVE_DATA` is on, so the authenticator admin never shows a secret key, its QR code or backup codes, even to a superuser.
+449. The sign-in, two-step code, authenticator set-up and backup-code screens share one plain template (`admin/rose/sign_in.html`). It holds the wordmark, the form, a line of help and "Return to site", and nothing describing the club.
+
+### The door desk in the staff section
+
+450. The door desk is also at `/members/staff/door`, in the member app's shell, made for a 1024×768 tablet and a phone. It has:
+    - a large search box and a Scan QR button, decoded on the device by jsQR, which loads only when scanning
+    - one card per person: display name, tier, status, ID verified or ID check needed, events left this month, guests included, and a Do not admit banner that removes every action
+    - large buttons for Check in, ID check, Record payment and activate, Guest visit and Renew, with comp, suspend and reinstate below
+    - a dialog per action, including "Photo ID checked, 18+" where an ID check is needed
+    - Show signature name, payments with refunds, and recording a donation
+451. Both desks run the same code. `apps/memberships/desk.py` holds the search, the card and `perform()`, which carries out every action. The admin view and `/api/staff/door/` (`apps/memberships/door_api.py`) only call it, so permissions, refusals, audit entries and the logged signature reveal are identical. Tests run the same actions through both and compare the results.
+452. **(security)** The API answers only to active staff with `memberships.change_membership` who have passed the two-step login (`roles.can_use_door_desk`). Everyone else gets the same 404 as an unknown address, before CSRF is checked. Writes need the CSRF token and count towards the account write limit.
+453. Door volunteers hold the desk permission without a team role. The session's `staff` block now covers them: `role` is null and `door_desk` is true. Their two-step link returns to `/members/staff/door`, they land there after logging in, and their staff menu has only the Door desk tab. In the member app's menus the desk comes first for volunteers and beside Staff for the team. The admin desk links to the tablet one ("Open the tablet door desk").
+454. **(privacy)** `Permissions-Policy: camera=(self)` is sent for the admin desk and for `/members/staff/door` only. Links to the tablet desk load the page afresh (`reloadDocument`), so the browser applies that header; every other page still denies the camera.

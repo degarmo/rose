@@ -1,52 +1,53 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'events/door_list.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-  <a href="{% url 'admin:events_event_changelist' %}">Events</a> &rsaquo;
-  <a href="{% url 'admin:events_event_change' event.pk %}">{{ event }}</a> &rsaquo; Door list
-</div>
-{% endblock %}
+{% block title %}Door list | Rose{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block content %}
-<div id="content-main" class="door-list">
-  <p class="id-reminder">Verify 18+ photo ID at the door</p>
-  <p class="door-totals">
-    {{ checked_in_total }} of {{ going_total }} people checked in{% if event.capacity %}, capacity {{ event.capacity }}{% endif %}.
+<div class="rose-stack">
+  <header class="rose-page-head rose-page-head-row">
+    <div>
+      <h1 class="rose-title">Door list</h1>
+      <p class="rose-subtle">{{ event }}</p>
+    </div>
+    {% if can_export %}<a class="rose-button-secondary" href="{% url 'admin:events_event_door_export' event.pk %}">Download CSV</a>{% endif %}
+  </header>
+  <p class="rose-alert">Verify 18+ photo ID at the door</p>
+  <p>
+    <strong>{{ checked_in_total }} of {{ going_total }}</strong> people checked in{% if event.capacity %}, capacity {{ event.capacity }}{% endif %}.
     {% if waitlist_count %}{{ waitlist_count }} RSVP{{ waitlist_count|pluralize }} on the waitlist.{% endif %}
   </p>
-  {% if can_export %}
-  <p><a class="button" href="{% url 'admin:events_event_door_export' event.pk %}">Download CSV</a> <span class="help">Every download is logged with your name and the time.</span></p>
-  {% endif %}
+  {% if can_export %}<p class="rose-help">Every download is logged with your name and the time.</p>{% endif %}
 
   {% if rsvps %}
-  <table>
-    <thead><tr><th>Display name</th><th>Party</th><th>Note to hosts</th><th>Checked in</th></tr></thead>
-    <tbody>
-      {% for rsvp in rsvps %}
-      <tr id="rsvp-{{ rsvp.pk }}" class="{% if rsvp.checked_in %}is-in{% endif %}">
-        <td>{{ rsvp.user.display_name }}</td>
-        <td>{{ rsvp.party_size }}</td>
-        <td>{{ rsvp.note_to_hosts }}</td>
-        <td>
-          {% if can_change %}
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="rsvp" value="{{ rsvp.pk }}">
-            <input type="hidden" name="checked_in" value="{% if rsvp.checked_in %}0{% else %}1{% endif %}">
-            <button type="submit" class="button">{% if rsvp.checked_in %}Checked in (undo){% else %}Check in{% endif %}</button>
-          </form>
-          {% else %}{{ rsvp.checked_in|yesno:"Yes,No" }}{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <section class="rose-card">
+    <div class="rose-table-wrap">
+      <table class="rose-table">
+        <thead><tr><th scope="col">Display name</th><th scope="col" class="rose-num">Party</th><th scope="col">Note to hosts</th><th scope="col">Checked in</th></tr></thead>
+        <tbody>
+          {% for rsvp in rsvps %}
+          <tr id="rsvp-{{ rsvp.pk }}">
+            <td class="rose-row-title">{{ rsvp.user.display_name }}</td>
+            <td class="rose-num">{{ rsvp.party_size }}</td>
+            <td>{{ rsvp.note_to_hosts }}</td>
+            <td>
+              {% if can_change %}
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="rsvp" value="{{ rsvp.pk }}">
+                <input type="hidden" name="checked_in" value="{% if rsvp.checked_in %}0{% else %}1{% endif %}">
+                {% if rsvp.checked_in %}<button type="submit" class="rose-button-secondary">Checked in (undo)</button>{% else %}<button type="submit" class="rose-button">Check in</button>{% endif %}
+              </form>
+              {% else %}<span class="rose-chip{% if rsvp.checked_in %} rose-chip-open{% endif %}">{{ rsvp.checked_in|yesno:"Yes,No" }}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
   {% else %}
-  <p>Nobody is on the list yet.</p>
+  <p class="rose-card rose-subtle">Nobody is on the list yet.</p>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,15 +1,22 @@
 import csv
+from datetime import timedelta
 
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
+from unfold.decorators import display
 
+from apps.core.admin_display import chip, image_preview
+from apps.core.admin_widgets import RichTextWidget
 from apps.memberships import usage
 
 from .models import RSVP, AttendeeExport, Event, EventTag
@@ -31,14 +38,14 @@ class RepeatWeeklyForm(forms.Form):
 
 
 @admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
+class EventAdmin(ModelAdmin):
+    hero_image_preview = image_preview("hero_image")
     list_display = (
         "title",
         "starts_at",
         "category",
-        "audience",
-        "is_published",
-        "is_private_hold",
+        "audience_chip",
+        "state",
         "going",
         "door_list_link",
     )
@@ -49,18 +56,37 @@ class EventAdmin(admin.ModelAdmin):
     autocomplete_fields = ("opportunity",)
     filter_horizontal = ("access_tags",)
     readonly_fields = (
+        "hero_image_preview",
         "final_going_count",
         "final_checked_in_count",
         "rsvps_purged_at",
         "is_private_hold",
     )
     actions = ["repeat_weekly_action"]
+    # A long page: one tab per part.
     fieldsets = (
-        (None, {"fields": ("title", "slug", "summary", "body", "category")}),
-        ("When and where", {"fields": ("starts_at", "ends_at", "location_label")}),
+        (
+            "Details",
+            {
+                "classes": ["tab"],
+                "fields": ("title", "slug", "summary", "body", "category"),
+                "description": "The summary shows on event cards; the body on the event page.",
+            },
+        ),
+        (
+            "When and where",
+            {
+                "classes": ["tab"],
+                "fields": ("starts_at", "ends_at", "location_label"),
+                "description": "Times are Chicago time. Leave the place general if it is private.",
+            },
+        ),
         (
             "RSVP",
             {
+                "classes": ["tab"],
+                "description": "Who may RSVP, how many, and when. Members-only events can be "
+                "limited to tiers by tag.",
                 "fields": (
                     "audience",
                     "access_tags",
@@ -71,30 +97,67 @@ class EventAdmin(admin.ModelAdmin):
                     "rsvp_opens_at",
                     "rsvp_closes_at",
                     "show_attendee_count",
-                )
+                ),
             },
         ),
-        ("Linked class", {"fields": ("opportunity",)}),
+        ("Linked class", {"classes": ["tab"], "fields": ("opportunity",)}),
         (
             "Image",
             {
+                "classes": ["tab"],
+                "description": "Images that may show a person stay hidden until faces and "
+                "consent are confirmed.",
                 "fields": (
+                    "hero_image_preview",
                     "hero_image",
                     "hero_image_alt",
                     "hero_image_faces_visible",
                     "hero_image_consent_confirmed",
-                )
+                ),
             },
         ),
-        ("Publishing", {"fields": ("is_published", "is_private_hold")}),
+        (
+            "Publishing",
+            {
+                "classes": ["tab"],
+                "fields": ("is_published", "is_private_hold"),
+                "description": "Unpublished events are drafts; nobody outside the admin sees them.",
+            },
+        ),
         (
             "After the event",
             {
-                "classes": ("collapse",),
+                "classes": ["tab"],
                 "fields": ("final_going_count", "final_checked_in_count", "rsvps_purged_at"),
+                "description": "RSVPs are deleted after the event; only these totals are kept.",
             },
         ),
     )
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "body":
+            kwargs["widget"] = RichTextWidget
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    @display(
+        description="Audience",
+        label={"Members only": "primary", "Signed-in accounts only": "info", "Everyone": "success"},
+    )
+    def audience_chip(self, obj):
+        return {"members": "Members only", "account": "Signed-in accounts only"}.get(
+            obj.audience, "Everyone"
+        )
+
+    @display(
+        description="Status",
+        label={"Published": "success", "Draft": "warning", "Private hold": "info"},
+    )
+    def state(self, obj):
+        if obj.is_private_hold:
+            return "Private hold"
+        if not obj.is_published:
+            return "Draft"
+        return "Past" if obj.ends_at < timezone.now() else "Published"
 
     def get_queryset(self, request):
         return super().get_queryset(request).with_going_total()
@@ -109,7 +172,7 @@ class EventAdmin(admin.ModelAdmin):
     @admin.display(description="Door list")
     def door_list_link(self, obj):
         url = reverse("admin:events_event_door", args=[obj.pk])
-        return format_html('<a href="{}">Door list</a>', url)
+        return format_html('<a class="rose-link" href="{}">Door list</a>', url)
 
     @admin.action(description="Repeat weekly")
     def repeat_weekly_action(self, request, queryset):
@@ -148,6 +211,11 @@ class EventAdmin(admin.ModelAdmin):
     def get_urls(self):
         extra = [
             path(
+                "rsvp-counts/",
+                self.admin_site.admin_view(self.rsvp_counts_view),
+                name="events_rsvp_counts",
+            ),
+            path(
                 "<int:event_id>/door/",
                 self.admin_site.admin_view(self.door_list_view),
                 name="events_event_door",
@@ -159,6 +227,31 @@ class EventAdmin(admin.ModelAdmin):
             ),
         ]
         return extra + super().get_urls()
+
+    def rsvp_counts_view(self, request):
+        """RSVPs as numbers per event (upcoming first, then the last month); no names."""
+        if not request.user.has_perm("events.view_rsvp"):
+            raise PermissionDenied
+        since = timezone.now() - timedelta(days=30)
+        events = (
+            Event.objects.filter(starts_at__gte=since, is_private_hold=False)
+            .annotate(
+                going=Coalesce(
+                    Sum("rsvps__party_size", filter=Q(rsvps__status=RSVP.Status.GOING)), 0
+                ),
+                waiting=Count("rsvps", filter=Q(rsvps__status=RSVP.Status.WAITLIST)),
+                checked=Coalesce(Sum("rsvps__party_size", filter=Q(rsvps__checked_in=True)), 0),
+            )
+            .order_by("starts_at")
+        )
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "RSVPs",
+            "opts": RSVP._meta,
+            "events": events,
+            "now": timezone.now(),
+        }
+        return TemplateResponse(request, "admin/events/rsvp_counts.html", context)
 
     def _door_rsvps(self, event):
         return (
@@ -224,15 +317,16 @@ class EventAdmin(admin.ModelAdmin):
 
 
 @admin.register(EventTag)
-class EventTagAdmin(admin.ModelAdmin):
+class EventTagAdmin(ModelAdmin):
     list_display = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
 
 
 @admin.register(RSVP)
-class RSVPAdmin(admin.ModelAdmin):
-    list_display = ("event", "attendee", "status", "party_size", "checked_in", "created_at")
+class RSVPAdmin(ModelAdmin):
+    list_display = ("event", "attendee", "status_chip", "party_size", "checked_in", "created_at")
+    status_chip = chip("status", {"Going": "success", "Waitlist": "warning"})
     list_filter = ("status", "checked_in", "event")
     search_fields = ("user__display_name", "event__title")
     list_select_related = ("event", "user")
@@ -271,7 +365,7 @@ class RSVPAdmin(admin.ModelAdmin):
 
 
 @admin.register(AttendeeExport)
-class AttendeeExportAdmin(admin.ModelAdmin):
+class AttendeeExportAdmin(ModelAdmin):
     list_display = ("event_label", "exported_by_label", "exported_at", "row_count")
     readonly_fields = ("event_label", "exported_by_label", "exported_at", "row_count")
     fields = readonly_fields

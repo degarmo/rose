@@ -5,21 +5,22 @@ from datetime import timedelta
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.decorators import display
+from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminTextareaWidget
 
 from apps.core.admin_auth import qr_data_uri
+from apps.core.admin_widgets import RichTextWidget
 from apps.core.email import site_link
 from apps.core.models import AuditLog, audit
-from apps.donations.services import DonationError, record_desk_donation
 
 from . import desk
-from .access import events_remaining
 from .models import (
     AgreementSignature,
     IdCheck,
@@ -28,19 +29,12 @@ from .models import (
     Payment,
     Tier,
     WebhookEvent,
-    has_id_check,
 )
 
-DESK_PERMISSION = "memberships.change_membership"
-DONATION_DESK_METHODS = [
-    ("cash", "Cash"),
-    ("card_in_person", "Card in person"),
-    ("check", "Check"),
-]
 REPORT_PERMISSION = "memberships.view_membership"
 
 
-class ReadOnlyAdmin(admin.ModelAdmin):
+class ReadOnlyAdmin(ModelAdmin):
     def has_add_permission(self, request):
         return False
 
@@ -55,7 +49,7 @@ class TierForm(forms.ModelForm):
     perks_text = forms.CharField(
         label="Perks",
         required=False,
-        widget=forms.Textarea(attrs={"rows": 4}),
+        widget=UnfoldAdminTextareaWidget(attrs={"rows": 4}),
         help_text="One short line per perk, shown with a tick on the membership page.",
     )
 
@@ -84,7 +78,7 @@ class TierForm(forms.ModelForm):
             "is_active",
             "sort_order",
         ]
-        widgets = {"allowed_event_tags": forms.CheckboxSelectMultiple}
+        widgets = {"allowed_event_tags": UnfoldAdminCheckboxSelectMultipleWidget}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -103,8 +97,16 @@ class TierForm(forms.ModelForm):
         return cleaned
 
 
+STATUS_LABELS = {
+    "Active": "success",
+    "Grace period": "warning",
+    "Waiting for payment": "warning",
+    "Suspended": "danger",
+}
+
+
 @admin.register(Tier)
-class TierAdmin(admin.ModelAdmin):
+class TierAdmin(ModelAdmin):
     form = TierForm
     list_display = (
         "name",
@@ -114,13 +116,73 @@ class TierAdmin(admin.ModelAdmin):
         "grants_feed_access",
         "is_featured",
         "is_guest_pass",
-        "is_active",
-        "is_placeholder",
+        "offered",
         "sort_order",
     )
     list_filter = ("is_active", "interval", "is_guest_pass", "is_free")
+    search_fields = ("name",)
     prepopulated_fields = {"slug": ("name",)}
     readonly_fields = ("is_placeholder",)
+    # A long page: one tab per part.
+    fieldsets = (
+        (
+            "Plan",
+            {
+                "classes": ["tab"],
+                "fields": ("name", "slug", "description", "perks_text", "is_featured", "is_active"),
+                "description": "How the plan reads on the membership page. Inactive plans are "
+                "kept for the people already on them but not offered.",
+            },
+        ),
+        (
+            "Price",
+            {
+                "classes": ["tab"],
+                "fields": ("price_cents", "interval", "duration_days", "renews"),
+                "description": "Price in cents (2500 is $25.00). A one-time pass runs for its "
+                "number of days.",
+            },
+        ),
+        (
+            "Events",
+            {
+                "classes": ["tab"],
+                "fields": (
+                    "events_per_month",
+                    "guests_included_per_event",
+                    "guest_discount",
+                    "event_access",
+                    "allowed_event_tags",
+                ),
+                "description": "Leave events per month empty for unlimited. Tagged access "
+                "reaches only members-only events with one of the chosen tags.",
+            },
+        ),
+        (
+            "Access",
+            {
+                "classes": ["tab"],
+                "fields": (
+                    "grants_feed_access",
+                    "grants_members_events",
+                    "grants_members_education",
+                    "premium_discord",
+                    "is_guest_pass",
+                ),
+                "description": "What the plan unlocks. "
+                "A guest pass is one night, sold at the door.",
+            },
+        ),
+        ("Order", {"classes": ["tab"], "fields": ("sort_order", "is_placeholder")}),
+    )
+
+    @display(
+        description="Offered", label={"Offered": "success", "Not offered": None, "Demo": "warning"}
+    )
+    def offered(self, obj):
+        if obj.is_placeholder:
+            return "Demo"
+        return "Offered" if obj.is_active else "Not offered"
 
     @admin.display(description="Price")
     def price(self, obj):
@@ -128,8 +190,8 @@ class TierAdmin(admin.ModelAdmin):
 
 
 @admin.register(MembershipAgreement)
-class MembershipAgreementAdmin(admin.ModelAdmin):
-    list_display = ("version", "title", "published_at", "is_placeholder")
+class MembershipAgreementAdmin(ModelAdmin):
+    list_display = ("version", "title", "published_at", "agreement_state")
     actions = ["publish"]
     fields = ("title", "body", "version", "published_at", "is_placeholder")
     readonly_fields = ("version", "published_at", "is_placeholder")
@@ -142,6 +204,17 @@ class MembershipAgreementAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return obj is None or obj.published_at is None
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "body":
+            kwargs["widget"] = RichTextWidget
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    @display(description="State", label={"Published": "success", "Draft": "warning"})
+    def agreement_state(self, obj):
+        if obj.is_placeholder:
+            return "Demo"
+        return "Published" if obj.published_at else "Draft"
 
     @admin.action(description="Publish (new members sign this version)")
     def publish(self, request, queryset):
@@ -160,7 +233,7 @@ class AgreementSignatureAdmin(ReadOnlyAdmin):
     search_fields = ("user__display_name",)
 
 
-class PaymentInline(admin.TabularInline):
+class PaymentInline(TabularInline):
     model = Payment
     fk_name = "membership"
     fields = ("created_at", "status", "method", "amount", "recorded_by", "note")
@@ -180,8 +253,11 @@ class PaymentInline(admin.TabularInline):
 class PaymentAdmin(ReadOnlyAdmin):
     """Payments cannot be added, edited or deleted here. Refunds are recorded at the door desk."""
 
-    list_display = ("created_at", "membership", "status", "method", "amount", "recorded_by")
-    list_filter = ("status", "method")
+    list_display = ("created_at", "membership", "payment_status", "method", "amount", "recorded_by")
+    list_filter = ("status", "method", "created_at")
+    search_fields = ("membership__reference_code", "membership__user__display_name")
+    date_hierarchy = "created_at"
+    list_select_related = ("membership", "recorded_by")
     fields = (
         "membership",
         "status",
@@ -195,14 +271,27 @@ class PaymentAdmin(ReadOnlyAdmin):
     )
     readonly_fields = fields
 
-    @admin.display(description="Amount")
+    @display(description="Amount", ordering="amount_cents")
     def amount(self, obj):
-        return f"{obj.amount_cents / 100:.2f}"
+        return f"${obj.amount_display}"
+
+    @display(
+        description="Status",
+        ordering="status",
+        label={"Succeeded": "success", "Refunded": "warning", "Failed": "danger"},
+    )
+    def payment_status(self, obj):
+        return obj.get_status_display()
 
 
 @admin.register(IdCheck)
 class IdCheckAdmin(ReadOnlyAdmin):
+    """Only that a valid photo ID showing 18+ was seen, by whom and when. Nothing else."""
+
     list_display = ("membership", "checked_by", "checked_at", "verified_18_plus")
+    list_filter = ("checked_at",)
+    search_fields = ("membership__reference_code", "membership__user__display_name")
+    list_select_related = ("membership", "checked_by")
     fields = list_display
     readonly_fields = fields
 
@@ -219,39 +308,19 @@ class WebhookEventAdmin(ReadOnlyAdmin):
         return bool(obj.error)
 
 
-def find_memberships(query):
-    query = query.strip()
-    if not query:
-        return Membership.objects.none()
-    code = query.upper().replace(" ", "")
-    if len(code) == 6 and "-" not in code:
-        code = f"{code[:3]}-{code[3:]}"
-    return (
-        Membership.objects.filter(Q(reference_code=code) | Q(user__display_name__icontains=query))
-        .select_related("tier", "user")
-        .order_by("-updated_at")[:10]
-    )
-
-
-def cents(value):
-    try:
-        return max(0, round(float(value) * 100))
-    except (TypeError, ValueError):
-        return None
-
-
 @admin.register(Membership)
-class MembershipAdmin(admin.ModelAdmin):
+class MembershipAdmin(ModelAdmin):
     list_display = (
         "reference_code",
         "member",
         "tier",
-        "status",
+        "membership_status",
         "current_period_end",
         "source",
         "desk_link",
     )
-    list_filter = ("status", "tier", "source")
+    list_filter = ("status", "tier", "source", "paid_awaiting_id_check")
+    list_select_related = ("tier", "user")
     search_fields = ("reference_code", "user__display_name")
     inlines = [PaymentInline]
     fields = (
@@ -281,10 +350,16 @@ class MembershipAdmin(admin.ModelAdmin):
     def member(self, obj):
         return obj.user.display_name if obj.user else "Deleted account"
 
-    @admin.display(description="Door desk")
+    @display(description="Status", ordering="status", label=STATUS_LABELS)
+    def membership_status(self, obj):
+        return obj.get_status_display()
+
+    @display(description="Door desk")
     def desk_link(self, obj):
         return format_html(
-            '<a href="{}?q={}">Open</a>', reverse("admin:memberships_door_desk"), obj.reference_code
+            '<a class="rose-link" href="{}?q={}">Open</a>',
+            reverse("admin:memberships_door_desk"),
+            obj.reference_code,
         )
 
     def get_urls(self):
@@ -308,29 +383,28 @@ class MembershipAdmin(admin.ModelAdmin):
     # Door desk
 
     def door_desk_view(self, request):
-        if not request.user.has_perm(DESK_PERMISSION):
+        if not request.user.has_perm(desk.DESK_PERMISSION):
             raise PermissionDenied
         revealed = {}
         if request.method == "POST":
-            revealed = self._handle_desk_action(request)
-            if revealed is None:
+            try:
+                outcome = desk.perform(request.user, request.POST)
+            except desk.DeskError as exc:
+                self.message_user(request, str(exc), level=messages.ERROR)
+                outcome = None
+            if outcome is not None and outcome.signature:
+                revealed = outcome.signature
+            else:
+                if outcome is not None:
+                    self.message_user(request, outcome.message)
                 query = request.POST.get("q", "")
                 return HttpResponseRedirect(f"{request.path}?q={query}")
         query = request.GET.get("q", "") or request.POST.get("q", "")
         results = []
-        for membership in find_memberships(query):
-            results.append(
-                {
-                    "membership": membership,
-                    "events_remaining": events_remaining(membership),
-                    "flags": desk.door_flags(membership.user),
-                    "is_guest_pass": membership.tier.is_guest_pass,
-                    "id_checked": has_id_check(membership.user) if membership.user else False,
-                    "payments": list(membership.payments.all()[:5]),
-                    "default_amount": f"{membership.tier.price_cents / 100:.2f}",
-                    "signature_name": revealed.get(membership.pk),
-                }
-            )
+        for membership in desk.find_memberships(query):
+            row = desk.card(membership)
+            row["signature_name"] = revealed.get(membership.pk)
+            results.append(row)
         context = {
             **self.admin_site.each_context(request),
             "title": "Door desk",
@@ -344,114 +418,12 @@ class MembershipAdmin(admin.ModelAdmin):
             "join_qr": qr_data_uri(site_link("/join"))
             if any(r["is_guest_pass"] for r in results)
             else None,
-            "donation_methods": DONATION_DESK_METHODS,
+            "donation_methods": desk.DONATION_METHODS,
             "tonight_events": list(desk.tonight_events()) if results else [],
+            "staff_door_url": site_link("/members/staff/door"),
         }
         # The camera policy for this page is set by PrivacyHeadersMiddleware.
         return TemplateResponse(request, "admin/memberships/door_desk.html", context)
-
-    def _handle_desk_action(self, request):
-        """Returns {membership_pk: name} for a signature reveal, or None after an action."""
-        data = request.POST
-        action = data.get("action")
-        try:
-            if action == "record_donation":
-                amount = cents(data.get("amount"))
-                if not amount:
-                    raise desk.DeskError("Enter an amount.")
-                try:
-                    donation = record_desk_donation(
-                        request.user,
-                        amount,
-                        data.get("method", ""),
-                        donor_display=data.get("donor_display", ""),
-                        acknowledgement_email=data.get("acknowledgement_email", ""),
-                        note=data.get("note", ""),
-                    )
-                except DonationError as exc:
-                    raise desk.DeskError(str(exc)) from exc
-                self.message_user(request, f"Donation of {donation.amount_display} recorded.")
-                return None
-            if action == "refund":
-                payment = get_object_or_404(Payment, pk=data.get("payment"))
-                amount = cents(data.get("amount"))
-                if amount is None:
-                    raise desk.DeskError("Enter an amount.")
-                desk.refund(request.user, payment, amount, data.get("note", ""))
-                self.message_user(request, "Refund recorded.")
-                return None
-            membership = get_object_or_404(
-                Membership.objects.select_related("tier", "user"), pk=data.get("membership")
-            )
-            id_checked = data.get("id_checked") == "on"
-            if action == "activate":
-                amount = cents(data.get("amount"))
-                if amount is None:
-                    raise desk.DeskError("Enter an amount.")
-                desk.record_payment_and_activate(
-                    request.user,
-                    membership,
-                    data.get("method"),
-                    amount,
-                    data.get("note", ""),
-                    id_checked,
-                )
-                self.message_user(request, f"{membership.reference_code} is active.")
-            elif action == "guest_visit":
-                amount = cents(data.get("amount"))
-                if amount is None:
-                    raise desk.DeskError("Enter an amount.")
-                desk.guest_visit(
-                    request.user,
-                    membership,
-                    data.get("method"),
-                    amount,
-                    data.get("note", ""),
-                    id_checked,
-                )
-                self.message_user(request, f"{membership.reference_code} is in for tonight.")
-            elif action == "activate_paid":
-                desk.activate_paid_online(request.user, membership, id_checked)
-                self.message_user(request, f"{membership.reference_code} is active.")
-            elif action == "renew":
-                amount = cents(data.get("amount"))
-                if amount is None:
-                    raise desk.DeskError("Enter an amount.")
-                desk.renew(
-                    request.user, membership, data.get("method"), amount, data.get("note", "")
-                )
-                self.message_user(request, f"{membership.reference_code} renewed.")
-            elif action == "comp":
-                desk.comp(request.user, membership, data.get("reason", ""), id_checked)
-                self.message_user(
-                    request, f"{membership.reference_code} is a complimentary membership."
-                )
-            elif action == "suspend":
-                desk.suspend(request.user, membership, data.get("reason", ""))
-                self.message_user(request, f"{membership.reference_code} is suspended.")
-            elif action == "reinstate":
-                desk.reinstate(request.user, membership, data.get("reason", ""))
-                self.message_user(request, f"{membership.reference_code} is reinstated.")
-            elif action == "walk_in":
-                event = desk.tonight_events().filter(pk=data.get("event")).first()
-                if event is None:
-                    raise desk.DeskError("Choose one of tonight's members-only events.")
-                try:
-                    party_size = int(data.get("party_size", "1"))
-                except ValueError:
-                    party_size = 0
-                desk.walk_in(request.user, membership, event, party_size)
-                self.message_user(request, f"{membership.reference_code} is checked in.")
-            elif action == "show_signature":
-                return {
-                    membership.pk: desk.reveal_signature_name(request.user, membership)
-                    or "No signature on file"
-                }
-            else:
-                raise desk.DeskError("Unknown action.")
-        except desk.DeskError as exc:
-            self.message_user(request, str(exc), level=messages.ERROR)
-        return None
 
     # Reporting
 

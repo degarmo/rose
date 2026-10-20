@@ -207,4 +207,4 @@ def test_summary_counts_guest_visits_by_month(admin_client, make_membership, gue
     page = admin_client.get(reverse("admin:memberships_summary")).content.decode()
     month = timezone.localtime().strftime("%b %Y")
     assert "Guest visits, last 12 months" in page
-    assert f"<tr><th>{month}</th><td>3</td></tr>" in page
+    assert f'<tr><th scope="row">{month}</th><td class="rose-num">3</td></tr>' in page

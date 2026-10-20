@@ -9,8 +9,10 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
 from apps.accounts.models import Profile, User
+from apps.core.admin_display import chip, flag
 from apps.core.models import AuditLog
 from apps.core.private_media import private_media
 
@@ -30,7 +32,7 @@ QUEUE_PERMISSION = "feed.change_feedpost"
 
 
 @admin.register(Guidelines)
-class GuidelinesAdmin(admin.ModelAdmin):
+class GuidelinesAdmin(ModelAdmin):
     list_display = ("version", "title", "published_at", "created_at")
     actions = ["publish"]
     fields = ("title", "body", "version", "published_at")
@@ -85,10 +87,19 @@ def resolve_target(target_type, ref):
 
 
 @admin.register(FeedPost)
-class FeedPostAdmin(admin.ModelAdmin):
+class FeedPostAdmin(ModelAdmin):
     """Posts are reviewed in the moderation queue; this list is for finding them."""
 
-    list_display = ("public_id", "author", "status", "created_at", "queue_link")
+    list_display = ("public_id", "author", "status_chip", "created_at", "queue_link")
+    status_chip = chip(
+        "status",
+        {
+            "Pending review": "warning",
+            "Published": "success",
+            "Hidden by report": "danger",
+            "Removed": "danger",
+        },
+    )
     list_filter = ("status", "is_sensitive")
     search_fields = ("public_id", "author__display_name")
     fields = (
@@ -243,7 +254,7 @@ class FeedPostAdmin(admin.ModelAdmin):
 
 
 @admin.register(Report)
-class ReportAdmin(admin.ModelAdmin):
+class ReportAdmin(ModelAdmin):
     """Read-only. Decisions are made in the moderation queue so they get logged."""
 
     list_display = ("created_at", "target_type", "reason", "resolved_at", "resolution")
@@ -262,10 +273,11 @@ class ReportAdmin(admin.ModelAdmin):
 
 
 @admin.register(Announcement)
-class AnnouncementAdmin(admin.ModelAdmin):
+class AnnouncementAdmin(ModelAdmin):
     """Short notices shown as a "News" story in the member app between start and end."""
 
-    list_display = ["title", "starts_at", "ends_at", "is_published"]
+    list_display = ["title", "starts_at", "ends_at", "is_published_chip"]
+    is_published_chip = flag("is_published", "Published", "Draft", "Status")
     list_filter = ["is_published"]
     search_fields = ["title"]
     fields = ["title", "body", "link_label", "link_url", "starts_at", "ends_at", "is_published"]

@@ -35,6 +35,7 @@ describe('AccountMenu', () => {
       member_app: 'open',
       staff: {
         role: 'admin',
+        door_desk: true,
         verified: true,
         verify_url: null,
         needs_enrollment: false,
@@ -48,10 +49,30 @@ describe('AccountMenu', () => {
     expect(links).toEqual({
       Dashboard: '/members/staff',
       Reports: '/members/staff/reports',
-      'Door desk': 'https://site.example/admin/memberships/membership/door-desk/',
+      'Door desk': '/members/staff/door',
       'Member app': '/members/feed',
       Website: '/',
       'Django admin': 'https://site.example/admin/',
     })
+  })
+
+  it('gives a door volunteer the door desk and nothing for a team role', async () => {
+    await open({
+      ...verifiedUser,
+      staff: {
+        role: null,
+        door_desk: true,
+        verified: true,
+        verify_url: null,
+        needs_enrollment: false,
+        admin_url: 'https://site.example/admin/',
+        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/',
+      },
+    })
+    const block = screen.getByRole('list', { name: 'Staff' })
+    const links = within(block).getAllByRole('link').map((link) => link.textContent)
+    expect(links[0]).toBe('Door desk')
+    expect(links).not.toContain('Dashboard')
+    expect(links).not.toContain('Reports')
   })
 })

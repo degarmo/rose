@@ -1,0 +1,14 @@
+{% for field in form %}
+{% if field.is_hidden %}{{ field }}{% elif field.widget_type == "checkbox" %}
+<label class="rose-check">{{ field }} {{ field.label }}</label>
+{% if field.help_text %}<p class="rose-help">{{ field.help_text }}</p>{% endif %}{% for error in field.errors %}<p class="rose-alert">{{ error }}</p>{% endfor %}
+{% else %}
+<div class="rose-field">
+  {{ field.label_tag }}
+  {{ field }}
+  {% if field.help_text %}<p class="rose-help">{{ field.help_text }}</p>{% endif %}
+  {% for error in field.errors %}<p class="rose-alert">{{ error }}</p>{% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+{% for error in form.non_field_errors %}<p class="rose-alert">{{ error }}</p>{% endfor %}

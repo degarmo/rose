@@ -1,4 +1,4 @@
-import { ArrowLeft, Bell, Compass, Globe, House, LogOut, Menu, Moon, Search, Settings, ShieldCheck, SquarePlus, User, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Bell, Compass, Globe, House, LogOut, Menu, Moon, ScanLine, Search, Settings, ShieldCheck, SquarePlus, User, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
@@ -176,12 +176,16 @@ interface SidebarProps {
 export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
   const auth = useAuth()
   const staffRole = auth.user?.staff?.role
+  const doorDesk = Boolean(auth.user?.staff?.door_desk)
+  const atDoor = (path: string) => path.startsWith('/members/staff/door')
+  const doorLink = () => doorDesk && link('/members/staff/door', 'Door desk', ScanLine, atDoor, true)
   const collapsed = panel !== null
   const { pathname } = useLocation()
   const outline = (active: boolean) => active && 'border border-border wide:border-transparent'
-  const link = (to: string, label: string, icon: LucideIcon, activeFor?: (path: string) => boolean) => (
+  // reloadDocument: the door desk loads afresh, so its camera permission applies.
+  const link = (to: string, label: string, icon: LucideIcon, activeFor?: (path: string) => boolean, reloadDocument = false) => (
     <li>
-      <NavLink to={to} title={label} onClick={() => onPanel(null)} className={({ isActive }) => cn(rowClass(collapsed), outline((activeFor ? activeFor(pathname) : isActive) && !collapsed))}>
+      <NavLink to={to} title={label} reloadDocument={reloadDocument} onClick={() => onPanel(null)} className={({ isActive }) => cn(rowClass(collapsed), outline((activeFor ? activeFor(pathname) : isActive) && !collapsed))}>
         {({ isActive }) => {
           const active = (activeFor ? activeFor(pathname) : isActive) && !collapsed
           return (
@@ -234,6 +238,8 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
         <span className="sr-only">Home</span>
       </Link>
       <ul className="flex flex-1 flex-col">
+        {/* A door volunteer's first item; the team find it beside Staff. */}
+        {!staffRole && doorLink()}
         {me ? (
           <>
             {link('/members/feed', 'Home', House)}
@@ -256,7 +262,8 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
             {link('/members/settings', 'Settings', Settings, (path) => path.startsWith('/members/settings'))}
           </>
         )}
-        {staffRole && link('/members/staff', 'Staff', ShieldCheck, (path) => path.startsWith('/members/staff'))}
+        {staffRole && link('/members/staff', 'Staff', ShieldCheck, (path) => path.startsWith('/members/staff') && !atDoor(path))}
+        {staffRole && doorLink()}
       </ul>
       <MoreMenu collapsed={collapsed} />
       {/* The quick exit is always the last item. */}
@@ -353,9 +360,9 @@ export function HomeBar({ me }: { me: Me }) {
 export function TabBar({ me, onCreate }: { me: Me | null; onCreate: () => void }) {
   const { pathname } = useLocation()
   const auth = useAuth()
-  const tab = (to: string, label: string, icon: LucideIcon, active?: boolean) => (
+  const tab = (to: string, label: string, icon: LucideIcon, active?: boolean, reloadDocument = false) => (
     <li className="flex-1">
-      <NavLink to={to} className="flex h-[50px] items-center justify-center text-fg">
+      <NavLink to={to} reloadDocument={reloadDocument} className="flex h-[50px] items-center justify-center text-fg">
         {({ isActive }) => (
           <>
             <Glyph icon={icon} active={active ?? isActive} phone />
@@ -367,13 +374,16 @@ export function TabBar({ me, onCreate }: { me: Me | null; onCreate: () => void }
   )
   const bar = 'fixed inset-x-0 bottom-0 z-40 border-t border-border bg-canvas px-2 pb-[env(safe-area-inset-bottom)] md:hidden print:hidden'
   if (!me) {
-    // The account-only screens: Home, Settings and, for the team, Staff.
+    // The account-only screens: the door desk first for a volunteer, Home, Settings and,
+    // for the team, Staff.
+    const staff = auth.user?.staff
     return (
       <nav aria-label="Members" className={bar}>
         <ul className="flex">
+          {staff?.door_desk && !staff.role && tab('/members/staff/door', 'Door desk', ScanLine, undefined, true)}
           {tab('/members/home', 'Home', House)}
           {tab('/members/settings', 'Settings', Settings, pathname.startsWith('/members/settings'))}
-          {auth.user?.staff && tab('/members/staff', 'Staff', ShieldCheck, pathname.startsWith('/members/staff'))}
+          {staff?.role && tab('/members/staff', 'Staff', ShieldCheck, pathname.startsWith('/members/staff'))}
         </ul>
       </nav>
     )

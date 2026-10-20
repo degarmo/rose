@@ -1,37 +1,34 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/staff-tools.css' %}">{% endblock %}
+{% block title %}Acknowledgement | Rose{% endblock %}
+{% block content_title %}{% endblock %}
 {% block extrahead %}{{ block.super }}<script src="{% static 'core/print-button.js' %}" defer></script>{% endblock %}
 
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
-  <a href="{% url 'admin:donations_donation_changelist' %}">Donations</a> &rsaquo; Acknowledgement
-</div>
-{% endblock %}
-
 {% block content %}
-<div id="content-main">
+<div class="rose-stack rose-narrow">
+  <header class="rose-page-head rose-no-print">
+    <h1 class="rose-title">Acknowledgement</h1>
+    <p class="rose-subtle">The email subject is neutral, and the address is forgotten once it is sent.</p>
+  </header>
   {% if body is None %}
-  <p class="tool-warning">There is no acknowledgement wording yet. <a href="{{ wording_url }}">Add the wording</a> first.</p>
+  <p class="rose-alert">There is no acknowledgement wording yet. <a href="{{ wording_url }}">Add the wording</a> first.</p>
   {% else %}
-  {% if is_placeholder %}<p class="acknowledgement-placeholder">Placeholder wording for development. It is never sent or printed on the live site.</p>{% endif %}
-  <article class="acknowledgement">
+  {% if is_placeholder %}<p class="rose-chip rose-chip-wait rose-chip-inline">Placeholder wording for development. It is never sent or printed on the live site.</p>{% endif %}
+  <article class="rose-card rose-letter">
     <p><strong>{{ subject }}</strong></p>
     {{ body|linebreaks }}
   </article>
-  <div class="acknowledgement-actions">
-    <button type="button" class="button default" data-print>Print</button>
-    <form method="post">{% csrf_token %}<button name="action" value="printed" class="button">Mark as printed</button></form>
+  <div class="rose-buttons rose-no-print">
+    <button type="button" class="rose-button" data-print>Print</button>
+    <form method="post">{% csrf_token %}<button name="action" value="printed" class="rose-button-secondary">Mark as printed</button></form>
     {% if acknowledgement and acknowledgement.email and not acknowledgement.emailed_at %}
-    <form method="post">{% csrf_token %}<button name="action" value="email" class="button">Email it to the address given</button></form>
+    <form method="post">{% csrf_token %}<button name="action" value="email" class="rose-button-secondary">Email it to the address given</button></form>
     {% endif %}
   </div>
-  <p class="help">
+  <p class="rose-help rose-no-print">
     {% if acknowledgement.emailed_at %}Emailed {{ acknowledgement.emailed_at|date:"M j, Y" }}. {% endif %}
-    {% if acknowledgement.printed_at %}Printed {{ acknowledgement.printed_at|date:"M j, Y" }}. {% endif %}
-    The email subject is neutral, and the address is forgotten once it is sent.
+    {% if acknowledgement.printed_at %}Printed {{ acknowledgement.printed_at|date:"M j, Y" }}.{% endif %}
   </p>
   {% endif %}
 </div>

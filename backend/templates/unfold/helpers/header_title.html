@@ -1,0 +1,13 @@
+{% comment %} Unfold's breadcrumb title (django-unfold 0.108.0). Section and model names start
+   with a capital; an object's own name is shown as written, so a display name stays lowercase. {% endcomment %}
+{% spaceless %}
+    {% for part in parts %}
+        <{% if part.link and part.link != "" %}a href="{{ part.link }}"{% else %}span{% endif %} class="align-middle inline-block leading-5 min-w-0 truncate tracking-tight">
+        {% if part.title.pk %}{{ part.title }}{% else %}{{ part.title|capfirst }}{% endif %}
+        </{% if part.link %}a{% else %}span{% endif %} >
+
+        {% if not forloop.last %}
+            <span class="material-symbols-outlined inline-block align-middle leading-5 mx-2 text-base-400 dark:text-base-500">chevron_right</span>
+        {% endif %}
+    {% endfor %}
+{% endspaceless %}

@@ -5,16 +5,22 @@ import { useAuth } from '@/components/layout/authContext'
 import { PhoneBar } from '@/components/members/app/Nav'
 import { appButtonClasses } from '@/components/members/app/ui'
 import { cn } from '@/lib/cn'
-import { atLeast, ROLE_LABELS, type Role } from '@/lib/safetyApi'
+import { atLeast, ROLE_LABELS, type Role, type StaffSession } from '@/lib/safetyApi'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
-const TABS: Array<{ to: string; label: string; minimum: Role; end?: boolean }> = [
+const TABS: Array<{ to: string; label: string; minimum: Role | 'door'; end?: boolean }> = [
+  // First for door volunteers (their only tab); the team see it where they have the permission.
+  { to: '/members/staff/door', label: 'Door desk', minimum: 'door' },
   { to: '/members/staff', label: 'Dashboard', minimum: 'staff', end: true },
   { to: '/members/staff/reports', label: 'Reports', minimum: 'moderator' },
   { to: '/members/staff/members', label: 'Members', minimum: 'moderator' },
   { to: '/members/staff/team', label: 'Team', minimum: 'admin' },
 ]
+
+function allowed(staff: StaffSession, minimum: Role | 'door') {
+  return minimum === 'door' ? staff.door_desk : atLeast(staff.role, minimum)
+}
 
 /**
  * The two-step check, in the app's own look: the admin's login does the work and returns
@@ -42,14 +48,28 @@ function VerifyFirst({ url, enrol }: { url: string; enrol: boolean }) {
 }
 
 /**
- * Every staff page sits in this frame: the team-only gate, the two-step check, and the
- * section's tabs. Anyone without a role gets the same 404 as an unknown address.
+ * Every staff page sits in this frame: the gate (a team role, or the door desk permission
+ * for the door), the two-step check, and the section's tabs. Anyone without access gets
+ * the same 404 as an unknown address.
  */
-export function StaffFrame({ title, minimum = 'moderator', actions, children }: { title: string; minimum?: Role; actions?: ReactNode; children: ReactNode }) {
+export function StaffFrame({
+  title,
+  minimum = 'moderator',
+  actions,
+  wide = false,
+  children,
+}: {
+  title: string
+  minimum?: Role | 'door'
+  actions?: ReactNode
+  /** The door desk uses the full width of a tablet. */
+  wide?: boolean
+  children: ReactNode
+}) {
   useDocumentMeta({ title: `Staff: ${title}`, noindex: true })
   const auth = useAuth()
   const staff = auth.user?.staff
-  if (!staff || !atLeast(staff.role, minimum)) return <NotFoundPage />
+  if (!staff || !allowed(staff, minimum)) return <NotFoundPage />
   if (!staff.verified && staff.verify_url) {
     return (
       <>
@@ -61,21 +81,23 @@ export function StaffFrame({ title, minimum = 'moderator', actions, children }: 
   return (
     <>
       <PhoneBar title={title} back />
-      <div className="mx-auto w-full max-w-[935px] px-4 pb-12 md:px-8 md:pt-8">
+      <div className={cn('mx-auto w-full px-4 pb-12 md:px-8 md:pt-8', wide ? 'max-w-[1100px]' : 'max-w-[935px]')}>
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 md:pt-0">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.06em] text-fg-muted">Staff · {ROLE_LABELS[staff.role]}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.06em] text-fg-muted">Staff · {staff.role ? ROLE_LABELS[staff.role] : 'Door desk'}</p>
             <h1 className="hidden text-xl font-semibold text-fg md:block">{title}</h1>
           </div>
           {actions}
         </div>
         <nav aria-label="Staff" className="mt-4 border-b border-border">
           <ul className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none]">
-            {TABS.filter((tab) => atLeast(staff.role, tab.minimum)).map((tab) => (
+            {TABS.filter((tab) => allowed(staff, tab.minimum)).map((tab) => (
               <li key={tab.to}>
                 <NavLink
                   to={tab.to}
                   end={tab.end}
+                  // The door desk loads afresh, so its camera permission applies.
+                  reloadDocument={tab.minimum === 'door'}
                   className={({ isActive }) =>
                     cn('inline-flex h-11 items-center whitespace-nowrap border-b text-xs font-semibold uppercase tracking-[0.06em]', isActive ? 'border-fg text-fg' : 'border-transparent text-fg-muted hover:text-fg')
                   }

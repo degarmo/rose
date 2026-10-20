@@ -247,7 +247,8 @@ flowchart LR
 
 ### Staff tools
 
-- **Door desk** (`/admin/memberships/membership/door-desk/`): built for a tablet. Search by
+- **Admin look** (prompt 13): django-unfold 0.108.0, themed in `apps/core/static/core/rose-admin.css` with self-hosted fonts and Alpine's CSP build (`config/unfold.py`, `templates/unfold/`). `apps/core/admin_nav.py` builds the grouped sidebar by permission; `apps/core/dashboard.py` is the home page (aggregates only, small numbers withheld); `apps/core/admin_display.py` has the status chips and image previews; `apps/core/admin_widgets.py` the rich-text editor.
+- **Door desk** (`/admin/memberships/membership/door-desk/`, and `/members/staff/door` in the member app through `GET`/`POST /api/staff/door/`): built for a tablet. Both run `apps/memberships/desk.py` (search, the card and `perform()` for every action). Search by
   reference code (typed, or scanned with the camera and decoded on the tablet by the
   vendored jsQR) or display name. Actions: record payment and activate (needs "Photo ID
   checked, 18+" if there is no earlier ID check), activate after an online payment, renew,
@@ -256,7 +257,7 @@ flowchart LR
   RSVP; the same tier rules apply and it uses one of the month's events). Each row shows the
   tier, events left this month (or "Unlimited"), guests included per event and "Guest
   discount". A free tier waits for its first-visit ID check like an online payment does. The typed signature name appears only after "Show signature name", which is
-  logged. This page alone sends `Permissions-Policy: camera=(self)`.
+  logged. These two pages alone send `Permissions-Policy: camera=(self)`.
 - **Membership summary** (`/admin/memberships/membership/summary/`): counts by status and
   tier, new, renewed and expired this month, and revenue by month and method for 12 months
   with refunds subtracted. The CSV export is POST-only and logged; contact email is included

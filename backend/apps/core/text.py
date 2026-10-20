@@ -21,6 +21,10 @@ RICH_TEXT_TAGS = {
     "blockquote",
 }
 URL_PATTERN = re.compile(r"(https://[^\s<]+[^\s<.,;:!?)\]'\"])")
+# The admin's editor (Trix) writes each paragraph as a <div>, and a blank line as an
+# empty one; they are kept as paragraphs, without the blank ones.
+DIV_TAG = re.compile(r"<(/?)div\b[^>]*>", re.IGNORECASE)
+EMPTY_PARAGRAPH = re.compile(r"<p>(?:\s|&nbsp;|<br>)*</p>")
 
 
 def _clean(markup, tags):
@@ -36,7 +40,8 @@ def _clean(markup, tags):
 
 def sanitize_rich_text(markup):
     """Allow a small set of formatting tags; drop scripts, styles and attributes."""
-    return _clean(markup or "", RICH_TEXT_TAGS)
+    paragraphs = DIV_TAG.sub(lambda match: f"<{match.group(1)}p>", markup or "")
+    return EMPTY_PARAGRAPH.sub("", _clean(paragraphs, RICH_TEXT_TAGS))
 
 
 def caption_to_html(text):

@@ -1,63 +1,56 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/image_review.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Image review</div>
-{% endblock %}
+{% block title %}Image review | Rose{% endblock %}
 
 {% block content %}
-<div id="content-main" class="image-review">
-  <p class="intro">
-    Images that may show a person stay hidden until someone confirms there are no faces, or that everyone visible has given consent.
-    {% if hidden_count %}<strong>{{ hidden_count }} image{{ hidden_count|pluralize }} hidden right now.</strong>{% else %}Nothing is hidden right now.{% endif %}
-  </p>
-  <p class="help">
-    To change a site image, ask whoever maintains the site to run <code>python manage.py review_images</code>.
-    To change an uploaded image, open the item it belongs to and update its image boxes.
-  </p>
+<div class="rose-stack">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Image review</h1>
+    <p class="rose-subtle">Images that may show a person stay hidden until someone confirms there are no faces, or that everyone visible has given consent.</p>
+  </header>
+  <p class="{% if hidden_count %}rose-chip rose-chip-wait{% else %}rose-chip rose-chip-open{% endif %} rose-chip-inline">{% if hidden_count %}{{ hidden_count }} image{{ hidden_count|pluralize }} hidden right now{% else %}Nothing is hidden right now{% endif %}</p>
+  <p class="rose-help">To change a site image, ask whoever maintains the site to run <code>python manage.py review_images</code>. To change an uploaded image, open the item it belongs to and update its image boxes.</p>
 
-  <h2>Site images</h2>
+  <h2 class="rose-section-title">Site images</h2>
   {% if manifest_rows %}
-  <ul class="review-grid">
+  <ul class="rose-gallery">
     {% for row in manifest_rows %}
-    <li class="review-card status-{{ row.status }}">
-      {% if row.has_file %}
-      <img src="{% url 'admin:image_review_file' row.entry.filename %}" alt="" loading="lazy">
-      {% else %}
-      <div class="no-file">No file</div>
-      {% endif %}
-      <p class="filename">{{ row.entry.filename }}</p>
-      <p class="status">{{ row.status_label }}</p>
-      <dl>
-        <dt>Faces visible</dt><dd>{{ row.entry.faces_visible|yesno:"Yes,No" }}</dd>
-        <dt>Consent confirmed</dt><dd>{{ row.entry.consent_confirmed|yesno:"Yes,No" }}</dd>
-        {% if row.entry.source %}<dt>Source</dt><dd>{{ row.entry.source }}</dd>{% endif %}
-        {% if row.entry.credit %}<dt>Credit</dt><dd>{{ row.entry.credit }}</dd>{% endif %}
-        {% if row.entry.license %}<dt>License</dt><dd>{{ row.entry.license }}</dd>{% endif %}
-      </dl>
+    <li class="rose-card rose-gallery-card">
+      {% if row.has_file %}<img src="{% url 'admin:image_review_file' row.entry.filename %}" alt="" loading="lazy">{% else %}<div class="rose-gallery-empty">No file</div>{% endif %}
+      <div class="rose-gallery-body">
+        <p class="rose-row-title">{{ row.entry.filename }}</p>
+        <span class="rose-chip {% if row.status == 'shown' %}rose-chip-open{% else %}rose-chip-wait{% endif %}">{{ row.status_label }}</span>
+        <ul class="rose-facts rose-facts-compact">
+          <li><span>Faces visible</span><strong>{{ row.entry.faces_visible|yesno:"Yes,No" }}</strong></li>
+          <li><span>Consent confirmed</span><strong>{{ row.entry.consent_confirmed|yesno:"Yes,No" }}</strong></li>
+          {% if row.entry.source %}<li><span>Source</span><strong>{{ row.entry.source }}</strong></li>{% endif %}
+          {% if row.entry.credit %}<li><span>Credit</span><strong>{{ row.entry.credit }}</strong></li>{% endif %}
+          {% if row.entry.license %}<li><span>License</span><strong>{{ row.entry.license }}</strong></li>{% endif %}
+        </ul>
+      </div>
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p>No site images have been added yet.</p>
+  <p class="rose-card rose-subtle">No site images have been added yet.</p>
   {% endif %}
 
-  <h2>Uploaded images</h2>
+  <h2 class="rose-section-title">Uploaded images</h2>
   {% if upload_rows %}
-  <ul class="review-grid">
+  <ul class="rose-gallery">
     {% for row in upload_rows %}
-    <li class="review-card {% if row.shown %}status-shown{% else %}status-hidden{% endif %}">
+    <li class="rose-card rose-gallery-card">
       <img src="{{ row.url }}" alt="" loading="lazy">
-      <p class="filename">{{ row.model|capfirst }}: {{ row.object }}</p>
-      <p class="status">{{ row.reason|capfirst }}</p>
-      {% if row.alt %}<p class="alt">{{ row.alt }}</p>{% endif %}
+      <div class="rose-gallery-body">
+        <p class="rose-row-title">{{ row.model|capfirst }}: {{ row.object }}</p>
+        <span class="rose-chip {% if row.shown %}rose-chip-open{% else %}rose-chip-wait{% endif %}">{{ row.reason|capfirst }}</span>
+        {% if row.alt %}<p class="rose-subtle">{{ row.alt }}</p>{% endif %}
+      </div>
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p>No uploaded images yet.</p>
+  <p class="rose-card rose-subtle">No uploaded images yet.</p>
   {% endif %}
 </div>
 {% endblock %}

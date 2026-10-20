@@ -1,59 +1,65 @@
 {% extends "admin/base_site.html" %}
-{% load static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'feed/moderation.css' %}">{% endblock %}
-
-{% block breadcrumbs %}
-<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Feed moderation</div>
-{% endblock %}
+{% block title %}Reports | Rose{% endblock %}
+{% block content_title %}{% endblock %}
 
 {% block content %}
-<div id="content-main" class="moderation">
-  <p class="intro">Every action here is logged and cannot be edited or deleted. Members only ever see the outcome for their own content, never who reported it.</p>
+<div class="rose-stack rose-moderation">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Reports</h1>
+    <p class="rose-subtle">Every action here is logged and cannot be edited or deleted. Members only ever see the outcome for their own content, never who reported it.</p>
+  </header>
 
-  <h2>Open reports ({{ report_groups|length }})</h2>
+  <h2 class="rose-section-title">Reported posts, comments and profiles <span class="rose-chip">{{ report_groups|length }}</span></h2>
   {% for group in report_groups %}
-  <section class="mod-card {% if group.hidden %}is-hidden{% endif %}">
-    <header>
-      <strong>{{ group.target_type|capfirst }}</strong>
-      {% if group.target_type == "profile" %}{{ group.target.display_name }}{% else %}by {{ group.target.author.display_name }}{% endif %}
-      &middot; {{ group.reporter_count }} reporter{{ group.reporter_count|pluralize }}
-      &middot; {{ group.reasons|join:", " }}
-      {% if group.hidden %}<span class="flag">Hidden until reviewed</span>{% endif %}
+  <section class="rose-card{% if group.hidden %} rose-card-muted{% endif %}">
+    <header class="rose-desk-head">
+      <div>
+        <h3>{{ group.target_type|capfirst }} {% if group.target_type == "profile" %}{{ group.target.display_name }}{% else %}by {{ group.target.author.display_name }}{% endif %}</h3>
+        <p class="rose-subtle">{{ group.reporter_count }} reporter{{ group.reporter_count|pluralize }} · {{ group.reasons|join:", " }}</p>
+      </div>
+      {% if group.hidden %}<span class="rose-chip rose-chip-wait">Hidden until reviewed</span>{% endif %}
     </header>
-    {% if group.images %}<div class="thumbs">{% for url in group.images %}<img src="{{ url }}" alt="" loading="lazy">{% endfor %}</div>{% endif %}
-    {% if group.target_type == "post" %}<p class="text">{{ group.target.caption|linebreaksbr }}</p>{% endif %}
-    {% if group.target_type == "comment" %}<p class="text">{{ group.target.body|linebreaksbr }}</p>{% endif %}
-    {% if group.target_type == "profile" %}<p class="text">{{ group.target.profile.bio }}</p>{% endif %}
-    <ul class="details">{% for report in group.reports %}{% if report.details %}<li>{{ report.get_reason_display }}: {{ report.details }}</li>{% endif %}{% endfor %}</ul>
+    {% if group.images %}<div class="rose-thumbs">{% for url in group.images %}<img src="{{ url }}" alt="" loading="lazy">{% endfor %}</div>{% endif %}
+    {% if group.target_type == "post" %}<p>{{ group.target.caption|linebreaksbr }}</p>{% endif %}
+    {% if group.target_type == "comment" %}<p>{{ group.target.body|linebreaksbr }}</p>{% endif %}
+    {% if group.target_type == "profile" %}<p>{{ group.target.profile.bio }}</p>{% endif %}
+    <ul class="rose-bullets">{% for report in group.reports %}{% if report.details %}<li>{{ report.get_reason_display }}: {{ report.details }}</li>{% endif %}{% endfor %}</ul>
     {% include "admin/feed/moderation_form.html" with target_type=group.target_type ref=group.ref %}
   </section>
   {% empty %}
-  <p>No open reports.</p>
+  <p class="rose-card rose-subtle">No open reports.</p>
   {% endfor %}
 
-  <h2>Posts waiting for approval ({{ pending|length }})</h2>
+  <h2 class="rose-section-title">Posts waiting for approval <span class="rose-chip">{{ pending|length }}</span></h2>
   {% for post in pending %}
-  <section class="mod-card">
-    <header><strong>Post</strong> by {{ post.author.display_name }} &middot; {{ post.created_at|date:"M j, H:i" }}{% if post.is_sensitive %} <span class="flag">Marked sensitive</span>{% endif %}</header>
-    {% if post.images.all %}<div class="thumbs">{% for image in post.images.all %}{% if image.image %}<img src="{% url 'admin:feed_moderation_image' image.public_id %}" alt="{{ image.image_alt }}" loading="lazy">{% endif %}{% endfor %}</div>{% endif %}
-    <p class="text">{{ post.caption|linebreaksbr }}</p>
+  <section class="rose-card">
+    <header class="rose-desk-head">
+      <div><h3>Post by {{ post.author.display_name }}</h3><p class="rose-subtle">{{ post.created_at|date:"M j, H:i" }}</p></div>
+      {% if post.is_sensitive %}<span class="rose-chip rose-chip-wait">Marked sensitive</span>{% endif %}
+    </header>
+    {% if post.images.all %}<div class="rose-thumbs">{% for image in post.images.all %}{% if image.image %}<img src="{% url 'admin:feed_moderation_image' image.public_id %}" alt="{{ image.image_alt }}" loading="lazy">{% endif %}{% endfor %}</div>{% endif %}
+    <p>{{ post.caption|linebreaksbr }}</p>
     {% include "admin/feed/moderation_form.html" with target_type="post" ref=post.public_id %}
   </section>
   {% empty %}
-  <p>Nothing waiting.</p>
+  <p class="rose-card rose-subtle">Nothing waiting.</p>
   {% endfor %}
 
-  <h2>Recent actions</h2>
-  <table>
-    <thead><tr><th>When</th><th>Action</th><th>Target</th><th>By</th><th>Reason</th></tr></thead>
-    <tbody>
-      {% for action in actions_log %}
-      <tr><td>{{ action.created_at|date:"M j, H:i" }}</td><td>{{ action.action|capfirst }}</td><td>{{ action.target_label }}</td><td>{{ action.actor_label }}</td><td>{{ action.reason }}</td></tr>
-      {% empty %}
-      <tr><td colspan="5">No actions yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <section class="rose-card" aria-labelledby="recent-actions">
+    <h2 id="recent-actions">Recent actions</h2>
+    <div class="rose-table-wrap">
+      <table class="rose-table">
+        <thead><tr><th scope="col">When</th><th scope="col">Action</th><th scope="col">Target</th><th scope="col">By</th><th scope="col">Reason</th></tr></thead>
+        <tbody>
+          {% for action in actions_log %}
+          <tr><td>{{ action.created_at|date:"M j, H:i" }}</td><td><span class="rose-chip">{{ action.action|capfirst }}</span></td><td>{{ action.target_label }}</td><td>{{ action.actor_label }}</td><td>{{ action.reason }}</td></tr>
+          {% empty %}
+          <tr><td colspan="5" class="rose-subtle">No actions yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
 {% endblock %}

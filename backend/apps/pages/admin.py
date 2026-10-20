@@ -4,6 +4,11 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.decorators import action
+from unfold.widgets import UnfoldAdminTextareaWidget
+
+from apps.core.admin_display import image_preview
 
 from .models import FAQItem, PageContent, Redirect, SiteSettings, SocialLink, StaffProfile
 from .site_content import ContentError, load_guarded, parse_texts
@@ -11,13 +16,13 @@ from .site_content import ContentError, load_guarded, parse_texts
 MAX_CONTENT_FILE_BYTES = 200_000
 
 
-class SocialLinkInline(admin.TabularInline):
+class SocialLinkInline(TabularInline):
     model = SocialLink
     extra = 0
 
 
 @admin.register(SiteSettings)
-class SiteSettingsAdmin(admin.ModelAdmin):
+class SiteSettingsAdmin(ModelAdmin):
     inlines = [SocialLinkInline]
     readonly_fields = ("updated_at",)
     fieldsets = (
@@ -64,7 +69,7 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(FAQItem)
-class FAQItemAdmin(admin.ModelAdmin):
+class FAQItemAdmin(ModelAdmin):
     list_display = ("question", "sort_order", "is_published")
     list_editable = ("sort_order", "is_published")
     list_filter = ("is_published",)
@@ -72,7 +77,9 @@ class FAQItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(StaffProfile)
-class StaffProfileAdmin(admin.ModelAdmin):
+class StaffProfileAdmin(ModelAdmin):
+    photo_preview = image_preview("photo")
+    readonly_fields = ("photo_preview",)
     list_display = ("display_name", "role_title", "sort_order", "is_published")
     list_editable = ("sort_order", "is_published")
     list_filter = ("is_published",)
@@ -84,6 +91,7 @@ class StaffProfileAdmin(admin.ModelAdmin):
             "Photo (optional)",
             {
                 "fields": (
+                    "photo_preview",
                     "photo",
                     "photo_alt",
                     "photo_faces_visible",
@@ -107,7 +115,7 @@ class PageContentForm(forms.ModelForm):
     class Meta:
         model = PageContent
         fields = ["page", "key", "format", "value"]
-        widgets = {"value": forms.Textarea(attrs={"rows": 6})}
+        widgets = {"value": UnfoldAdminTextareaWidget(attrs={"rows": 6})}
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -153,7 +161,7 @@ class LoadContentForm(forms.Form):
 
 
 @admin.register(PageContent)
-class PageContentAdmin(admin.ModelAdmin):
+class PageContentAdmin(ModelAdmin):
     """Words on the public pages. Changes show on the site within a minute."""
 
     form = PageContentForm
@@ -161,7 +169,14 @@ class PageContentAdmin(admin.ModelAdmin):
     list_filter = ("page", "format")
     search_fields = ("key", "value")
     ordering = ("page", "key")
-    change_list_template = "admin/pages/pagecontent/change_list.html"
+    actions_list = ["load_site_content"]
+
+    def has_load_permission(self, request):
+        return request.user.is_superuser
+
+    @action(description="Load site content", icon="upload", permissions=["load"])
+    def load_site_content(self, request):
+        return redirect("admin:pages_load_content")
 
     def get_urls(self):
         extra = [
@@ -209,6 +224,6 @@ class PageContentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Redirect)
-class RedirectAdmin(admin.ModelAdmin):
+class RedirectAdmin(ModelAdmin):
     list_display = ("old_path", "new_path", "updated_at")
     search_fields = ("old_path", "new_path")

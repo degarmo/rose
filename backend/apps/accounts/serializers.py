@@ -93,30 +93,36 @@ class AccountSerializer(serializers.ModelSerializer):
         return None
 
     def get_staff(self, user):
-        """Team members only: their role, and whether this session passed the two-step
-        login the staff section needs (with where to do it if not)."""
+        """The team and door volunteers only: their role (none for a volunteer), whether they
+        may use the door desk, and whether this session passed the two-step login the staff
+        section needs (with where to do it if not)."""
         from urllib.parse import quote
 
         from django.conf import settings
         from django_otp.plugins.otp_totp.models import TOTPDevice
 
+        from apps.memberships.desk import DESK_PERMISSION
         from apps.safety import roles
 
         role = roles.role_of(user)
-        if role is None:
+        # Door volunteers hold the door desk permission without a team role.
+        door_desk = bool(user.is_active and user.is_staff and user.has_perm(DESK_PERMISSION))
+        if role is None and not door_desk:
             return None
         verified = roles.is_verified(user)
-        back = quote(f"{settings.SITE_URL}/members/staff", safe="")
+        door = f"{settings.SITE_URL}/members/staff/door" if door_desk else ""
+        back = quote(door if role is None else f"{settings.SITE_URL}/members/staff", safe="")
         admin = settings.ADMIN_BASE_URL
         return {
             "role": role,
+            "door_desk": door_desk,
             "verified": verified,
             "verify_url": None if verified else f"{admin}{reverse('admin:login')}?next={back}",
             # No authenticator yet: the two-step login starts by setting one up.
             "needs_enrollment": not TOTPDevice.objects.filter(user=user, confirmed=True).exists(),
             "admin_url": f"{admin}{reverse('admin:index')}",
             "door_desk_url": f"{admin}{reverse('admin:memberships_door_desk')}"
-            if user.has_perm("memberships.change_membership")
+            if door_desk
             else None,
         }
 

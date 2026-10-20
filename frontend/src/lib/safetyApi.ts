@@ -5,7 +5,10 @@ export type Role = 'moderator' | 'staff' | 'admin'
 /** On the signed-in person's own session: their team role and whether this session passed
  * the staff two-step login. */
 export interface StaffSession {
-  role: Role
+  /** Null for a door volunteer: the door desk without a team role. */
+  role: Role | null
+  /** May use the door desk (the admin's and /members/staff/door). */
+  door_desk: boolean
   verified: boolean
   /** Where to complete the two-step login when not yet verified. */
   verify_url: string | null
@@ -199,6 +202,60 @@ export const staffApi = {
   decide: (id: number, decision: 'uphold' | 'reverse', note: string) => post<Appeal>(s(`appeals/${id}/decide/`), { decision, note }),
   team: () => request<TeamMember[]>(s('team/')),
   setRole: (person: string, role: Role | null) => post<TeamMember[]>(s('team/'), { person, role }),
+}
+
+/** One membership as the door sees it (apps.memberships.door_api.card_payload). */
+export interface DoorCard {
+  id: number
+  reference_code: string
+  display_name: string
+  tier: { name: string; price: string; currency: string; interval: string; guests_included: number; guest_discount: boolean; is_free: boolean }
+  status: 'pending_payment' | 'active' | 'grace' | 'expired' | 'cancelled' | 'suspended'
+  status_label: string
+  source_label: string
+  is_guest_pass: boolean
+  id_checked: boolean
+  paid_awaiting_id_check: boolean
+  period_end: string | null
+  /** Members-only events left this month; null is unlimited (or a guest pass). */
+  events_remaining: number | null
+  do_not_admit: boolean
+  events_suspended_until: string | null
+  default_amount: string
+  actions: DoorAction[]
+  payments: Array<{ id: number; date: string; status: string; status_label: string; method_label: string; amount: string; refundable: boolean }>
+}
+
+export type DoorAction = 'activate_paid' | 'activate' | 'guest_visit' | 'walk_in' | 'renew' | 'comp' | 'suspend' | 'reinstate'
+
+export interface DoorSearch {
+  query: string
+  results: DoorCard[]
+  tonight_events: Array<{ id: number; title: string; starts_at: string }>
+  donation_methods: Array<{ value: string; label: string }>
+  join_url: string | null
+  join_qr: string | null
+}
+
+/** Everything the door can send: the action and the fields it needs. */
+export interface DoorRequest {
+  action: DoorAction | 'show_signature' | 'refund' | 'record_donation'
+  membership?: number
+  payment?: number
+  method?: string
+  amount?: string
+  note?: string
+  reason?: string
+  id_checked?: boolean
+  event?: number
+  party_size?: number
+  donor_display?: string
+  acknowledgement_email?: string
+}
+
+export const doorApi = {
+  search: (q: string) => request<DoorSearch>(`/staff/door/?q=${encodeURIComponent(q)}`),
+  act: (payload: DoorRequest) => post<{ message?: string; signature?: { membership: number; name: string } }>('/staff/door/', payload),
 }
 
 export interface MyReport {

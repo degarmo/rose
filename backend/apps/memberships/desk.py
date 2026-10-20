@@ -360,3 +360,193 @@ def reveal_signature_name(staff, membership):
     signature = membership.user.agreement_signatures.first() if membership.user else None
     _log(staff, "show_signature_name", membership)
     return signature.typed_name if signature else None
+
+
+# The desk itself, shared by the admin's door desk and the staff section's
+# (apps.safety.door): one search, one card and one way to run an action, so the two
+# can never disagree. Every action above is logged; so is a signature reveal.
+
+DESK_PERMISSION = "memberships.change_membership"
+DONATION_METHODS = [
+    ("cash", "Cash"),
+    ("card_in_person", "Card in person"),
+    ("check", "Check"),
+]
+ACTIONS = (
+    "record_donation",
+    "refund",
+    "activate",
+    "guest_visit",
+    "activate_paid",
+    "renew",
+    "comp",
+    "suspend",
+    "reinstate",
+    "walk_in",
+    "show_signature",
+)
+
+
+def find_memberships(query):
+    """By reference code (with or without its dash) or part of a display name."""
+    from django.db.models import Q
+
+    query = query.strip()
+    if not query:
+        return Membership.objects.none()
+    code = query.upper().replace(" ", "")
+    if len(code) == 6 and "-" not in code:
+        code = f"{code[:3]}-{code[3:]}"
+    return (
+        Membership.objects.filter(Q(reference_code=code) | Q(user__display_name__icontains=query))
+        .select_related("tier", "user")
+        .order_by("-updated_at")[:10]
+    )
+
+
+def parse_amount(value):
+    """Dollars as typed at the desk, in cents; None when it is not a number."""
+    try:
+        return max(0, round(float(value) * 100))
+    except (TypeError, ValueError):
+        return None
+
+
+def card(membership):
+    """What the door sees about one membership, and which actions it offers."""
+    status = membership.status
+    S = Membership.Status
+    guest = membership.tier.is_guest_pass
+    running = status in (S.ACTIVE, S.GRACE)
+    startable = (
+        status == S.PENDING_PAYMENT and not membership.paid_awaiting_id_check
+    ) or status in (S.EXPIRED, S.CANCELLED)
+    if guest:
+        actions = ["guest_visit"] if status in (S.PENDING_PAYMENT, S.EXPIRED, S.CANCELLED) else []
+    else:
+        actions = []
+        if membership.paid_awaiting_id_check:
+            actions.append("activate_paid")
+        if startable:
+            actions += ["activate", "comp"]
+        if running:
+            actions.append("walk_in")
+        if running or status == S.EXPIRED:
+            actions.append("renew")
+        if running:
+            actions.append("suspend")
+        if status == S.SUSPENDED:
+            actions.append("reinstate")
+    return {
+        "membership": membership,
+        "events_remaining": None if guest else events_remaining(membership),
+        "flags": door_flags(membership.user),
+        "is_guest_pass": guest,
+        "id_checked": has_id_check(membership.user) if membership.user else False,
+        "payments": list(membership.payments.all()[:5]),
+        "default_amount": f"{membership.tier.price_cents / 100:.2f}",
+        "actions": actions,
+    }
+
+
+class Outcome:
+    """What an action did: a message for staff, or a revealed signature name."""
+
+    def __init__(self, message="", signature=None):
+        self.message = message
+        self.signature = signature
+
+
+def _checked(data):
+    return str(data.get("id_checked", "")).lower() in ("on", "true", "1")
+
+
+def _amount(data):
+    amount = parse_amount(data.get("amount"))
+    if amount is None:
+        raise DeskError("Enter an amount.")
+    return amount
+
+
+def perform(staff, data):
+    """Run one desk action from a submitted form or request body; DeskError if refused."""
+    action = data.get("action")
+    if action not in ACTIONS:
+        raise DeskError("Unknown action.")
+    if action == "record_donation":
+        from apps.donations.services import DonationError, record_desk_donation
+
+        amount = parse_amount(data.get("amount"))
+        if not amount:
+            raise DeskError("Enter an amount.")
+        try:
+            donation = record_desk_donation(
+                staff,
+                amount,
+                data.get("method", ""),
+                donor_display=data.get("donor_display", ""),
+                acknowledgement_email=data.get("acknowledgement_email", ""),
+                note=data.get("note", ""),
+            )
+        except DonationError as exc:
+            raise DeskError(str(exc)) from exc
+        return Outcome(f"Donation of {donation.amount_display} recorded.")
+    if action == "refund":
+        payment = Payment.objects.filter(pk=data.get("payment")).first()
+        if payment is None:
+            raise DeskError("That payment was not found.")
+        refund(staff, payment, _amount(data), data.get("note", ""))
+        return Outcome("Refund recorded.")
+    membership = (
+        Membership.objects.select_related("tier", "user").filter(pk=data.get("membership")).first()
+    )
+    if membership is None:
+        raise DeskError("That membership was not found.")
+    code = membership.reference_code
+    if action == "activate":
+        record_payment_and_activate(
+            staff,
+            membership,
+            data.get("method"),
+            _amount(data),
+            data.get("note", ""),
+            _checked(data),
+        )
+        return Outcome(f"{code} is active.")
+    if action == "guest_visit":
+        guest_visit(
+            staff,
+            membership,
+            data.get("method"),
+            _amount(data),
+            data.get("note", ""),
+            _checked(data),
+        )
+        return Outcome(f"{code} is in for tonight.")
+    if action == "activate_paid":
+        activate_paid_online(staff, membership, _checked(data))
+        return Outcome(f"{code} is active.")
+    if action == "renew":
+        renew(staff, membership, data.get("method"), _amount(data), data.get("note", ""))
+        return Outcome(f"{code} renewed.")
+    if action == "comp":
+        comp(staff, membership, data.get("reason", ""), _checked(data))
+        return Outcome(f"{code} is a complimentary membership.")
+    if action == "suspend":
+        suspend(staff, membership, data.get("reason", ""))
+        return Outcome(f"{code} is suspended.")
+    if action == "reinstate":
+        reinstate(staff, membership, data.get("reason", ""))
+        return Outcome(f"{code} is reinstated.")
+    if action == "walk_in":
+        event = tonight_events().filter(pk=data.get("event")).first()
+        if event is None:
+            raise DeskError("Choose one of tonight's members-only events.")
+        try:
+            party_size = int(data.get("party_size", "1"))
+        except (TypeError, ValueError):
+            party_size = 0
+        walk_in(staff, membership, event, party_size)
+        return Outcome(f"{code} is checked in.")
+    name = reveal_signature_name(staff, membership)
+    return Outcome(signature={membership.pk: name or "No signature on file"})

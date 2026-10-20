@@ -68,6 +68,7 @@ function report(overrides: Partial<ReportDetail> = {}): ReportDetail {
 function as(staff: Partial<StaffSession> | null): Account {
   const session: StaffSession | null = staff && {
     role: 'moderator',
+    door_desk: false,
     verified: true,
     verify_url: null,
     needs_enrollment: false,

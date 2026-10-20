@@ -1,22 +1,19 @@
-{% extends "admin/login.html" %}
+{% extends "admin/rose/sign_in.html" %}
 
-{% block content %}
-{% if error %}<p class="errornote">{{ error }}</p>{% endif %}
-<div id="content-main">
-  <p>Staff accounts need a second step at every login. Set it up once now.</p>
-  <ol>
-    <li>Open an authenticator app on your phone (for example Google Authenticator, Microsoft Authenticator or 1Password).</li>
-    <li>Scan this code, or type the key below.</li>
-    <li>Enter the six-digit code the app shows.</li>
-  </ol>
-  <p><img src="{{ qr }}" alt="Setup code for the authenticator app" width="200" height="200"></p>
-  <p>Key: <code>{{ secret }}</code></p>
-  <form method="post" id="login-form">{% csrf_token %}
-    <div class="form-row">
-      <label class="required" for="{{ form.token.id_for_label }}">Six-digit code</label>
-      {{ form.token }}
-    </div>
-    <div class="submit-row"><input type="submit" value="Confirm"></div>
-  </form>
-</div>
+{% block sign_in %}
+<p>Staff accounts need a second step at every login. Set it up once now.</p>
+<ol class="rose-steps">
+  <li>Open an authenticator app on your phone (for example Google Authenticator, Microsoft Authenticator or 1Password).</li>
+  <li>Scan this code, or type the key below.</li>
+  <li>Enter the six-digit code the app shows.</li>
+</ol>
+<img class="rose-qr" src="{{ qr }}" alt="Setup code for the authenticator app" width="200" height="200">
+<p class="rose-key">Key: <code>{{ secret }}</code></p>
+<form method="post" id="login-form" class="rose-form">{% csrf_token %}
+  <div class="rose-field">
+    <label for="{{ form.token.id_for_label }}">Six-digit code</label>
+    {{ form.token }}
+  </div>
+  <button type="submit" class="rose-button">Confirm</button>
+</form>
 {% endblock %}
