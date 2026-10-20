@@ -176,7 +176,7 @@ def _evenings(rng, people, now):
                     "checked_in": rng.random() < 0.8,
                 },
             )
-    upcoming = Event.objects.published().filter(starts_at__gt=now, audience=Event.Audience.PUBLIC)
+    upcoming = Event.objects.published().upcoming(now).filter(audience=Event.Audience.PUBLIC)
     for event in upcoming:
         room = max(0, (event.capacity or 40) - event.going_count())
         for user in rng.sample(attendees, min(len(attendees), room, rng.randint(5, 12))):

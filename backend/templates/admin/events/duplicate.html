@@ -1,0 +1,25 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Duplicate as new event | Rose{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="rose-stack rose-narrow">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Duplicate as new event</h1>
+    <p class="rose-subtle">Each copy takes everything about the event, its picture and tags included, and starts as an unpublished draft. RSVPs, counts and the address are never copied; the end and the RSVP window move with the new start.</p>
+  </header>
+  <section class="rose-card">
+    <form method="post" class="rose-form">
+      {% csrf_token %}
+      {% for event in events %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ event.pk }}">{% endfor %}
+      <input type="hidden" name="action" value="duplicate_action">
+      {% include "admin/rose/form_fields.html" %}
+      <div class="rose-buttons">
+        <button type="submit" name="apply" value="1" class="rose-button">Create drafts</button>
+        <a href="{% url 'admin:events_pastevent_changelist' %}" class="rose-button-secondary">Cancel</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

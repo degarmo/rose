@@ -97,7 +97,7 @@ def test_owner_sees_every_section(admin_user):
     assert list(shown) == SECTIONS
     assert shown["Today"] == ["Dashboard", "Door desk", "Reports"]
     assert shown["Members"] == ["Members", "Memberships", "ID checks", "Tiers"]
-    assert shown["Events"] == ["Events", "RSVPs (counts only)", "Event tags"]
+    assert shown["Events"] == ["Events", "Past events", "RSVPs (counts only)", "Event tags"]
     assert shown["Content"] == [
         "Journal",
         "Announcements",

@@ -54,8 +54,10 @@ def _clock(moment):
 
 def when_text(event):
     start = timezone.localtime(event.starts_at)
-    end = timezone.localtime(event.ends_at)
-    return f"{start:%A, %B} {start.day}, {_clock(start)} to {_clock(end)}"
+    day = f"{start:%A, %B} {start.day}, {_clock(start)}"
+    if event.ends_at is None:
+        return day
+    return f"{day} to {_clock(timezone.localtime(event.ends_at))}"
 
 
 def build_body(rsvp, kind):
@@ -96,15 +98,14 @@ def send_due_reminders():
 
     People who RSVPed inside that window already have a fresh confirmation.
     """
-    from .models import RSVP
+    from .models import RSVP, Event
 
     now = timezone.now()
     due = RSVP.objects.select_related("event", "user__profile").filter(
         status=RSVP.Status.GOING,
         reminder_sent_at__isnull=True,
         event__is_published=True,
-        event__starts_at__gt=now,
-        event__starts_at__lte=now + timedelta(hours=24),
+        event__in=Event.objects.upcoming(now).filter(starts_at__lte=now + timedelta(hours=24)),
     )
     sent = 0
     for rsvp in due:
@@ -126,7 +127,7 @@ def purge_expired_rsvps():
 
     cutoff = timezone.now() - timedelta(days=settings.RSVP_RETENTION_DAYS)
     purged = 0
-    for event in Event.objects.filter(ends_at__lt=cutoff, rsvps_purged_at__isnull=True):
+    for event in Event.objects.past(cutoff).filter(rsvps_purged_at__isnull=True):
         with transaction.atomic():
             totals = event.rsvps.aggregate(
                 going=Sum("party_size", filter=Q(status=RSVP.Status.GOING)),

@@ -5,17 +5,41 @@ import { RICH_TEXT } from '@/components/content/richText'
 import { RSVPPanel } from '@/components/content/RSVPPanel'
 import { ErrorState, HeroLoading } from '@/components/content/States'
 import { useAuth } from '@/components/layout/authContext'
-import { Chip, GUTTER, ImageFrame } from '@/components/ui'
+import { ButtonLink, Chip, GUTTER, ImageFrame } from '@/components/ui'
 import { api, ApiError, type EventDetail, type RSVPState } from '@/lib/api'
 import { cn } from '@/lib/cn'
+import { EVENT_CATEGORIES } from '@/lib/events'
 import { formatShortDate, formatTimeRange } from '@/lib/format'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { NotFoundPage } from './NotFoundPage'
 
+/** An event that is over: said plainly, with the way to what is next in its category. */
+function PastEventBanner({ event }: { event: EventDetail }) {
+  const category = EVENT_CATEGORIES.find((option) => option.value === event.category)?.label ?? 'events'
+  return (
+    <section
+      aria-labelledby="past-event"
+      className="flex max-w-[640px] flex-col gap-4 rounded-card border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <h2 id="past-event" className="text-lg font-semibold text-fg">
+          This event has passed
+        </h2>
+        <p className="text-sm text-fg-muted">RSVPs are closed. There is more coming up.</p>
+      </div>
+      <ButtonLink to={`/events?category=${event.category}`} variant="outline" className="shrink-0">
+        Upcoming {category.toLowerCase()}
+      </ButtonLink>
+    </section>
+  )
+}
+
 /**
  * Event detail (design: "Event detail"): a full-width picture, then the title, the When /
- * Where rules and the description beside the RSVP panel.
+ * Where rules and the description beside the RSVP panel. Once the event is over (the
+ * server's `timing`), old links still work: a banner says so, with no RSVP panel, and the
+ * page asks search engines not to list it.
  */
 export function EventPage() {
   const { slug = '' } = useParams()
@@ -26,7 +50,8 @@ export function EventPage() {
   const loaded = state.status === 'success' ? state.data : null
   const event: EventDetail | null =
     loaded && rsvpOverride?.slug === loaded.slug ? { ...loaded, rsvp: rsvpOverride.rsvp } : loaded
-  useDocumentMeta({ title: event?.title ?? 'Events', description: event?.summary })
+  const past = event?.timing === 'past'
+  useDocumentMeta({ title: event?.title ?? 'Events', description: event?.summary, noindex: past })
 
   if (state.status === 'error' && state.error instanceof ApiError && state.error.isNotFound) {
     return <NotFoundPage />
@@ -61,6 +86,7 @@ export function EventPage() {
                 <Chip>{event.category_label}</Chip>
               </div>
               <h1 className="text-[2.25rem] font-light leading-[1.05] text-fg lg:text-h1">{event.title}</h1>
+              {past && <PastEventBanner event={event} />}
               <dl className="grid gap-1 border-y border-border py-4 text-sm leading-[1.6] lg:grid-cols-3 lg:gap-6 lg:py-6">
                 <DetailItem label="When">
                   <time dateTime={event.starts_at}>
@@ -88,13 +114,15 @@ export function EventPage() {
                 </Link>
               )}
             </div>
-            <aside className="lg:sticky lg:top-28 lg:self-start">
-              <RSVPPanel
-                key={`${event.slug}|${event.rsvp.state}`}
-                event={event}
-                onChange={(rsvp) => setRsvpOverride({ slug: event.slug, rsvp })}
-              />
-            </aside>
+            {!past && (
+              <aside className="lg:sticky lg:top-28 lg:self-start">
+                <RSVPPanel
+                  key={`${event.slug}|${event.rsvp.state}`}
+                  event={event}
+                  onChange={(rsvp) => setRsvpOverride({ slug: event.slug, rsvp })}
+                />
+              </aside>
+            )}
           </>
         )}
       </div>

@@ -213,7 +213,7 @@ def stories(request, now=None):
     )
     upcoming = (
         Event.objects.visible_to(viewer)
-        .upcoming(now)
+        .not_past(now)
         .filter(starts_at__lte=now + timedelta(days=7))
     ).order_by("starts_at")
     tonight = [event for event in upcoming if event.starts_at <= end_of_today][:STORY_LIMIT]

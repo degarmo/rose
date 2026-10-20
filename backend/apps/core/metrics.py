@@ -306,35 +306,42 @@ def guest_visits_by_month(today, months=12):
     return rows
 
 
-def event_counts(events):
-    """Going, waitlist and checked in for each event: numbers only, never names."""
+def with_event_counts(events):
+    """The events, with what event_figures needs counted alongside."""
     from django.db.models.functions import Coalesce
 
     from apps.events.models import RSVP
 
-    annotated = events.annotate(
+    return events.annotate(
         going_n=Coalesce(Sum("rsvps__party_size", filter=Q(rsvps__status=RSVP.Status.GOING)), 0),
         waiting_n=Count("rsvps", filter=Q(rsvps__status=RSVP.Status.WAITLIST)),
         checked_n=Coalesce(Sum("rsvps__party_size", filter=Q(rsvps__checked_in=True)), 0),
     )
-    return [
-        {
-            "event": event,
-            "going": count(event.final_going_count if event.rsvps_purged_at else event.going_n),
-            "waiting": count(event.waiting_n),
-            "checked_in": count(
-                event.final_checked_in_count if event.rsvps_purged_at else event.checked_n
-            ),
-        }
-        for event in annotated
-    ]
+
+
+def event_figures(event):
+    """Going, waitlist and checked in for one event from with_event_counts: the stored final
+    counts once its RSVPs are purged. Numbers only, never names."""
+    return {
+        "event": event,
+        "going": count(event.final_going_count if event.rsvps_purged_at else event.going_n),
+        "waiting": count(event.waiting_n),
+        "checked_in": count(
+            event.final_checked_in_count if event.rsvps_purged_at else event.checked_n
+        ),
+    }
+
+
+def event_counts(events):
+    """Going, waitlist and checked in for each event."""
+    return [event_figures(event) for event in with_event_counts(events)]
 
 
 def next_events(now, limit=3):
     """The next published events, with how many are going."""
     from apps.events.models import Event
 
-    upcoming = Event.objects.published().filter(starts_at__gte=now).order_by("starts_at")[:limit]
+    upcoming = Event.objects.published().upcoming(now).order_by("starts_at")[:limit]
     return event_counts(Event.objects.filter(pk__in=[e.pk for e in upcoming]).order_by("starts_at"))
 
 
@@ -378,7 +385,7 @@ def revenue_for(month_day):
 
 def events_section(since, now):
     """Events from the start of the range to two months ahead, newest first."""
-    from apps.events.models import Event
+    from apps.events.models import Event, Timing
 
     events = (
         Event.objects.published()
@@ -390,7 +397,10 @@ def events_section(since, now):
             "title": row["event"].title,
             "starts_at": row["event"].starts_at,
             "rsvps": row["going"],
-            "check_ins": row["checked_in"] if row["event"].starts_at <= now else None,
+            # Check-ins count once the evening has begun.
+            "check_ins": (
+                row["checked_in"] if row["event"].timing_at(now) != Timing.UPCOMING else None
+            ),
         }
         for row in event_counts(events)
     ]

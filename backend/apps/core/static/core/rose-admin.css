@@ -1101,3 +1101,9 @@ a.rose-banner:hover {
 .fieldset-membership .readonly {
   max-width: none;
 }
+
+/* The Events list's way to its archive, above the table. */
+.rose-archive-link {
+  margin: 0 0 12px;
+  font-weight: 600;
+}

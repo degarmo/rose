@@ -380,6 +380,7 @@ export type RSVPStateName =
   | 'tier_event_not_included'
   | 'monthly_limit_reached'
   | 'restricted'
+  | 'past'
   | 'going'
   | 'waitlisted'
 
@@ -395,6 +396,7 @@ export type RSVPReason =
   | 'monthly_limit_reached'
   | 'party_size_exceeds_tier'
   | 'restricted'
+  | 'past'
 
 export interface MyRSVP {
   status: 'going' | 'waitlist'
@@ -425,7 +427,10 @@ export interface EventSummary {
   category_label: string
   audience: EventAudience
   starts_at: string
-  ends_at: string
+  /** Null when staff gave no end time. */
+  ends_at: string | null
+  /** From the event's own times on the server: the one definition of "past". */
+  timing: 'upcoming' | 'happening' | 'past'
   location_label: string
   hero_image: RemoteImage | null
   rsvp: RSVPState
@@ -438,7 +443,7 @@ export interface EventDetail extends EventSummary {
 }
 
 export interface MyRSVPItem extends MyRSVP {
-  event: { slug: string; title: string; starts_at: string; ends_at: string; location_label: string }
+  event: { slug: string; title: string; starts_at: string; ends_at: string | null; location_label: string }
 }
 
 export interface JournalPost {

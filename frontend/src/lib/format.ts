@@ -64,8 +64,10 @@ export function chicagoDateKey(iso: string | Date): string {
 }
 
 /** "7:00–9:00 PM", or "9:00 PM–1:00 AM" when the evening crosses noon or midnight. */
-export function formatTimeRange(startIso: string, endIso: string): string {
+/** "7:00–10:00 PM", or just the start when no end time was given. */
+export function formatTimeRange(startIso: string, endIso: string | null): string {
   const start = timeFormatter.format(new Date(startIso))
+  if (endIso === null) return start
   const end = timeFormatter.format(new Date(endIso))
   const [startTime, startHalf] = start.split(' ')
   const endHalf = end.split(' ')[1]

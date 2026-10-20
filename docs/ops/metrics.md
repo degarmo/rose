@@ -79,9 +79,9 @@ These are the dashboard's to-do cards, and the same counts are the sidebar's bad
 
 | Metric | Definition | Function | Where it shows |
 | --- | --- | --- | --- |
-| Going | Party sizes of going RSVPs (the stored final count after RSVPs are purged) | `event_counts()` | Coming up, events table, RSVP counts page, events list, export |
+| Going | Party sizes of going RSVPs (the stored final count after RSVPs are purged) | `event_counts()`, `event_figures()` for one event | Coming up, events table, RSVP counts page, events list, Past events, export |
 | Waitlist | Waitlisted RSVPs | `event_counts()` | RSVP counts page |
-| Checked in | Party sizes checked in (the stored final count after the purge) | `event_counts()` | events table, RSVP counts page, export |
+| Checked in | Party sizes checked in (the stored final count after the purge) | `event_counts()`, `event_figures()` for one event | events table, RSVP counts page, Past events, export |
 
 ## Who sees what
 

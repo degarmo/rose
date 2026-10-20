@@ -61,7 +61,8 @@ def build_ics(event, include_details=False):
         f"UID:{uuid.uuid5(UID_NAMESPACE, str(event.pk))}",
         f"DTSTAMP:{_stamp(timezone.now())}",
         f"DTSTART:{_stamp(event.starts_at)}",
-        f"DTEND:{_stamp(event.ends_at)}",
+        # No end time given: calendars show the start only, rather than an invented end.
+        *([f"DTEND:{_stamp(event.ends_at)}"] if event.ends_at else []),
         f"SUMMARY:{_escape(title)}",
         f"LOCATION:{_escape(location)}",
         "END:VEVENT",

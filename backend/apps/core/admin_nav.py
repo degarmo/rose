@@ -160,6 +160,13 @@ def _groups():
             "title": "Events",
             "items": [
                 _model("Events", "calendar-days", "events", "event"),
+                # The archive: the same events, once they are over.
+                _item(
+                    "Past events",
+                    "archive",
+                    _changelist("events", "pastevent"),
+                    _perm("events.view_event"),
+                ),
                 _item(
                     "RSVPs (counts only)",
                     "ticket",

@@ -1,3 +1,4 @@
+import calendar
 import csv
 from datetime import timedelta
 
@@ -5,20 +6,23 @@ from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
-from unfold.decorators import display
+from unfold.decorators import action, display
 
 from apps.core.admin_display import chip, image_preview
 from apps.core.admin_widgets import RichTextWidget
+from apps.core.models import AuditLog, audit
 from apps.memberships import usage
+from apps.safety import roles
 
-from .models import RSVP, AttendeeExport, Event, EventTag
-from .recurrence import repeat_weekly
+from .models import RSVP, AttendeeExport, Event, EventTag, PastEvent
+from .recurrence import duplicate, repeat_weekly
 
 CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
@@ -35,8 +39,94 @@ class RepeatWeeklyForm(forms.Form):
     )
 
 
+EVENT_FIELDSETS = (
+    (
+        "Details",
+        {
+            "classes": ["tab"],
+            "fields": ("title", "slug", "summary", "body", "category"),
+            "description": "The summary shows on event cards; the body on the event page.",
+        },
+    ),
+    (
+        "When and where",
+        {
+            "classes": ["tab"],
+            "fields": ("starts_at", "ends_at", "location_label"),
+            "description": "Times are Chicago time. Leave the place general if it is private.",
+        },
+    ),
+    (
+        "RSVP",
+        {
+            "classes": ["tab"],
+            "description": "Who may RSVP, how many, and when. Members-only events can be "
+            "limited to tiers by tag.",
+            "fields": (
+                "audience",
+                "access_tags",
+                "capacity",
+                "waitlist_enabled",
+                "max_party_size",
+                "guest_allowance",
+                "rsvp_opens_at",
+                "rsvp_closes_at",
+                "show_attendee_count",
+            ),
+        },
+    ),
+    ("Linked class", {"classes": ["tab"], "fields": ("opportunity",)}),
+    (
+        "Image",
+        {
+            "classes": ["tab"],
+            "description": "Images that may show a person stay hidden until faces and "
+            "consent are confirmed.",
+            "fields": (
+                "hero_image_preview",
+                "hero_image",
+                "hero_image_alt",
+                "hero_image_faces_visible",
+                "hero_image_consent_confirmed",
+            ),
+        },
+    ),
+    (
+        "Publishing",
+        {
+            "classes": ["tab"],
+            "fields": ("is_published", "is_private_hold"),
+            "description": "Unpublished events are drafts; nobody outside the admin sees them.",
+        },
+    ),
+    (
+        "After the event",
+        {
+            "classes": ["tab"],
+            "fields": ("final_going_count", "final_checked_in_count", "rsvps_purged_at"),
+            "description": "RSVPs are deleted after the event; only these totals are kept.",
+        },
+    ),
+)
+EVENT_READONLY = (
+    "hero_image_preview",
+    "final_going_count",
+    "final_checked_in_count",
+    "rsvps_purged_at",
+    "is_private_hold",
+)
+
+
+def _is_main_list(request):
+    match = request.resolver_match
+    return bool(match and match.url_name == "events_event_changelist")
+
+
 @admin.register(Event)
 class EventAdmin(ModelAdmin):
+    """Events still to come or happening now, soonest first. Once over, an event moves to
+    Past events (PastEventAdmin) on its own, and back if its dates move ahead."""
+
     hero_image_preview = image_preview("hero_image")
     list_display = (
         "title",
@@ -49,88 +139,16 @@ class EventAdmin(ModelAdmin):
     )
     list_filter = ("is_published", "is_private_hold", "category", "audience", "starts_at")
     search_fields = ("title", "summary")
+    ordering = ("starts_at", "title")
     prepopulated_fields = {"slug": ("title",)}
     date_hierarchy = "starts_at"
     autocomplete_fields = ("opportunity",)
     filter_horizontal = ("access_tags",)
-    readonly_fields = (
-        "hero_image_preview",
-        "final_going_count",
-        "final_checked_in_count",
-        "rsvps_purged_at",
-        "is_private_hold",
-    )
+    readonly_fields = EVENT_READONLY
     actions = ["repeat_weekly_action"]
+    list_before_template = "admin/events/archive_link.html"
     # A long page: one tab per part.
-    fieldsets = (
-        (
-            "Details",
-            {
-                "classes": ["tab"],
-                "fields": ("title", "slug", "summary", "body", "category"),
-                "description": "The summary shows on event cards; the body on the event page.",
-            },
-        ),
-        (
-            "When and where",
-            {
-                "classes": ["tab"],
-                "fields": ("starts_at", "ends_at", "location_label"),
-                "description": "Times are Chicago time. Leave the place general if it is private.",
-            },
-        ),
-        (
-            "RSVP",
-            {
-                "classes": ["tab"],
-                "description": "Who may RSVP, how many, and when. Members-only events can be "
-                "limited to tiers by tag.",
-                "fields": (
-                    "audience",
-                    "access_tags",
-                    "capacity",
-                    "waitlist_enabled",
-                    "max_party_size",
-                    "guest_allowance",
-                    "rsvp_opens_at",
-                    "rsvp_closes_at",
-                    "show_attendee_count",
-                ),
-            },
-        ),
-        ("Linked class", {"classes": ["tab"], "fields": ("opportunity",)}),
-        (
-            "Image",
-            {
-                "classes": ["tab"],
-                "description": "Images that may show a person stay hidden until faces and "
-                "consent are confirmed.",
-                "fields": (
-                    "hero_image_preview",
-                    "hero_image",
-                    "hero_image_alt",
-                    "hero_image_faces_visible",
-                    "hero_image_consent_confirmed",
-                ),
-            },
-        ),
-        (
-            "Publishing",
-            {
-                "classes": ["tab"],
-                "fields": ("is_published", "is_private_hold"),
-                "description": "Unpublished events are drafts; nobody outside the admin sees them.",
-            },
-        ),
-        (
-            "After the event",
-            {
-                "classes": ["tab"],
-                "fields": ("final_going_count", "final_checked_in_count", "rsvps_purged_at"),
-                "description": "RSVPs are deleted after the event; only these totals are kept.",
-            },
-        ),
-    )
+    fieldsets = EVENT_FIELDSETS
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == "body":
@@ -148,17 +166,40 @@ class EventAdmin(ModelAdmin):
 
     @display(
         description="Status",
-        label={"Published": "success", "Draft": "warning", "Private hold": "info"},
+        label={
+            "Upcoming": "success",
+            "Happening now": "primary",
+            "Draft": "warning",
+            "Private hold": "info",
+            "Past": "info",
+        },
     )
     def state(self, obj):
         if obj.is_private_hold:
             return "Private hold"
         if not obj.is_published:
             return "Draft"
-        return "Past" if obj.ends_at < timezone.now() else "Published"
+        return obj.timing.label
 
     def get_queryset(self, request):
-        return super().get_queryset(request).with_going_total()
+        events = super().get_queryset(request).with_going_total()
+        return events.not_past() if _is_main_list(request) else events
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = {
+            **(extra_context or {}),
+            "past_count": Event.objects.past().count(),
+            "archive_url": reverse("admin:events_pastevent_changelist"),
+        }
+        return super().changelist_view(request, extra_context)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        """A past event opens in the archive, read-only unless edited anyway."""
+        event = Event.objects.filter(pk=object_id).first()
+        if event is not None and event.is_past:
+            url = reverse("admin:events_pastevent_change", args=(event.pk,))
+            return redirect(f"{url}?{request.GET.urlencode()}" if request.GET else url)
+        return super().change_view(request, object_id, form_url, extra_context)
 
     @admin.display(description="Going", ordering="going_total")
     def going(self, obj):
@@ -310,6 +351,217 @@ class EventAdmin(ModelAdmin):
                 ]
             )
         return response
+
+
+class YearFilter(admin.SimpleListFilter):
+    title = "year"
+    parameter_name = "year"
+
+    def lookups(self, request, model_admin):
+        years = Event.objects.past().dates("starts_at", "year", order="DESC")
+        return [(str(day.year), str(day.year)) for day in years]
+
+    def queryset(self, request, queryset):
+        return queryset.filter(starts_at__year=self.value()) if self.value() else queryset
+
+
+class MonthFilter(admin.SimpleListFilter):
+    title = "month"
+    parameter_name = "month"
+
+    def lookups(self, request, model_admin):
+        return [(str(number), name) for number, name in enumerate(calendar.month_name) if number]
+
+    def queryset(self, request, queryset):
+        return queryset.filter(starts_at__month=self.value()) if self.value() else queryset
+
+
+class TagFilter(admin.RelatedFieldListFilter):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title = "tags"
+
+
+class DuplicateForm(forms.Form):
+    """A new start for each event being duplicated."""
+
+    def __init__(self, events, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.events = list(events)
+        for event in self.events:
+            self.fields[f"start_{event.pk}"] = forms.DateTimeField(
+                label=str(event),
+                help_text="Chicago time. The end and the RSVP window move with it.",
+                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        for event in self.events:
+            start = cleaned.get(f"start_{event.pk}")
+            if start is not None and start <= timezone.now():
+                self.add_error(f"start_{event.pk}", "Choose a time in the future.")
+        return cleaned
+
+    def starts(self):
+        return [(event, self.cleaned_data[f"start_{event.pk}"]) for event in self.events]
+
+
+@admin.register(PastEvent)
+class PastEventAdmin(ModelAdmin):
+    """Past events: the archive, newest first. Read-only unless someone presses "Edit
+    anyway", which is logged; editing the dates into the future moves an event back to the
+    main list. Only admins may delete."""
+
+    hero_image_preview = image_preview("hero_image")
+    list_display = ("title", "date", "category", "going", "checked_in", "published")
+    list_display_links = ("title",)
+    list_filter = (
+        YearFilter,
+        MonthFilter,
+        "category",
+        ("access_tags", TagFilter),
+    )
+    search_fields = ("title",)
+    ordering = ("-starts_at", "title")
+    fieldsets = EVENT_FIELDSETS
+    readonly_fields = EVENT_READONLY
+    filter_horizontal = ("access_tags",)
+    autocomplete_fields = ("opportunity",)
+    actions = ["duplicate_action", "unpublish_action"]
+    actions_detail = ["edit_anyway"]
+    change_form_before_template = "admin/events/past_notice.html"
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "body":
+            kwargs["widget"] = RichTextWidget
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    def get_queryset(self, request):
+        from apps.core import metrics
+
+        return metrics.with_event_counts(PastEvent.objects.all())
+
+    # Who may do what: the same as for events, but read-only until "Edit anyway".
+
+    def has_module_permission(self, request):
+        return request.user.has_perm("events.view_event")
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.has_perm("events.view_event")
+
+    def has_add_permission(self, request):
+        return False
+
+    def _editing(self, request):
+        return request.GET.get("edit") == "1"
+
+    def has_change_permission(self, request, obj=None):
+        allowed = request.user.has_perm("events.change_event")
+        return allowed if obj is None else allowed and self._editing(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return roles.has_role(request.user, roles.ADMIN)
+
+    def has_edit_anyway_permission(self, request, object_id=None):
+        return request.user.has_perm("events.change_event") and not self._editing(request)
+
+    @action(description="Edit anyway", url_path="edit-anyway", permissions=["edit_anyway"])
+    def edit_anyway(self, request, object_id):
+        url = reverse("admin:events_pastevent_change", args=(object_id,))
+        return redirect(f"{url}?edit=1")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        audit(
+            AuditLog.Category.CONTENT,
+            "edit_past_event",
+            request.user,
+            f"Event {obj.title}"[:120],
+            "event",
+            target_ref=obj.slug,
+            reason="Changed: " + (", ".join(form.changed_data) or "nothing"),
+        )
+
+    # Columns
+
+    @display(description="Date", ordering="starts_at")
+    def date(self, obj):
+        return timezone.localtime(obj.starts_at).strftime("%b %-d, %Y")
+
+    def _figure(self, obj, name):
+        from apps.core import metrics
+
+        return render_to_string(
+            "admin/rose/metric.html", {"metric": metrics.event_figures(obj)[name]}
+        )
+
+    @display(description="Published", boolean=True, ordering="is_published")
+    def published(self, obj):
+        return obj.is_published
+
+    @display(description="Going")
+    def going(self, obj):
+        return self._figure(obj, "going")
+
+    @display(description="Checked in")
+    def checked_in(self, obj):
+        return self._figure(obj, "checked_in")
+
+    # Actions
+
+    @admin.action(description="Duplicate as new event")
+    def duplicate_action(self, request, queryset):
+        events = queryset.order_by("starts_at")
+        if not request.user.has_perm("events.add_event"):
+            raise PermissionDenied
+        form = DuplicateForm(events, request.POST if "apply" in request.POST else None)
+        if form.is_bound and form.is_valid():
+            drafts = [duplicate(event, start) for event, start in form.starts()]
+            for draft in drafts:
+                audit(
+                    AuditLog.Category.CONTENT,
+                    "duplicate_event",
+                    request.user,
+                    f"Event {draft.title}"[:120],
+                    "event",
+                    target_ref=draft.slug,
+                )
+            self.message_user(
+                request,
+                f"Created {len(drafts)} draft{'s' if len(drafts) != 1 else ''}, unpublished and "
+                "with no RSVPs: " + ", ".join(str(draft) for draft in drafts) + ".",
+            )
+            if len(drafts) == 1:
+                return redirect(reverse("admin:events_event_change", args=(drafts[0].pk,)))
+            return redirect(reverse("admin:events_event_changelist"))
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Duplicate as new event",
+            "opts": self.model._meta,
+            "form": form,
+            "events": events,
+            "action_checkbox_name": admin.helpers.ACTION_CHECKBOX_NAME,
+        }
+        return TemplateResponse(request, "admin/events/duplicate.html", context)
+
+    @admin.action(description="Unpublish")
+    def unpublish_action(self, request, queryset):
+        if not request.user.has_perm("events.change_event"):
+            raise PermissionDenied
+        events = list(queryset.filter(is_published=True))
+        for event in events:
+            event.is_published = False
+            event.save(update_fields=["is_published", "updated_at"])
+            audit(
+                AuditLog.Category.CONTENT,
+                "unpublish_event",
+                request.user,
+                f"Event {event.title}"[:120],
+                "event",
+                target_ref=event.slug,
+            )
+        self.message_user(request, f"Unpublished {len(events)} event(s).")
 
 
 @admin.register(EventTag)

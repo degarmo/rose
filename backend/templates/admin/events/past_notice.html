@@ -1,0 +1,3 @@
+{% if original %}
+<p class="rose-banner" role="status">{% if request.GET.edit == "1" %}You are editing an event that is over. Saving is logged with your name and what changed. Moving its dates ahead puts it back in the main list.{% else %}This event is over, so it is shown read-only. Use <strong>Edit anyway</strong> at the top if it must change; that is logged.{% endif %}</p>
+{% endif %}

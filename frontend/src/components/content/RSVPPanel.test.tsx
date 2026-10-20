@@ -43,6 +43,7 @@ function makeEvent(rsvp: Partial<RSVPState> = {}, extra: Partial<EventDetail> = 
     audience: 'public',
     starts_at: '2026-11-06T21:00:00-06:00',
     ends_at: '2026-11-07T01:00:00-06:00',
+    timing: 'upcoming',
     location_label: 'Main floor',
     hero_image: null,
     rsvp: rsvpState(rsvp),

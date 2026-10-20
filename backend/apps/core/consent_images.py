@@ -174,6 +174,7 @@ def consent_image_models(include_private=True):
         model
         for model in apps.get_models()
         if issubclass(model, ConsentImageMixin)
+        and not model._meta.proxy  # the same rows as the model it stands in for
         and consent_image_field_names(model)
         and (include_private or not getattr(model, "private_media", False))
     ]

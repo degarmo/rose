@@ -51,13 +51,13 @@ class EventListView(EventListMixin, generics.ListAPIView):
             events = events.filter(category=category)
         now = timezone.now()
         if self.request.query_params.get("past") == "1":
-            return events.filter(ends_at__lt=now).order_by("-starts_at")[:50]
+            return events.past(now).order_by("-starts_at")[:50]
         # Aggregate annotations drop Meta.ordering, so order explicitly.
-        return events.upcoming(now).order_by("starts_at", "title")
+        return events.not_past(now).order_by("starts_at", "title")
 
 
 class EventCalendarView(EventListMixin, generics.ListAPIView):
-    """Events overlapping `start`..`end` (YYYY-MM-DD, at most 62 days)."""
+    """Events overlapping `start`..`end` (YYYY-MM-DD, at most 62 days), past ones left out."""
 
     def get_queryset(self):
         try:
@@ -73,9 +73,7 @@ class EventCalendarView(EventListMixin, generics.ListAPIView):
         category = self.request.query_params.get("category")
         if category:
             events = events.filter(category=category)
-        return events.filter(starts_at__lt=range_end, ends_at__gte=range_start).order_by(
-            "starts_at", "title"
-        )
+        return events.overlapping(range_start, range_end).not_past().order_by("starts_at", "title")
 
 
 class EventDetailView(generics.RetrieveAPIView):
@@ -192,7 +190,7 @@ class MyRSVPListView(generics.ListAPIView):
             RSVP.objects.filter(
                 user=self.request.user,
                 status__in=[RSVP.Status.GOING, RSVP.Status.WAITLIST],
-                event__ends_at__gte=timezone.now(),
+                event__in=Event.objects.not_past(),
             )
             .select_related("event")
             .order_by("event__starts_at")

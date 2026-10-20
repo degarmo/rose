@@ -84,6 +84,18 @@ The site will not publish an image showing faces without confirmed consent.
 actions box that appears above the list, press **Run**, pick how many weeks, and confirm. Copies keep the same time of day.
 Copies that already exist are skipped.
 
+**Past events**: **Events** lists only what is still to come or happening now, soonest
+first, with a badge for each (Upcoming, Happening now, Draft). Once an event is over it moves
+to **Events > Past events** by itself; nothing needs doing, and if you move an event's dates
+ahead it comes back. An event with no end time counts as over 6 hours after it starts. The
+archive shows each event's final going and checked-in counts ("<5" for fewer than 5) and
+filters by year, month, category and tag. Past events open read-only: press **Edit anyway**
+at the top if one must change, and the edit is logged. To run an evening again, tick it,
+choose **Duplicate as new event**, and pick the new date and time: you get an unpublished
+draft with everything but the RSVPs. **Unpublish** takes events off the site. Only admins
+can delete, after confirming. On the website an old event's page still opens, says the
+event has passed and points to what is coming up.
+
 **Door list**: press **Door list** on the event's row in **Events**, or in
 **Events > RSVPs (counts only)**, which shows how many are going, waiting and checked in. It shows display names and
 party sizes, never emails. Tick people in as they arrive.

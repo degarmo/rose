@@ -12,11 +12,12 @@ from apps.memberships.access import (
     tier_includes_event,
 )
 
-from .models import RSVP, Event
+from .models import RSVP, Event, Timing
 
 OK = "ok"
 UNAVAILABLE = "unavailable"
 CLOSED = "closed"
+PAST = "past"
 MEMBERS_ONLY = "members_only"
 NOT_OPEN_YET = "not_open_yet"
 LOGIN_REQUIRED = "login_required"
@@ -71,6 +72,8 @@ def can_rsvp(user, event, now=None, party_size=1, mine=None):
         return False, UNAVAILABLE
     if event.audience == Event.Audience.ACCOUNT and not (user and user.is_authenticated):
         return False, LOGIN_REQUIRED
+    if event.timing_at(now) == Timing.PAST:
+        return False, PAST
     if now >= event.rsvp_deadline:
         return False, CLOSED
     if event.audience == Event.Audience.MEMBERS and MEMBERS_EVENTS not in entitlements(user):

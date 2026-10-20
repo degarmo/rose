@@ -44,7 +44,7 @@ def seed_rentals():
         created += 1
 
     # One that asks for the same evening as a published event, to show the clash warning.
-    event = Event.objects.published().filter(starts_at__gt=now).order_by("starts_at").first()
+    event = Event.objects.published().upcoming(now).order_by("starts_at").first()
     clash_email = "demo-rental-clash@example.org"
     if event and not RentalInquiry.objects.filter(contact_email=clash_email).exists():
         local = timezone.localtime(event.starts_at)

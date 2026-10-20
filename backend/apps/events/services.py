@@ -17,6 +17,7 @@ from . import tasks
 from .access import (
     MONTHLY_LIMIT_REACHED,
     PARTY_SIZE_EXCEEDS_TIER,
+    PAST,
     RESTRICTED,
     TIER_EVENT_NOT_INCLUDED,
     can_rsvp,
@@ -40,6 +41,7 @@ class RSVPResult:
 
 
 MESSAGES = {
+    PAST: "This event has passed.",
     "party_size": "Choose a party size this event allows.",
     "full": "This event is full.",
     "no_room_for_change": "There is not enough space to change your party size.",
@@ -174,7 +176,7 @@ def release_places_held_by(user):
     active = RSVP.objects.filter(
         user=user,
         status__in=[RSVP.Status.GOING, RSVP.Status.WAITLIST],
-        event__ends_at__gte=timezone.now(),
+        event__in=Event.objects.not_past(),
     )
     for rsvp in active:
         cancel_rsvp(rsvp, notify_owner=False)

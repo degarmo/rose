@@ -22,8 +22,8 @@ class RentalError(Exception):
 
 def overlapping_events(start, end, exclude=None):
     """Published events and private holds that overlap [start, end)."""
-    events = Event.objects.filter(
-        Q(is_published=True) | Q(is_private_hold=True), starts_at__lt=end, ends_at__gt=start
+    events = Event.objects.overlapping(start, end).filter(
+        Q(is_published=True) | Q(is_private_hold=True)
     )
     if exclude is not None:
         events = events.exclude(pk=exclude.pk)

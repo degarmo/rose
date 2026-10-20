@@ -7,6 +7,7 @@ from .access import (
     MEMBERS_ONLY,
     MONTHLY_LIMIT_REACHED,
     NOT_OPEN_YET,
+    PAST,
     RESTRICTED,
     TIER_EVENT_NOT_INCLUDED,
     UNAVAILABLE,
@@ -17,6 +18,7 @@ from .access import (
 from .models import MAX_PARTY_SIZE, RSVP, Event
 
 UNAVAILABLE_STATES = {
+    PAST,
     CLOSED,
     MEMBERS_ONLY,
     NOT_OPEN_YET,
@@ -81,6 +83,7 @@ class EventSerializer(serializers.ModelSerializer):
             "audience",
             "starts_at",
             "ends_at",
+            "timing",
             "location_label",
             "hero_image",
             "rsvp",

@@ -13,6 +13,7 @@ const STATE_LABELS: Record<RSVPStateName, { label: string; tone: BadgeTone }> = 
   tier_event_not_included: { label: 'Not on your plan', tone: 'members' },
   monthly_limit_reached: { label: 'Monthly limit reached', tone: 'full' },
   restricted: { label: 'Paused', tone: 'full' },
+  past: { label: 'Over', tone: 'full' },
   going: { label: 'Going', tone: 'going' },
   waitlisted: { label: 'On the waitlist', tone: 'wait' },
 }

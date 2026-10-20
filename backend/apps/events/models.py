@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -8,8 +10,28 @@ from apps.core.consent_images import consented_image
 from apps.core.text import sanitize_rich_text
 
 MAX_PARTY_SIZE = 2
+# An event with no end time is over this long after it starts.
+DEFAULT_LENGTH = timedelta(hours=6)
 # Slugs that would collide with fixed routes under /events/.
 RESERVED_SLUGS = frozenset({"calendar", "rsvp", "cancel"})
+
+
+class Timing(models.TextChoices):
+    """Where an event stands, from its own times: the one definition of "past".
+
+    Upcoming: it starts in the future. Happening now: it has started and not yet ended.
+    Past: it ended before now (or, with no end time, started more than DEFAULT_LENGTH
+    ago). Nothing is stored, so editing an event's times moves it at once.
+    """
+
+    UPCOMING = "upcoming", "Upcoming"
+    HAPPENING = "happening", "Happening now"
+    PAST = "past", "Past"
+
+
+def _ended(now):
+    """Events over by `now`: their end time, or DEFAULT_LENGTH after the start, has gone."""
+    return Q(ends_at__lt=now) | Q(ends_at__isnull=True, starts_at__lt=now - DEFAULT_LENGTH)
 
 
 class EventQuerySet(models.QuerySet):
@@ -24,8 +46,29 @@ class EventQuerySet(models.QuerySet):
             events = events.exclude(audience=Event.Audience.ACCOUNT)
         return events
 
+    # Timing (see Timing). `now` defaults to the present; times compare as instants, and
+    # are shown in Chicago time.
+
     def upcoming(self, now=None):
-        return self.filter(ends_at__gte=now or timezone.now())
+        return self.filter(starts_at__gt=now or timezone.now())
+
+    def happening(self, now=None):
+        now = now or timezone.now()
+        return self.filter(starts_at__lte=now).exclude(_ended(now))
+
+    def not_past(self, now=None):
+        """Upcoming and happening now: what the site and the admin's main list show."""
+        return self.exclude(_ended(now or timezone.now()))
+
+    def past(self, now=None):
+        return self.filter(_ended(now or timezone.now()))
+
+    def overlapping(self, start, end):
+        """Events running at some point between `start` and `end`."""
+        still_on = Q(ends_at__gt=start) | Q(
+            ends_at__isnull=True, starts_at__gt=start - DEFAULT_LENGTH
+        )
+        return self.filter(still_on, starts_at__lt=end)
 
     def with_going_total(self):
         return self.annotate(
@@ -71,7 +114,11 @@ class Event(consented_image("hero_image", upload_to="events")):
     )
     category = models.CharField(max_length=20, choices=Category.choices, default=Category.SOCIAL)
     starts_at = models.DateTimeField(help_text="Chicago time.")
-    ends_at = models.DateTimeField(help_text="Chicago time.")
+    ends_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Chicago time. Blank: it counts as over 6 hours after it starts.",
+    )
     location_label = models.CharField(max_length=120, blank=True)
     is_published = models.BooleanField(default=False)
     audience = models.CharField(max_length=10, choices=Audience.choices, default=Audience.PUBLIC)
@@ -151,7 +198,7 @@ class Event(consented_image("hero_image", upload_to="events")):
             errors["ends_at"] = "The end must be after the start."
         if self.rsvp_opens_at and self.rsvp_closes_at and self.rsvp_closes_at <= self.rsvp_opens_at:
             errors["rsvp_closes_at"] = "RSVPs must close after they open."
-        if self.rsvp_closes_at and self.ends_at and self.rsvp_closes_at > self.ends_at:
+        if self.rsvp_closes_at and self.starts_at and self.rsvp_closes_at > self.effective_end:
             errors["rsvp_closes_at"] = "RSVPs cannot close after the event ends."
         if self.slug in RESERVED_SLUGS:
             errors["slug"] = "That address is reserved. Please choose another."
@@ -163,6 +210,26 @@ class Event(consented_image("hero_image", upload_to="events")):
             errors["is_published"] = "A private rental hold is never published."
         if errors:
             raise ValidationError(errors)
+
+    @property
+    def effective_end(self):
+        """When it is over: its end time, or DEFAULT_LENGTH after it starts."""
+        return self.ends_at or self.starts_at + DEFAULT_LENGTH
+
+    def timing_at(self, now):
+        if self.starts_at > now:
+            return Timing.UPCOMING
+        if self.effective_end < now:
+            return Timing.PAST
+        return Timing.HAPPENING
+
+    @property
+    def timing(self):
+        return self.timing_at(timezone.now())
+
+    @property
+    def is_past(self):
+        return self.timing == Timing.PAST
 
     @property
     def rsvp_deadline(self):
@@ -179,6 +246,23 @@ class Event(consented_image("hero_image", upload_to="events")):
 
     def is_full(self):
         return self.capacity is not None and self.going_count() >= self.capacity
+
+
+class PastEventManager(models.Manager.from_queryset(EventQuerySet)):
+    def get_queryset(self):
+        return super().get_queryset().past()
+
+
+class PastEvent(Event):
+    """The admin's archive of events that are over: the same rows (see Timing)."""
+
+    objects = PastEventManager()
+
+    class Meta:
+        proxy = True
+        verbose_name = "past event"
+        verbose_name_plural = "past events"
+        ordering = ["-starts_at", "title"]
 
 
 class RSVP(models.Model):

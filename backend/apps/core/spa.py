@@ -47,4 +47,17 @@ def spa(request, path=""):
         raise Http404
     response = HttpResponse(index_html(), content_type="text/html; charset=utf-8")
     response["Cache-Control"] = "no-cache"
+    if _is_past_event_page(full):
+        # Old links still work, but search engines should not list an evening that is over.
+        response["X-Robots-Tag"] = "noindex"
     return response
+
+
+def _is_past_event_page(path):
+    from apps.events.models import Event
+
+    parts = path.strip("/").split("/")
+    if len(parts) != 2 or parts[0] != "events":
+        return False
+    event = Event.objects.filter(slug=parts[1]).only("starts_at", "ends_at").first()
+    return bool(event and event.is_past)
