@@ -69,7 +69,7 @@ describe('getting into the app', () => {
     for (const member_app of ['join', 'paused', null] as const) {
       expect(landingAfterLogin({ member_app, staff: null }, null, '/members/home')).toBe('/members/home')
     }
-    const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, door_desk: true, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', door_desk_url: null } }
+    const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, door_desk: true, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', door_desk_url: null, age_check_required: true, can_change_age_check: false } }
     expect(landingAfterLogin(owner, null, '/members/home')).toBe('/members/staff')
     expect(landingAfterLogin(owner, '/events/x', '/events/x')).toBe('/events/x')
     expect(memberAppPath({ member_app: 'open' })).toBe('/members/feed')

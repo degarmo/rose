@@ -17,6 +17,18 @@ export interface StaffSession {
   /** The Django admin's home, and the door desk for those who may use it. */
   admin_url: string
   door_desk_url: string | null
+  /** The club's switch for the member feed's age check; off shows a banner on staff pages. */
+  age_check_required: boolean
+  /** Admins (and superusers) may change it, with a reason and a fresh two-step code. */
+  can_change_age_check: boolean
+}
+
+export interface AgeCheckSetting {
+  required: boolean
+  can_change: boolean
+  switched_on_at: string | null
+  /** How many people with feed access have no ID check on file (counts only). */
+  unchecked_with_feed: number
 }
 
 export const ROLE_LABELS: Record<Role, string> = { moderator: 'Moderator', staff: 'Staff', admin: 'Admin' }
@@ -190,6 +202,8 @@ const s = (path: string) => `/staff/${path}`
 
 export const staffApi = {
   overview: () => request<Overview>(s('overview/')),
+  ageCheck: () => request<AgeCheckSetting>(s('settings/age-verification/')),
+  setAgeCheck: (payload: { required: boolean; reason: string; code: string }) => post<AgeCheckSetting>(s('settings/age-verification/'), payload),
   metrics: (range: MetricsRange) => request<Metrics>(s(`metrics/?range=${range}`)),
   exportMetrics: (range: MetricsRange) => postForBlob(s('metrics/export/'), { range }),
   reports: (status: ReportStatus) => request<ReportSummary[]>(s(`reports/?status=${status}`)),

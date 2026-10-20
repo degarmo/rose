@@ -15,7 +15,7 @@ from apps.accounts.models import Profile, User
 from apps.core.admin_display import chip, flag
 from apps.core.models import AuditLog
 from apps.core.private_media import private_media
-from apps.memberships.access import is_age_verified
+from apps.memberships.access import age_gate_passes
 
 from . import services
 from .models import (
@@ -186,7 +186,7 @@ class FeedPostAdmin(ModelAdmin):
                 report.post_id or report.comment_id or report.profile_user_id,
             )
             groups[key].append(report)
-        age_checked = is_age_verified(request.user)
+        age_checked = age_gate_passes(request.user)
         report_groups = []
         for (target_type, _), reports in groups.items():
             target = reports[0].target
@@ -244,9 +244,9 @@ class FeedPostAdmin(ModelAdmin):
         return []
 
     def _require_age_check(self, request):
-        """Member pictures, here too, only for staff whose own age has been checked."""
+        """Member pictures, here too, only for staff the member feed's age gate lets through."""
         self._require(request)
-        if not is_age_verified(request.user):
+        if not age_gate_passes(request.user):
             raise Http404
 
     def image_view(self, request, public_id):

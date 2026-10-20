@@ -64,17 +64,23 @@ class AccountSerializer(serializers.ModelSerializer):
         return unread_notices(user)
 
     def get_age_check(self, user):
-        """The in-person age check the member feed needs. `needed` shows the verify card (on
-        Home and in Settings) to anyone it would unlock something for: feed access waiting
-        for it, or a membership that is open or on its way. `notice` says they had the feed
-        before it asked for one."""
+        """The in-person age check the member feed needs, while the club has it switched on.
+        `needed` shows the verify card (on Home and in Settings) to anyone it would unlock
+        something for: feed access waiting for it, or a membership that is open or on its
+        way. `notice` says the check was switched on after they had the feed. With the check
+        switched off, nothing is needed and the card is hidden."""
         from apps.feed.access import awaiting_age_check
-        from apps.memberships.access import is_age_verified
+        from apps.memberships.access import age_check_required, is_age_verified
         from apps.memberships.models import Membership
 
         verified = is_age_verified(user)
-        needed = not verified and (
-            awaiting_age_check(user) or Membership.objects.non_terminal().filter(user=user).exists()
+        needed = (
+            age_check_required()
+            and not verified
+            and (
+                awaiting_age_check(user)
+                or Membership.objects.non_terminal().filter(user=user).exists()
+            )
         )
         profile = getattr(user, "profile", None)
         return {
@@ -131,6 +137,8 @@ class AccountSerializer(serializers.ModelSerializer):
         from django.conf import settings
         from django_otp.plugins.otp_totp.models import TOTPDevice
 
+        from apps.memberships.access import age_check_required
+        from apps.memberships.age import can_change_setting
         from apps.memberships.desk import DESK_PERMISSION
         from apps.safety import roles
 
@@ -154,6 +162,9 @@ class AccountSerializer(serializers.ModelSerializer):
             "door_desk_url": f"{admin}{reverse('admin:memberships_door_desk')}"
             if door_desk
             else None,
+            # Off: the staff section shows a banner, which admins can open to change it.
+            "age_check_required": age_check_required(),
+            "can_change_age_check": can_change_setting(user),
         }
 
     def get_feed_controls(self, user):

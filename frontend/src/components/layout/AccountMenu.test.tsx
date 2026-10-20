@@ -40,7 +40,7 @@ describe('AccountMenu', () => {
         verify_url: null,
         needs_enrollment: false,
         admin_url: 'https://site.example/admin/',
-        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/',
+        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/', age_check_required: true, can_change_age_check: false,
       },
     })
     const block = screen.getByRole('list', { name: 'Staff' })
@@ -66,7 +66,7 @@ describe('AccountMenu', () => {
         verify_url: null,
         needs_enrollment: false,
         admin_url: 'https://site.example/admin/',
-        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/',
+        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/', age_check_required: true, can_change_age_check: false,
       },
     })
     const block = screen.getByRole('list', { name: 'Staff' })

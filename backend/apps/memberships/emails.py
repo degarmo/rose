@@ -84,7 +84,7 @@ def send_age_verified(user):
 
 
 def send_age_check_notice(user):
-    """Once, to people who had the member app before it asked for an in-person check."""
+    """Once per switch-on of the feed's age check, to each person it closes the feed to."""
     body = (
         f"Hello {user.display_name},\n\n"
         "A quick note: part of your account now needs a short check in person at your next "

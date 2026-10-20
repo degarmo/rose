@@ -789,3 +789,30 @@ Prompt 12 was stopped before prompt 13 began and was done afterwards, so its dec
 465. **(security)** Signed media URLs must expire within 60 seconds: settings refuse a longer `S3_SIGNED_URL_SECONDS`. Every request to the media view checks access again, so a revocation (or a ban) also stops URLs already handed out within a minute.
 466. Create's consent box now reads "Everyone identifiable in these photos is 18 or older and agreed to them being posted here.", and Share stays disabled until it is ticked. "May involve someone under 18" was already a report reason that hides the content at once. It now goes to the top of the staff inbox and of the admin's Reports, marked "Possibly under 18".
 
+### Prompt 12 addendum: a switch for the age check
+
+467. The age check is a club setting: `SiteSettings.require_age_verification_for_feed`, on by default (new databases and `seed_demo` included). Every feed, media and staff-picture check calls `age_gate_passes(user)` in `apps/memberships/access.py`. It is true when the setting is off, or when `is_age_verified(user)` is true. Nothing reads the setting directly except `age_check_required()`. `is_age_verified` is unchanged.
+468. **(security)** Only the Admin role and superusers can change it. They do so from Settings › Site settings in the admin (its own page) or from the staff section (the age verification card on the dashboard, or the banner). Moderators and Staff see its state: the card on the dashboard or under Reports, the admin page, and the banner. A change needs:
+    - a confirmation explaining the effect, including how many people turning it on would affect
+    - a typed reason
+    - a fresh code from the person's own authenticator app, which django-otp refuses if it was already used
+
+    Each change writes an `AuditLog` entry in the new `settings` category: who, when, "Changed from On to Off" and the reason.
+469. The setting is cached for 5 seconds (`AGE_CHECK_CACHE_SECONDS`), and the cache entry is deleted when it changes, both at once and again after the transaction commits. A switch therefore reaches every request, including media URLs, within moments. Signed URLs already handed out expire within 60 seconds (decision 465).
+470. While it is off:
+    - every staff page shows an amber banner, "Age verification for the member feed is off": the admin under its header, and the staff section above each page. Admins can open it to change the setting.
+    - the verify card is hidden, `member_app` is never `verify`, and the join flow does not mention the check
+    - staff grants show as "Granted", not "awaiting ID check"
+    - the door desk still shows ID verified and ID check needed, and still records checks
+
+    No weekly staff metrics email exists, so there is none to mention it in.
+471. These hold whatever the setting:
+    - the door desk's ID check before any paid, comp or guest activation, or a renewal or reinstatement
+    - `import_members` with `id_checked=no` waiting for a check
+    - the upload promise that everyone pictured is 18 or older
+    - "possibly under 18" reports hiding content at once and going first
+
+    Tests run each of these with the setting off.
+472. This replaces decision 461. Memberships migration 0007 changes nothing and only prints how many active accounts have feed access and no ID check (18 on the development database), so the club knows the effect before turning the check on in production. Accounts migration 0010 drops the email timestamp and clears the notices the first version of 0007 had stamped (nobody had been emailed about them). The scheduled notice task is gone.
+473. Switching it on tells each person it closes the feed to: one neutral email ("A note about your account") and the notice on their verify card. That happens at most once per person per switch-on. `SiteSettings.age_verification_switched_on_at` records the switch-on, and `Profile.age_check_notice_at` records the switch-on each person was told about; `apps.memberships.tasks.notify_age_check_switched_on` runs once the change is committed and skips anyone already told. Switching it off and on again tells them again.
+

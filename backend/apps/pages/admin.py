@@ -4,8 +4,9 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
-from unfold.decorators import action
+from unfold.decorators import action, display
 from unfold.widgets import UnfoldAdminTextareaWidget
 
 from apps.core.admin_display import image_preview
@@ -24,8 +25,16 @@ class SocialLinkInline(TabularInline):
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(ModelAdmin):
     inlines = [SocialLinkInline]
-    readonly_fields = ("updated_at",)
+    readonly_fields = ("updated_at", "age_verification")
     fieldsets = (
+        (
+            "Member feed",
+            {
+                "fields": ("age_verification",),
+                "description": "Changed on its own page: admins only, with a reason and a "
+                "fresh code from your authenticator app. Every change is logged.",
+            },
+        ),
         (
             None,
             {
@@ -56,6 +65,71 @@ class SiteSettingsAdmin(ModelAdmin):
         ),
         (None, {"fields": ("updated_at",)}),
     )
+
+    @display(description="Age verification for the member feed")
+    def age_verification(self, obj):
+        url = reverse("admin:pages_sitesettings_age_verification")
+        state = "On" if obj.require_age_verification_for_feed else "Off"
+        return format_html(
+            '<span class="rose-chip {}">{}</span> <a class="rose-link" href="{}">Open</a>',
+            "rose-chip-open" if obj.require_age_verification_for_feed else "rose-chip-wait",
+            state,
+            url,
+        )
+
+    def get_urls(self):
+        return [
+            path(
+                "age-verification/",
+                self.admin_site.admin_view(self.age_verification_view),
+                name="pages_sitesettings_age_verification",
+            ),
+            *super().get_urls(),
+        ]
+
+    def age_verification_view(self, request):
+        """The confirmation page for the member feed's age check: what changes, a reason and
+        a fresh two-step code. Everyone on the team who can open site settings sees it; only
+        admins can change it (apps.memberships.age)."""
+        from apps.core.models import AuditLog
+        from apps.memberships.age import (
+            AgeCheckError,
+            can_change_setting,
+            set_age_check_required,
+        )
+        from apps.safety.views import age_check_setting_payload
+
+        if not (request.user.has_perm("pages.view_sitesettings") or request.user.is_staff):
+            raise PermissionDenied
+        error = ""
+        if request.method == "POST":
+            if not can_change_setting(request.user):
+                raise PermissionDenied
+            try:
+                set_age_check_required(
+                    request.user,
+                    request.POST.get("required") == "on",
+                    request.POST.get("reason", ""),
+                    request.POST.get("code", ""),
+                )
+            except AgeCheckError as exc:
+                error = str(exc)
+            else:
+                self.message_user(request, "Age verification for the member feed was changed.")
+                return redirect(reverse("admin:pages_sitesettings_age_verification"))
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Age verification for the member feed",
+            "opts": self.model._meta,
+            "setting": age_check_setting_payload(request.user),
+            "can_change": can_change_setting(request.user),
+            "changes": AuditLog.objects.filter(
+                category=AuditLog.Category.SETTINGS, action__startswith="age_verification"
+            )[:5],
+            "error": error,
+            "reason": request.POST.get("reason", "") if error else "",
+        }
+        return TemplateResponse(request, "admin/pages/age_verification.html", context)
 
     def has_add_permission(self, request):
         return not SiteSettings.objects.exists()

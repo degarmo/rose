@@ -28,6 +28,7 @@ class AuditLog(models.Model):
         VOLUNTEERS = "volunteers", "Volunteers"
         NEWSLETTER = "newsletter", "Email list"
         CONTENT = "content", "Site content"
+        SETTINGS = "settings", "Site settings"
 
     category = models.CharField(max_length=20, choices=Category.choices, db_index=True)
     action = models.CharField(max_length=40)

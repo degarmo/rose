@@ -1,6 +1,7 @@
 import { ShieldCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router'
+import { AgeCheckOffBanner } from '@/components/members/staff/AgeCheckSetting'
 import { useAuth } from '@/components/layout/authContext'
 import { PhoneBar } from '@/components/members/app/Nav'
 import { appButtonClasses } from '@/components/members/app/ui'
@@ -108,6 +109,11 @@ export function StaffFrame({
             ))}
           </ul>
         </nav>
+        {!staff.age_check_required && (
+          <div className="pt-4">
+            <AgeCheckOffBanner canChange={staff.can_change_age_check} />
+          </div>
+        )}
         <div className="pt-5">{children}</div>
       </div>
     </>

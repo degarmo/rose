@@ -140,6 +140,16 @@ only once your own check is recorded.
 
 The person gets a plain "You're all set" email and their feed opens without logging out.
 
+**Turning the age check off or on.** The club can switch the age check for the member feed
+off, for example before the door desk is staffed. Only an admin can do it: **Change** on the
+age verification card on the staff dashboard, or **Settings > Site settings > Age verification
+for the member feed > Open** in the admin. It asks for a reason and a new code from your
+authenticator app, says what will happen, and the change is logged. While it is off, an amber
+banner says so on every staff page, the verify card disappears for members, and the door desk
+keeps showing who is checked. Turning it back on closes the feed at once to everyone without a
+check (each of them gets one plain email). The door desk's ID check before a membership
+starts, the 18+ promise on uploads and "possibly under 18" reports work the same either way.
+
 ### Event tags and plan rules
 
 Some plans only reach some members-only events (Community: events tagged **Community**;

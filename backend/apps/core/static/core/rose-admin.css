@@ -1003,3 +1003,33 @@ input.checked\:bg-green-500:checked,
 .dark input.checked\:bg-green-500:checked {
   background-color: var(--color-primary-600);
 }
+
+/* The age check banner: on every staff page while the member feed's age check is off. */
+.rose-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  background: #fef3c7;
+  color: #78350f;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 1px solid #fcd34d;
+}
+a.rose-banner:hover {
+  background: #fde68a;
+}
+.rose-banner-action {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.dark .rose-banner {
+  background: #451a03;
+  color: #fde68a;
+  border-color: #92400e;
+}
+.dark a.rose-banner:hover {
+  background: #78350f;
+}

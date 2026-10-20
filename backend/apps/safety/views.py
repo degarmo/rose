@@ -29,7 +29,7 @@ from apps.events.models import Event
 from apps.feed.access import feed_access_label
 from apps.feed.models import FeedImage, Report
 from apps.feed.views import deliver_image
-from apps.memberships.access import is_age_verified
+from apps.memberships.access import age_gate_passes, is_age_verified
 from apps.pages.content import page_entries
 
 from . import metrics, roles, services
@@ -121,12 +121,12 @@ def report_summary(report):
 
 def _content(report, viewer):
     """What was reported, for staff. Pictures go through the staff media path, and only to
-    staff whose own age has been checked: the member feed's rule holds for the team too."""
+    staff the member feed's age gate lets through: its rule holds for the team too."""
     kind = report.target_type
     if kind == Report.TargetType.POST and report.post:
         post = report.post
         pictures = [image for image in post.images.order_by("position") if image.image]
-        allowed = is_age_verified(viewer)
+        allowed = age_gate_passes(viewer)
         return {
             "caption": post.caption,
             "status": post.status,
@@ -502,7 +502,7 @@ class StaffMediaView(StaffAPIView):
     """A reported post's picture for the team, watermarked with the viewer's name."""
 
     def get(self, request, public_id):
-        if not is_age_verified(request.user):
+        if not age_gate_passes(request.user):
             raise Http404
         image = (
             FeedImage.objects.filter(public_id=public_id, post__reports__isnull=False)
@@ -611,3 +611,52 @@ class ConcernView(CsrfProtectedAPIView):
         except SafetyError as exc:
             return Response({"detail": exc.message, "code": exc.code}, status=exc.status)
         return Response({"ok": True}, status=status.HTTP_201_CREATED)
+
+
+# The member feed's age check: the club's switch
+
+
+def age_check_setting_payload(user):
+    from apps.memberships.access import age_check_required, feed_entitled_accounts
+    from apps.memberships.age import can_change_setting
+    from apps.memberships.models import IdCheck
+    from apps.pages.models import SiteSettings
+
+    site = SiteSettings.load()
+    unchecked = feed_entitled_accounts().exclude(pk__in=IdCheck.valid().values("user_id")).count()
+    return {
+        "required": age_check_required(),
+        "can_change": can_change_setting(user),
+        "switched_on_at": _when(site.age_verification_switched_on_at),
+        # Counts only: how many people with feed access the check would close it to.
+        "unchecked_with_feed": unchecked,
+    }
+
+
+class AgeCheckSettingView(StaffAPIView):
+    """Everyone on the team sees the state; only admins change it, with a reason and a
+    fresh two-step code (apps.memberships.age.set_age_check_required)."""
+
+    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
+
+    def get(self, request):
+        return Response(age_check_setting_payload(request.user))
+
+    def post(self, request):
+        from apps.memberships.age import AgeCheckError, can_change_setting, set_age_check_required
+
+        if not can_change_setting(request.user):
+            return Response(
+                {"detail": "Only an admin can change this setting."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            set_age_check_required(
+                request.user,
+                request.data.get("required") is True,
+                str(request.data.get("reason", "")),
+                str(request.data.get("code", "")),
+            )
+        except AgeCheckError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(age_check_setting_payload(request.user))

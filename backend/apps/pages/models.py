@@ -51,6 +51,15 @@ class SiteSettings(models.Model):
         verbose_name="EIN",
         help_text="Employer identification number, for donation acknowledgements only.",
     )
+    # Changed only through apps.memberships.age.set_age_check_required: Admin role, a
+    # reason and a fresh two-step code, and every change is in the audit log.
+    require_age_verification_for_feed = models.BooleanField(
+        default=True,
+        editable=False,
+        verbose_name="age verification for the member feed",
+        help_text="On: the member feed opens only after an in-person ID check at the door desk.",
+    )
+    age_verification_switched_on_at = models.DateTimeField(null=True, blank=True, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

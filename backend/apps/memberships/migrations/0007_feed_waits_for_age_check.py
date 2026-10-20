@@ -1,23 +1,18 @@
-"""The member feed now needs an in-person age check, for everyone (decision 455).
+"""How many people the feed's age check would close it to (decisions 455 and 467).
 
-From here on the code closes the feed to anyone without a valid ID check, so this
-migration changes no access itself. It finds the accounts that had feed access and no
-check, stamps Profile.age_check_notice_at (Home and Settings then show why the feed is
-closed and what to bring), and the email goes out once from
-apps.memberships.tasks.send_age_check_notices. Grants and opt-ins are kept, so the feed
-reopens the moment staff record the check. The count is printed.
+The check is a site setting, evaluated live on every request, so this migration changes
+nothing. It counts the active accounts with feed access and no valid ID check, and prints
+the number, so the club knows the effect before the setting is on in production.
 """
 
 from django.db import migrations
 from django.db.models import Q
-from django.utils import timezone
 
 ENTITLED = ("active", "grace")
 
 
-def stamp(apps, schema_editor):
+def count(apps, schema_editor):
     User = apps.get_model("accounts", "User")
-    Profile = apps.get_model("accounts", "Profile")
     IdCheck = apps.get_model("memberships", "IdCheck")
     Membership = apps.get_model("memberships", "Membership")
 
@@ -37,16 +32,12 @@ def stamp(apps, schema_editor):
         )
         .exclude(pk__in=verified)
         .distinct()
+        .count()
     )
-    count = Profile.objects.filter(
-        user__in=waiting, age_check_notice_at__isnull=True
-    ).update(age_check_notice_at=timezone.now())
-    print(f"\n  The member feed now waits for an ID check for {count} account(s).")
-
-
-def unstamp(apps, schema_editor):
-    Profile = apps.get_model("accounts", "Profile")
-    Profile.objects.update(age_check_notice_at=None, age_check_emailed_at=None)
+    print(
+        f"\n  {waiting} account(s) with feed access have no ID check: with age verification "
+        "on, the member feed waits for one."
+    )
 
 
 class Migration(migrations.Migration):
@@ -55,4 +46,4 @@ class Migration(migrations.Migration):
         ("accounts", "0009_profile_age_check_notice"),
     ]
 
-    operations = [migrations.RunPython(stamp, unstamp)]
+    operations = [migrations.RunPython(count, migrations.RunPython.noop)]

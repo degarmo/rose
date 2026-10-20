@@ -3,13 +3,18 @@
 The entitlement comes from apps.memberships.access.entitlements(): a tier that
 grants feed access, the staff grant for comped members and volunteers, a staff
 account or a superuser. Whichever it is, nobody gets in without an in-person age
-check (is_age_verified): no exceptions for the team.
+check (age_gate_passes, while the club has the check switched on): no exceptions for
+the team.
 """
 
 from django.http import Http404
 from django.utils import timezone
 
-from apps.memberships.access import FEED, entitlements, is_age_verified
+from apps.memberships.access import (
+    FEED,
+    age_gate_passes,
+    entitlements,
+)
 
 GUIDELINES = "guidelines"
 COOLDOWN = "cooldown"
@@ -38,15 +43,15 @@ def _entitled_and_in_good_standing(user, now=None):
 
 def can_join_feed(user, now=None):
     """Everything except having opted in: the bar for the join flow."""
-    return _entitled_and_in_good_standing(user, now) and is_age_verified(user)
+    return _entitled_and_in_good_standing(user, now) and age_gate_passes(user)
 
 
 def awaiting_age_check(user, now=None):
     """Entitled to the feed and in good standing, but nobody has checked their ID yet.
 
     They see the verify card and may accept the guidelines in advance; the feed itself
-    stays a 404 until staff record the check."""
-    return _entitled_and_in_good_standing(user, now) and not is_age_verified(user)
+    stays a 404 until staff record the check. Never while the check is switched off."""
+    return _entitled_and_in_good_standing(user, now) and not age_gate_passes(user)
 
 
 def can_view_feed(user, now=None):
@@ -96,6 +101,6 @@ def feed_access_label(user):
     if not has_feed_entitlement(user):
         return None
     granted = user.profile.feed_access_granted
-    if not is_age_verified(user):
+    if not age_gate_passes(user):
         return "Granted, awaiting ID check" if granted else "Awaiting ID check"
     return "Granted" if granted else "Included"

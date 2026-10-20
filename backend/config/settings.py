@@ -150,6 +150,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.core.context_processors.age_check_banner",
             ],
         },
     },
@@ -452,10 +453,6 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_BEAT_SCHEDULE = {
-    "send-age-check-notices": {
-        "task": "apps.memberships.tasks.send_age_check_notices",
-        "schedule": 15 * 60,
-    },
     "send-event-reminders": {
         "task": "apps.events.tasks.send_due_reminders",
         "schedule": 15 * 60,

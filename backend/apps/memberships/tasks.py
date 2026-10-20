@@ -23,24 +23,11 @@ def deliver_sandbox_events(payloads):
 
 
 @shared_task
-def send_age_check_notices():
-    """Email, once, the people who had the member feed before it asked for an ID check
-    (memberships migration 0007 stamps them). Someone checked in the meantime is skipped."""
-    from django.utils import timezone
+def notify_age_check_switched_on(switched_on_at):
+    """After the club switches the feed's age check on: tell each person it closes the feed
+    to, once (apps.memberships.age.notify_switched_on)."""
+    from django.utils.dateparse import parse_datetime
 
-    from apps.accounts.models import Profile
+    from .age import notify_switched_on
 
-    from .emails import send_age_check_notice
-
-    sent = 0
-    due = Profile.objects.filter(
-        age_check_notice_at__isnull=False,
-        age_check_emailed_at__isnull=True,
-        user__is_active=True,
-    ).select_related("user")
-    for profile in due:
-        send_age_check_notice(profile.user)
-        profile.age_check_emailed_at = timezone.now()
-        profile.save(update_fields=["age_check_emailed_at", "updated_at"])
-        sent += 1
-    return sent
+    return notify_switched_on(parse_datetime(switched_on_at))

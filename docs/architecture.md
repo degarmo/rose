@@ -48,7 +48,7 @@ security and restores are in `docs/ops/`.
 | `apps/donations` | `Donation` (append-only), `DonationCheckout` (a started online gift), `Acknowledgement`, `AcknowledgementTemplate`; `services.py` (online checkout through the payment layer, provider events, gifts at the door, acknowledgements), printable acknowledgement page, retention task. |
 | `apps/safety` | The team and moderation casework. `roles.py` (Moderator, Staff and Admin as groups; superusers are admins), `models.py` (`ReportNote`, `MemberAction`, `Appeal`, `BlockedEmail`), `services.py` (concerns, the report workflow, actions and their reversal, appeals, roles; every step logged), `metrics.py` (aggregates only, small numbers withheld), `api.py` (`StaffAPIView`: role and two-step check before anything else, 404 otherwise), the staff API, the member's notices and appeals, the concern form. |
 | `apps/newsletter` | The email list: `Subscriber`, `Suppression`, `Newsletter`; `services.py` (double opt-in, one-click leaving, batched sending with no tracking), the inbox preview, sending and suppression tasks. |
-| `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, MembershipUsage, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access; the tier rules: included events, events left this month, party limit), `usage.py` (the monthly event count and its purge), `join.py`, `desk.py` (door desk actions), `age.py` (recording and revoking the in-person age check, with a witness for team accounts), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
+| `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, MembershipUsage, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access; the tier rules: included events, events left this month, party limit), `usage.py` (the monthly event count and its purge), `join.py`, `desk.py` (door desk actions), `age.py` (recording and revoking the in-person age check, with a witness for team accounts, and the club's switch for it: admins only, a reason and a fresh two-step code, audited), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
 
 ### API
@@ -139,7 +139,7 @@ flowchart TD
     E --> H[Active or grace membership whose tier grants the feed]
     E --> K[A staff account or a superuser]
     A --- E
-    A --- AV{is_age_verified: a valid IdCheck, for everyone, the team included}
+    A --- AV{age_gate_passes: the setting is off, or is_age_verified, for everyone, the team included}
 ```
 
 ### Data model
@@ -244,7 +244,7 @@ flowchart LR
     M --> TR[tier rules on members-only events: included events, events per month, guests]
     TR --> R
     E --> F[feed.access.has_feed_entitlement: needs feed]
-    F --> AV[feed.access.can_join_feed: also needs is_age_verified]
+    F --> AV[feed.access.can_join_feed: also needs age_gate_passes: SiteSettings switch off, or a valid IdCheck]
     E --> O[education serializer: members_only needs members_education, else body and call to action withheld]
 ```
 

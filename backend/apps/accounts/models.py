@@ -194,11 +194,10 @@ class Profile(
     notify_comments = models.BooleanField(default=True)
     # When the person last opened Settings > Notices; anything newer counts as unread.
     notices_seen_at = models.DateTimeField(null=True, blank=True)
-    # The member feed began asking for an in-person age check after this person already
-    # had it (memberships migration 0005): shown on Home and in Settings until the check is
-    # recorded, and emailed once (apps.memberships.tasks.send_age_check_notices).
+    # The switch-on of the feed's age check (SiteSettings.age_verification_switched_on_at)
+    # this person was told about, by email and on Home and in Settings: at most once per
+    # switch-on (apps.memberships.tasks.notify_age_check_switched_on).
     age_check_notice_at = models.DateTimeField(null=True, blank=True, editable=False)
-    age_check_emailed_at = models.DateTimeField(null=True, blank=True, editable=False)
     hidden_by_report = models.BooleanField(
         default=False, help_text="Avatar, bio and profile page hidden pending review."
     )

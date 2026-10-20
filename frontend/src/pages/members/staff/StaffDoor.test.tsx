@@ -22,7 +22,7 @@ const VOLUNTEER: StaffSession = {
   verify_url: null,
   needs_enrollment: false,
   admin_url: '/admin/',
-  door_desk_url: '/admin/memberships/membership/door-desk/',
+  door_desk_url: '/admin/memberships/membership/door-desk/', age_check_required: true, can_change_age_check: false,
 }
 
 function as(staff: Partial<StaffSession> | null): Account {

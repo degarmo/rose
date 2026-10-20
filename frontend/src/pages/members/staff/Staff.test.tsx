@@ -8,7 +8,7 @@ import { renderWithProviders, verifiedUser } from '@/test/render'
 import { StaffDashboardPage } from './StaffDashboardPage'
 import { StaffReportPage } from './StaffReportPage'
 
-const api = vi.hoisted(() => ({ metrics: vi.fn(), report: vi.fn(), revealReporter: vi.fn(), act: vi.fn(), rules: vi.fn() }))
+const api = vi.hoisted(() => ({ metrics: vi.fn(), report: vi.fn(), revealReporter: vi.fn(), act: vi.fn(), rules: vi.fn(), ageCheck: vi.fn(), setAgeCheck: vi.fn() }))
 
 vi.mock('@/lib/safetyApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/safetyApi')>()
@@ -73,7 +73,7 @@ function as(staff: Partial<StaffSession> | null): Account {
     verify_url: null,
     needs_enrollment: false,
     admin_url: '/admin/',
-    door_desk_url: null,
+    door_desk_url: null, age_check_required: true, can_change_age_check: false,
     ...staff,
   }
   return { ...verifiedUser, feed_access: true, member_app: 'open', staff: session }
@@ -84,6 +84,7 @@ beforeEach(() => {
   api.metrics.mockResolvedValue(METRICS)
   api.report.mockResolvedValue(report())
   api.rules.mockResolvedValue(['Consent first'])
+  api.ageCheck.mockResolvedValue({ required: true, can_change: false, switched_on_at: null, unchecked_with_feed: 3 })
 })
 
 function renderReport(user: Account) {
@@ -160,5 +161,48 @@ describe('the staff section', () => {
     await waitFor(() =>
       expect(api.act).toHaveBeenCalledWith('velvet_hour', expect.objectContaining({ kind: 'feed_suspension', rule: 'Consent first', days: 7, report_id: 7 })),
     )
+  })
+})
+
+describe('the age verification setting', () => {
+  it('shows a banner on staff pages while it is off, which an admin can open to change it', async () => {
+    api.ageCheck.mockResolvedValue({ required: false, can_change: true, switched_on_at: null, unchecked_with_feed: 3 })
+    api.setAgeCheck.mockResolvedValue({ required: true, can_change: true, switched_on_at: '2026-10-20T12:00:00Z', unchecked_with_feed: 3 })
+    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'admin', age_check_required: false, can_change_age_check: true }) })
+    await userEvent.click(screen.getByRole('button', { name: /Age verification for the member feed is off/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Turn age verification on?' })
+    expect(within(dialog).getByText(/closes at once to the 3 people with feed access and no ID check/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Turn it on' }))
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Give a reason for the change.')
+    await userEvent.type(within(dialog).getByLabelText(/^Reason for the change/), 'Opening to the public')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Turn it on' }))
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Enter the six-digit code')
+    await userEvent.type(within(dialog).getByLabelText(/^Six-digit code/), '123456')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Turn it on' }))
+    await waitFor(() => expect(api.setAgeCheck).toHaveBeenCalledWith({ required: true, reason: 'Opening to the public', code: '123456' }))
+  })
+
+  it('shows the banner without a way to change it to everyone else', () => {
+    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'staff', age_check_required: false, can_change_age_check: false }) })
+    expect(screen.getByText('Age verification for the member feed is off')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Age verification for the member feed is off/ })).not.toBeInTheDocument()
+  })
+
+  it('shows no banner while it is on, and the state on the dashboard', async () => {
+    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'staff' }) })
+    expect(screen.queryByText('Age verification for the member feed is off')).not.toBeInTheDocument()
+    const card = await screen.findByRole('region', { name: /Age verification for the member feed: On/ })
+    expect(within(card).getByText('Only an admin can change this.')).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Change' })).not.toBeInTheDocument()
+  })
+
+  it('lets an admin turn it off from the dashboard card, after saying what stays', async () => {
+    api.ageCheck.mockResolvedValue({ required: true, can_change: true, switched_on_at: null, unchecked_with_feed: 3 })
+    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'admin', can_change_age_check: true }) })
+    const card = await screen.findByRole('region', { name: /Age verification for the member feed: On/ })
+    await userEvent.click(within(card).getByRole('button', { name: 'Change' }))
+    const dialog = screen.getByRole('dialog', { name: 'Turn age verification off?' })
+    expect(within(dialog).getByText(/door desk still checks ID before any membership starts/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Turn it off' })).toBeInTheDocument()
   })
 })

@@ -6,6 +6,7 @@ import { useAuth } from '@/components/layout/authContext'
 import { AppButton } from '@/components/members/app/primitives'
 import { BarChart } from '@/components/members/staff/BarChart'
 import { countText, moneyText } from '@/components/members/staff/format'
+import { AgeCheckSettingCard } from '@/components/members/staff/AgeCheckSetting'
 import { StaffFrame } from '@/components/members/staff/StaffFrame'
 import { useToast } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -209,7 +210,7 @@ export function StaffDashboardPage() {
       title="Dashboard"
       minimum="staff"
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div role="group" aria-label="Period" className="flex rounded-app border border-border p-0.5">
             {RANGES.map((option) => (
               <button
@@ -217,7 +218,7 @@ export function StaffDashboardPage() {
                 type="button"
                 aria-pressed={range === option.value}
                 onClick={() => setRange(option.value)}
-                className={cn('h-7 rounded-[6px] px-3 text-sm font-semibold', range === option.value ? 'bg-fg text-canvas' : 'text-fg-muted hover:text-fg')}
+                className={cn('h-7 whitespace-nowrap rounded-[6px] px-3 text-sm font-semibold', range === option.value ? 'bg-fg text-canvas' : 'text-fg-muted hover:text-fg')}
               >
                 {option.label}
               </button>
@@ -230,6 +231,9 @@ export function StaffDashboardPage() {
         </div>
       }
     >
+      <div className="mb-5">
+        <AgeCheckSettingCard />
+      </div>
       {state.status === 'loading' && <LoadingState label="Loading the numbers" />}
       {state.status === 'error' && <ErrorState title="The numbers did not load" onRetry={state.retry} />}
       {state.status === 'success' && state.data && <Dashboard data={state.data} />}

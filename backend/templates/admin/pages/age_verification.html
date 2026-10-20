@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Age verification | Rose{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="rose-stack rose-narrow">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Age verification for the member feed</h1>
+    <p class="rose-subtle">When it is on, the member feed opens only after staff have seen a valid photo ID showing 18+ at the door desk. Nothing about the ID is ever stored.</p>
+  </header>
+
+  <section class="rose-card" aria-labelledby="age-state">
+    <h2 id="age-state" class="rose-section-title">It is <span class="rose-chip {% if setting.required %}rose-chip-open{% else %}rose-chip-wait{% endif %}">{% if setting.required %}On{% else %}Off{% endif %}</span></h2>
+    {% if setting.required %}
+    <p>Turning it off opens the member feed at once to everyone with feed access, ID check or not. These stay in force either way: the door desk checks ID before any membership starts, uploads still need the promise that everyone pictured is 18 or older, and "possibly under 18" reports still hide content at once. A banner stays on every staff page while it is off.</p>
+    {% else %}
+    <p>Turning it on closes the member feed at once to the {{ setting.unchecked_with_feed }} {% if setting.unchecked_with_feed == 1 %}person{% else %}people{% endif %} with feed access and no ID check on file. Each of them gets one plain email and a note on their Home page, and the feed opens again as soon as the door desk records their check. Nothing they shared is lost.</p>
+    {% endif %}
+  </section>
+
+  {% if can_change %}
+  <form method="post" class="rose-card rose-form" aria-label="Change age verification">{% csrf_token %}
+    <input type="hidden" name="required" value="{% if setting.required %}off{% else %}on{% endif %}">
+    {% if error %}<p class="rose-alert" role="alert">{{ error }}</p>{% endif %}
+    <div class="rose-field">
+      <label for="age-reason">Reason for the change</label>
+      <input id="age-reason" name="reason" maxlength="300" required value="{{ reason }}">
+      <p class="rose-help">Goes in the audit log with your name, the time and the old and new value.</p>
+    </div>
+    <div class="rose-field">
+      <label for="age-code">Six-digit code from your authenticator app</label>
+      <input id="age-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required>
+      <p class="rose-help">A new code, not one you have just used to log in.</p>
+    </div>
+    <button type="submit" class="{% if setting.required %}rose-button-danger{% else %}rose-button{% endif %}">{% if setting.required %}Turn age verification off{% else %}Turn age verification on{% endif %}</button>
+  </form>
+  {% else %}
+  <p class="rose-card rose-subtle">Only an admin can change this setting.</p>
+  {% endif %}
+
+  {% if changes %}
+  <section class="rose-card" aria-labelledby="age-changes">
+    <h2 id="age-changes" class="rose-section-title">Recent changes</h2>
+    <ul class="rose-rows">
+      {% for entry in changes %}
+      <li class="rose-row"><span class="rose-row-main"><span class="rose-row-title">{{ entry.actor_label }}</span><span class="rose-subtle">{{ entry.created_at|date:"M j, Y, g:i A" }} · {{ entry.reason }}</span></span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

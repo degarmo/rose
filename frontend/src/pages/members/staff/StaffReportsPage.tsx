@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn'
 import { formatDay } from '@/lib/format'
 import { staffApi, type Appeal, type ReportStatus, type ReportSummary } from '@/lib/safetyApi'
 import { useAsync } from '@/lib/useAsync'
+import { AgeCheckSettingCard } from '@/components/members/staff/AgeCheckSetting'
 
 type Tab = ReportStatus | 'appeals'
 
@@ -113,6 +114,7 @@ export function StaffReportsPage() {
                 : (reports.status === 'success' ? reports.data : []).map((report) => <ReportRow key={report.id} report={report} />)}
             </ul>
           ))}
+        <AgeCheckSettingCard />
       </div>
     </StaffFrame>
   )
