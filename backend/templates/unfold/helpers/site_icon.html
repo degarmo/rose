@@ -1,5 +1,5 @@
-{# The sidebar header: the "Rose" wordmark in place of Unfold's icon and site name. #}
+{# The sidebar header: the site's name as the wordmark, in place of Unfold's icon. #}
 <a href="{% url 'admin:index' %}" class="rose-brand">
-    <span class="rose-wordmark">Rose</span>
+    <span class="rose-wordmark">{{ site_header }}</span>
     <span class="sr-only">Dashboard</span>
 </a>

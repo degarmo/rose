@@ -47,6 +47,8 @@ env = environ.Env(
     FEED_MAX_COMMENTS_PER_HOUR=(int, 60),
     MEMBERSHIP_GRACE_DAYS=(int, 7),
     MEMBERSHIP_PENDING_EXPIRY_DAYS=(int, 30),
+    SITE_DISPLAY_NAME=(str, ""),
+    SITE_SHORT_NAME=(str, ""),
     MERCHANT_DISPLAY_NAME=(str, "Rose"),
     RENTAL_RETENTION_DAYS=(int, 90),
     VOLUNTEER_RETENTION_DAYS=(int, 365),
@@ -64,6 +66,14 @@ env = environ.Env(
     SITE_INDEXABLE=(bool, None),
 )
 environ.Env.read_env(BASE_DIR / ".env")
+
+# The club's name where people read it on the site, the member app and the admin
+# (apps.core.branding). Kept out of the repository: set it in the environment, or override
+# it in Admin > Site settings. The short form is for tight spots (the phone header, the
+# member sidebar). Discreet places (email, receipts, calendar files, the authenticator
+# app, member-app tab titles) never use it: they keep the neutral "Rose" below.
+SITE_DISPLAY_NAME = env("SITE_DISPLAY_NAME").strip() or "Rose"
+SITE_SHORT_NAME = env("SITE_SHORT_NAME").strip() or SITE_DISPLAY_NAME
 
 DJANGO_ENV = env("DJANGO_ENV")
 DEPLOYED_ENVS = ("staging", "production")
@@ -339,6 +349,7 @@ ANYMAIL = {
     if value != ""
 }
 EMAIL_TIMEOUT = 15
+# Neutral on purpose: the From name never names the club (apps.core.branding).
 EMAIL_SENDER_NAME = env("EMAIL_SENDER_NAME")
 EMAIL_SENDER_ADDRESS = env("EMAIL_SENDER_ADDRESS", default="no-reply@localhost")
 DEFAULT_FROM_EMAIL = f"{EMAIL_SENDER_NAME} <{EMAIL_SENDER_ADDRESS}>"
@@ -359,6 +370,7 @@ LOGIN_LOCKOUT_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 15 * 60
 
 # Staff two-factor (TOTP plus single-use backup codes) for the whole admin.
+# Neutral on purpose: authenticator apps show it on the staff member's phone.
 OTP_TOTP_ISSUER = env("OTP_ISSUER", default="Rose")
 OTP_BACKUP_CODE_COUNT = 10
 # The device admin never shows an authenticator's secret key, QR code or backup codes.

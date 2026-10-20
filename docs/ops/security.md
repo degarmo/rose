@@ -50,7 +50,7 @@ second step in the same session (`apps/core/admin_auth.py`):
 A staff member without an authenticator is taken through enrolment on their
 first login: scan a QR code (made on the server, shown once), enter a code,
 receive ten backup codes (shown once). There is no way to skip it. The
-authenticator app shows the issuer (`OTP_ISSUER`, default "Rose") and the
+authenticator app shows the neutral issuer (`OTP_ISSUER`, default "Rose") and the
 display name, never the email. Enrolment and backup-code use are written to the
 audit log. To reset a lost device, a superuser deletes that person's TOTP device
 in Admin > Django OTP > TOTP devices; they enrol again at next login.

@@ -272,7 +272,7 @@ def test_home_interleaves_club_posts_by_date(member_client, make_member, make_po
     results = client.get("/api/members/home/").json()["results"]
     assert [(r["kind"], r["author"]["handle"]) for r in results] == [
         ("member", "poster"),
-        ("club", club.CLUB_HANDLE),
+        ("club", club.club_handle()),
         ("member", "poster"),
     ]
     club_post = results[1]

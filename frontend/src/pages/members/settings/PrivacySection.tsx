@@ -11,6 +11,7 @@ import { useFeedAccount } from '@/components/members/settings/useFeedAccount'
 import { usePreferences } from '@/components/members/settings/usePreferences'
 import { useToast } from '@/components/ui'
 import { api, type DataExportState } from '@/lib/api'
+import { config } from '@/lib/config'
 import { formatEventDate } from '@/lib/format'
 import { feedAccount, members as membersApi } from '@/lib/membersApi'
 import { useAsync } from '@/lib/useAsync'
@@ -133,7 +134,7 @@ function CalendarDefault() {
       <SwitchRow
         icon={CalendarDays}
         label="Name the event in calendar files"
-        sub={preferences.calendar_details ? 'Calendar files show the event and the place' : 'Off: calendar files say only “Rose - Evening”'}
+        sub={preferences.calendar_details ? 'Calendar files show the event and the place' : `Off: calendar files say only “${config.neutralName} - Evening”`}
         checked={preferences.calendar_details}
         disabled={saving}
         onChange={(value) =>

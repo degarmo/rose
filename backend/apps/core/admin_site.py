@@ -11,6 +11,7 @@ from django.utils.safestring import mark_safe
 from unfold.sites import UnfoldAdminSite
 
 from . import admin_auth
+from .branding import display_name
 from .consent_images import consent_image_field_names, consent_image_models
 from .manifest import STATUS_LABELS, entry_status, find_entry, image_file, load_manifest
 
@@ -28,11 +29,18 @@ def can_review_images(user):
 
 
 class RoseAdminSite(UnfoldAdminSite):
-    """The admin in Rose's look (django-unfold, config/unfold.py), behind the two-step login."""
+    """The admin in the site's look (django-unfold, config/unfold.py), behind the two-step login."""
 
-    site_header = "Rose"
-    site_title = "Rose"
     index_title = "Dashboard"
+
+    # The club's name from settings (apps.core.branding), never written into the code.
+    @property
+    def site_header(self):
+        return display_name()
+
+    @property
+    def site_title(self):
+        return display_name()
 
     def has_permission(self, request):
         """Staff only, and only after the two-step check (apps.core.admin_auth)."""

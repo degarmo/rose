@@ -231,7 +231,7 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
       )}
     >
       <Link to={home} onClick={() => onPanel(null)} className={cn('flex shrink-0 items-center pb-5 pt-6', collapsed ? 'justify-center' : 'justify-center wide:justify-start wide:px-3')}>
-        <Wordmark className={cn('hidden', !collapsed && 'wide:inline')} />
+        <Wordmark className={cn('hidden text-[1.375rem]', !collapsed && 'wide:inline')} />
         <span aria-hidden="true" className={cn('font-serif text-2xl leading-none text-wordmark', !collapsed && 'wide:hidden')}>
           R
         </span>

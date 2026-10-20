@@ -3,16 +3,18 @@
 Subjects and sender names must never identify the organisation or its
 purpose. Every outgoing message goes through `send_neutral_mail` (or
 `neutral_message` for the email list), which builds the From header from
-EMAIL_SENDER_NAME and prefixes nothing else.
+the sender name (EMAIL_SENDER_NAME, or the site's name) and prefixes nothing else.
 """
 
 from django.conf import settings
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.mail.message import make_msgid
 
+from .branding import sender_name
+
 
 def neutral_sender():
-    return f"{settings.EMAIL_SENDER_NAME} <{settings.EMAIL_SENDER_ADDRESS}>"
+    return f"{sender_name()} <{settings.EMAIL_SENDER_ADDRESS}>"
 
 
 def neutral_message_id():

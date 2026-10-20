@@ -3,16 +3,16 @@
 import uuid
 from datetime import UTC
 
-from django.conf import settings
 from django.utils import timezone
 
+from apps.core.branding import sender_name
 from apps.pages.models import SiteSettings
 
 UID_NAMESPACE = uuid.UUID("6f2b3d0a-4f6e-4bb0-9a43-1f0c2b7d5e11")
 
 
 def default_title():
-    return f"{settings.EMAIL_SENDER_NAME} - Evening"
+    return f"{sender_name()} - Evening"
 
 
 def _escape(value):
@@ -54,7 +54,7 @@ def build_ics(event, include_details=False):
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        f"PRODID:-//{settings.EMAIL_SENDER_NAME}//Calendar//EN",
+        f"PRODID:-//{sender_name()}//Calendar//EN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         "BEGIN:VEVENT",

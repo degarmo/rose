@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from apps.core.consent_images import consent_image_payload
 
+from .content import with_club_name
 from .models import FAQItem, SiteSettings, SocialLink, StaffProfile
 
 
@@ -33,6 +34,11 @@ class FAQItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = FAQItem
         fields = ["id", "question", "answer"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Questions and answers may name the club through tokens, like page copy.
+        return {key: with_club_name(value) if key != "id" else value for key, value in data.items()}
 
 
 class StaffProfileSerializer(serializers.ModelSerializer):

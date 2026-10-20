@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
 import { Badge, Button, ButtonLink, Card, Checkbox, Modal, Textarea, useToast } from '@/components/ui'
 import { api, ApiError, type EventDetail, type RSVPState } from '@/lib/api'
+import { config } from '@/lib/config'
 import { rsvpBadge } from '@/lib/events'
 import { formatEventDate } from '@/lib/format'
 
@@ -43,7 +44,7 @@ function PartySize({ value, max, onChange }: { value: number; max: number; onCha
   )
 }
 
-/** The calendar file: discreet ("Rose - Evening", no place) unless the box is ticked. Settings > Privacy sets where the box starts. */
+/** The calendar file: discreet ("<site name> - Evening", no place) unless the box is ticked. Settings > Privacy sets where the box starts. */
 function CalendarDownload({ slug }: { slug: string }) {
   const auth = useAuth()
   const [details, setDetails] = useState(Boolean(auth.user?.calendar_details))
@@ -58,7 +59,7 @@ function CalendarDownload({ slug }: { slug: string }) {
         Add to calendar
       </a>
       <Checkbox
-        label={<span className="text-[0.8125rem] text-fg-muted">Include the event name and address. Leave this off and your calendar just says &ldquo;Rose - Evening&rdquo;.</span>}
+        label={<span className="text-[0.8125rem] text-fg-muted">Include the event name and address. Leave this off and your calendar just says &ldquo;{config.neutralName} - Evening&rdquo;.</span>}
         checked={details}
         onChange={(event) => setDetails(event.target.checked)}
       />

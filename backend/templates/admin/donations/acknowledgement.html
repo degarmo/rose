@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
-{% block title %}Acknowledgement | Rose{% endblock %}
+{% block title %}Acknowledgement | {{ site_title }}{% endblock %}
 {% block content_title %}{% endblock %}
 {% block extrahead %}{{ block.super }}<script src="{% static 'core/print-button.js' %}" defer></script>{% endblock %}
 

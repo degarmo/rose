@@ -39,6 +39,8 @@ class SiteSettingsAdmin(ModelAdmin):
             None,
             {
                 "fields": (
+                    "site_display_name",
+                    "site_short_name",
                     "tagline",
                     "hours_text",
                     "address_text",

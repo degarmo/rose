@@ -1,6 +1,7 @@
 import { LogOut } from 'lucide-react'
 import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
+import { config } from '@/lib/config'
 import { leaveNow, quickExitUrl } from '@/lib/quickExit'
 import { appButtonClasses, type Variant } from './ui'
 
@@ -14,11 +15,14 @@ export function AppButton({
   return <button type={type} className={appButtonClasses(variant, className)} {...rest} />
 }
 
-/** "Rose" in Fraunces, oxblood (lighter in dark appearance). The only Fraunces in the app. */
+/**
+ * The club's short name in Fraunces, oxblood (lighter in dark appearance), for the
+ * sidebar and the phone bar. The only Fraunces in the app.
+ */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span aria-hidden="true" className={cn('font-serif text-[1.75rem] leading-none text-wordmark', className)}>
-      Rose
+    <span aria-hidden="true" className={cn('whitespace-nowrap font-serif text-[1.75rem] leading-none text-wordmark', className)}>
+      {config.shortName}
     </span>
   )
 }

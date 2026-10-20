@@ -19,6 +19,11 @@ def isolated_settings(settings, tmp_path):
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     settings.CONTACT_NOTIFY_EMAIL = "staff-inbox@example.org"
     settings.SITE_URL = "https://site.example"
+    # The club's names are configuration; tests see the repository's defaults whatever
+    # .env says.
+    settings.SITE_DISPLAY_NAME = settings.SITE_SHORT_NAME = "Rose"
+    settings.EMAIL_SENDER_NAME = settings.MERCHANT_DISPLAY_NAME = "Rose"
+    settings.OTP_TOTP_ISSUER = "Rose"
     settings.IMAGE_MANIFEST_PATH = tmp_path / "image-manifest.json"
     settings.SITE_IMAGES_DIR = tmp_path / "images"
     # Celery reads CELERY_* from Django settings on every lookup.

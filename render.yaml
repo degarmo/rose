@@ -45,6 +45,13 @@ projects:
             envVars:
               - key: DJANGO_SECRET_KEY
                 sync: false
+              # The club's name on the website, in the member app and in the admin, and its
+              # short form for tight spots. Entered in the dashboard so it is never written
+              # into the repository. Email, receipts and the authenticator stay "Rose" above.
+              - key: SITE_DISPLAY_NAME
+                sync: false
+              - key: SITE_SHORT_NAME
+                sync: false
               - key: DJANGO_ALLOWED_HOSTS
                 sync: false
               - key: DJANGO_CSRF_TRUSTED_ORIGINS
@@ -174,6 +181,13 @@ projects:
           - name: rose-production-secrets
             envVars:
               - key: DJANGO_SECRET_KEY
+                sync: false
+              # The club's name on the website, in the member app and in the admin, and its
+              # short form for tight spots. Entered in the dashboard so it is never written
+              # into the repository. Email, receipts and the authenticator stay "Rose" above.
+              - key: SITE_DISPLAY_NAME
+                sync: false
+              - key: SITE_SHORT_NAME
                 sync: false
               - key: DJANGO_ALLOWED_HOSTS
                 sync: false

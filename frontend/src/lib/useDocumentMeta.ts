@@ -17,9 +17,15 @@ function setMeta(name: string, content: string) {
   element.content = content
 }
 
+/** Member-app tabs keep the neutral name: a tab title shows on shared screens. */
+export function tabName(pathname: string): string {
+  return pathname === '/members' || pathname.startsWith('/members/') ? config.neutralName : config.displayName
+}
+
 export function useDocumentMeta({ title, description, noindex = false }: DocumentMeta) {
   useEffect(() => {
-    document.title = title ? `${title} | ${config.siteName}` : config.siteName
+    const name = tabName(window.location.pathname)
+    document.title = title ? `${title} | ${name}` : name
     if (description) setMeta('description', description)
     setMeta('robots', noindex ? 'noindex, nofollow' : 'index, follow')
   }, [title, description, noindex])

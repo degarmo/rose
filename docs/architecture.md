@@ -422,8 +422,15 @@ Check every change against this list.
 - [ ] **Social participation is opt-in** through `Profile.participates_in_feed` and
       `feed_visible_q()`.
 - [ ] **Uploads are sanitised** by `SanitizedImageField`.
-- [ ] **Email is neutral.** Subjects never name the organisation, the event or its category
-      ("Your plans for Friday"). Notifications about contact messages carry no content.
+- [ ] **Email subjects are neutral.** Subjects never name the organisation, the event or its
+      category ("Your plans for Friday"). Notifications about contact messages carry no content.
+      The sender name is the neutral `EMAIL_SENDER_NAME` ("Rose"), never the club's name.
+- [ ] **The club's name is configuration, and only where people read the site.**
+      `SITE_DISPLAY_NAME` and `SITE_SHORT_NAME` (or Site settings) supply it to the website,
+      member app and admin through `apps.core.branding` (decision 502); the real name is never
+      written into the repository. Email, receipts, calendar files, the authenticator app,
+      member-app tab titles and home-screen names keep the neutral "Rose"
+      (`tests/test_branding.py`).
 - [ ] **Security baseline.** Session auth with CSRF on every write; Argon2; 12-character
       passwords checked against email and display name; secure cookies, HSTS, CSP; rate
       limits on contact, login, registration and password reset (per IP and per email,
@@ -545,8 +552,8 @@ Check every change against this list.
       references stay on the server.
 - [ ] **Payments are immutable.** No edit or delete in the model, queryset or admin; refunds
       are new rows pointing at the original.
-- [ ] **Neutral billing.** Receipts show only the merchant display name, date, amount,
-      reference and "Membership". Membership email uses "Your reference code", "Your account is
+- [ ] **Plain billing.** Receipts show only the merchant name (the site's name unless
+      `MERCHANT_DISPLAY_NAME` is set), date, amount, reference and "Membership". Membership email uses "Your reference code", "Your account is
       ready" and "A note about your account", and never names the organisation or activities.
 - [ ] **Every staff action is logged** in `core.AuditLog`: door desk actions, signature
       reveals, CSV exports and the contact-email option.

@@ -4,13 +4,16 @@ Both are read on most requests and change rarely, so each is cached in full and
 the cache entry is dropped whenever a row is saved or deleted (signals below).
 """
 
+import html
 import re
 
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import PageContent, Redirect, normalise_path
+from apps.core.branding import display_name, forget_names, short_name
+
+from .models import PageContent, Redirect, SiteSettings, normalise_path
 
 PAGE_KEY = "page-content:v1:{}"
 REDIRECTS_KEY = "redirects:v1"
@@ -23,6 +26,18 @@ BUILTIN_REDIRECTS = {
 }
 
 
+def with_club_name(text, rich=False):
+    """Copy may say {display_name} or {short_name}; they are filled in from the settings
+    when served, so the words follow the club's name without anyone writing it into the
+    repository."""
+    if "{display_name}" not in text and "{short_name}" not in text:
+        return text
+    escape = html.escape if rich else str
+    return text.replace("{display_name}", escape(display_name())).replace(
+        "{short_name}", escape(short_name())
+    )
+
+
 def page_entries(page):
     """{key: {"value": str, "format": "plain" | "rich"}} for one page."""
     cache_key = PAGE_KEY.format(page)
@@ -33,7 +48,13 @@ def page_entries(page):
             for row in PageContent.objects.filter(page=page)
         }
         cache.set(cache_key, entries, TIMEOUT)
-    return entries
+    return {
+        key: {
+            "value": with_club_name(entry["value"], rich=entry["format"] == "rich"),
+            "format": entry["format"],
+        }
+        for key, entry in entries.items()
+    }
 
 
 def redirect_map():
@@ -88,3 +109,8 @@ def _forget_page(sender, instance, **kwargs):
 @receiver([post_save, post_delete], sender=Redirect)
 def _forget_redirects(sender, instance, **kwargs):
     cache.delete(REDIRECTS_KEY)
+
+
+@receiver(post_save, sender=SiteSettings)
+def _forget_names(sender, instance, **kwargs):
+    forget_names()

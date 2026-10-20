@@ -33,3 +33,6 @@ prompts/
 # Original photographs supplied by the owner. Only the processed, metadata-free copies
 # in frontend/public/images (made by scripts/fetch_images.py) are committed.
 /photos/
+
+# Screenshots that show the club's real name (decision 486); never committed.
+docs/screenshots/rename/

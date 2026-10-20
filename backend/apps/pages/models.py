@@ -11,6 +11,21 @@ from apps.core.text import sanitize_rich_text
 class SiteSettings(models.Model):
     """Singleton holding the editable site-wide details. Always pk=1."""
 
+    site_display_name = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="club name",
+        help_text="Shown on the website, in the member app and in the admin. Never in "
+        "email, receipts, calendar files or the authenticator app, which stay neutral. "
+        "Blank uses the SITE_DISPLAY_NAME setting.",
+    )
+    site_short_name = models.CharField(
+        max_length=60,
+        blank=True,
+        verbose_name="short club name",
+        help_text="For tight spots: the phone header and the member sidebar. Blank uses "
+        "the club name above, or the SITE_SHORT_NAME setting.",
+    )
     tagline = models.CharField(max_length=200)
     hours_text = models.TextField(help_text="Shown on Plan Your Visit. Line breaks are kept.")
     address_text = models.TextField(help_text="Shown in the footer and on Contact.")
@@ -172,7 +187,11 @@ class PageContent(models.Model):
 
     page = models.SlugField(max_length=60, db_index=True)
     key = models.CharField(max_length=120)
-    value = models.TextField(blank=True)
+    value = models.TextField(
+        blank=True,
+        help_text="Write {display_name} (or {short_name}) for the club's name; it follows "
+        "Site settings.",
+    )
     format = models.CharField(max_length=5, choices=Format.choices, default=Format.PLAIN)
     updated_at = models.DateTimeField(auto_now=True)
 

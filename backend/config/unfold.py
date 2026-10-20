@@ -10,8 +10,9 @@ from django.templatetags.static import static
 from django.urls import reverse_lazy
 
 UNFOLD = {
-    "SITE_TITLE": "Rose",
-    "SITE_HEADER": "Rose",
+    # The club's name from settings, never written here (apps.core.branding).
+    "SITE_TITLE": "apps.core.branding.admin_site_name",
+    "SITE_HEADER": "apps.core.branding.admin_site_name",
     "SITE_URL": "/",
     # The site has no description of the club anywhere in the admin.
     "SITE_SUBHEADER": None,
