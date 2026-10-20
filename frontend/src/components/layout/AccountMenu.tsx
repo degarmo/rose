@@ -82,9 +82,10 @@ export function AccountMenu({ className }: { className?: string }) {
                 {staff.role && (
                   <>
                     <li>
-                      <Link to="/members/staff" className={ITEM}>
+                      {/* The admin dashboard: the only one. */}
+                      <a href={staff.admin_url} className={ITEM}>
                         Dashboard
-                      </Link>
+                      </a>
                     </li>
                     <li>
                       <Link to="/members/staff/reports" className={ITEM}>
@@ -102,11 +103,6 @@ export function AccountMenu({ className }: { className?: string }) {
                   <Link to="/" className={ITEM}>
                     Website
                   </Link>
-                </li>
-                <li>
-                  <a href={staff.admin_url} className={ITEM}>
-                    Django admin
-                  </a>
                 </li>
               </ul>
             </li>

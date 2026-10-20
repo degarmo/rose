@@ -57,12 +57,46 @@ class RoseAdminSite(UnfoldAdminSite):
             ),
             path("staff-guide/", self.admin_view(self.staff_guide_view), name="staff_guide"),
             path(
+                "metrics/export/",
+                self.admin_view(self.metrics_export_view),
+                name="metrics_export",
+            ),
+            path(
                 "image-review/file/<str:filename>",
                 self.admin_view(self.image_file_view),
                 name="image_review_file",
             ),
         ]
         return extra + super().get_urls()
+
+    def metrics_export_view(self, request):
+        """The dashboard's figures as CSV: the same aggregates, small numbers withheld, and
+        the download is logged. Admin and Staff roles only."""
+        from django.http import HttpResponse
+        from django.utils import timezone
+
+        from apps.core import metrics
+        from apps.core.models import AuditLog, audit
+
+        from .dashboard import sees_everything
+
+        if request.method != "POST" or not sees_everything(request.user):
+            raise PermissionDenied
+        data = metrics.dashboard(str(request.POST.get("range", "30d")))
+        audit(
+            AuditLog.Category.EXPORT,
+            "metrics_export",
+            request.user,
+            f"Dashboard figures ({data['range']})",
+            "metrics",
+        )
+        response = HttpResponse(metrics.export_csv(data), content_type="text/csv; charset=utf-8")
+        stamp = timezone.localdate().isoformat()
+        response["Content-Disposition"] = (
+            f'attachment; filename="metrics-{data["range"]}-{stamp}.csv"'
+        )
+        response["Cache-Control"] = "private, no-store"
+        return response
 
     def _pre_auth(self, view):
         def wrapped(request):

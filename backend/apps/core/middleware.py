@@ -32,12 +32,9 @@ def admin_prefix():
     return f"/{settings.ADMIN_PATH.strip('/')}/"
 
 
-def door_desk_path():
-    return f"{admin_prefix()}memberships/membership/door-desk/"
-
-
-# The staff section's door desk in the member app. Links to it load the page afresh, so
-# this document's policy (camera allowed) is the one in force while it is open.
+# The door desk (the staff section's, in the member app). Links to it load the page
+# afresh, so this document's policy (camera allowed) is the one in force while it is open.
+# It is the only page that may use the camera.
 STAFF_DOOR_PATH = "/members/staff/door"
 
 
@@ -119,8 +116,8 @@ class PrivacyHeadersMiddleware:
 
     - X-Robots-Tag on every private or machine-facing path and the admin.
     - Cache-Control: no-store on the API unless a view set something stricter.
-    - Permissions-Policy denies every device feature; only the two door desks (the
-      admin's and the staff section's) may use the camera, to scan reference codes.
+    - Permissions-Policy denies every device feature; only the door desk (the staff
+      section's) may use the camera, to scan reference codes.
     - Referrer-Policy is no-referrer, except the admin (decision 174).
     """
 
@@ -136,7 +133,7 @@ class PrivacyHeadersMiddleware:
             response["X-Robots-Tag"] = "noindex, nofollow"
         if path.startswith("/api/"):
             response["Cache-Control"] = response.get("Cache-Control", "no-store")
-        door = path in (door_desk_path(), STAFF_DOOR_PATH, f"{STAFF_DOOR_PATH}/")
+        door = path in (STAFF_DOOR_PATH, f"{STAFF_DOOR_PATH}/")
         response["Permissions-Policy"] = CAMERA_SELF if door else DENY_ALL
         if path.startswith(self.admin):
             response["Referrer-Policy"] = settings.ADMIN_REFERRER_POLICY

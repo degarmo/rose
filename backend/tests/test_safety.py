@@ -7,7 +7,6 @@ import pytest
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
-from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -18,15 +17,13 @@ from apps.feed.access import can_view_feed
 from apps.feed.models import FeedComment, FeedPost, Guidelines, Notification, Report
 from apps.memberships import desk
 from apps.memberships.models import Membership
-from apps.safety import metrics, roles, services
+from apps.safety import roles, services
 from apps.safety.models import Appeal, BlockedEmail, MemberAction
 from tests.conftest import csrf_client_for, staff_login, verify_age
 
 pytestmark = pytest.mark.django_db
 
 STAFF_PATHS = [
-    "/api/staff/overview/",
-    "/api/staff/metrics/",
     "/api/staff/team/",
     "/api/staff/rules/",
     "/api/staff/reports/",
@@ -127,21 +124,9 @@ def test_a_role_without_the_two_step_login_gets_404(path, team):
 
 def test_each_role_sees_its_own_part(team):
     expectations = {
-        roles.MODERATOR: {
-            "/api/staff/reports/": 200,
-            "/api/staff/metrics/": 404,
-            "/api/staff/team/": 404,
-        },
-        roles.STAFF: {
-            "/api/staff/reports/": 200,
-            "/api/staff/metrics/": 200,
-            "/api/staff/team/": 404,
-        },
-        roles.ADMIN: {
-            "/api/staff/reports/": 200,
-            "/api/staff/metrics/": 200,
-            "/api/staff/team/": 200,
-        },
+        roles.MODERATOR: {"/api/staff/reports/": 200, "/api/staff/team/": 404},
+        roles.STAFF: {"/api/staff/reports/": 200, "/api/staff/team/": 404},
+        roles.ADMIN: {"/api/staff/reports/": 200, "/api/staff/team/": 200},
     }
     for role, paths in expectations.items():
         client, _ = team(role)
@@ -207,45 +192,21 @@ def test_staff_have_the_member_app_once_their_own_age_is_checked(make_user):
     assert client.get("/api/account/session/").json()["user"]["member_app"] == "join"
 
 
-# Metrics
+# No metrics in the staff section: the admin dashboard is the only one (tests/test_metrics.py)
 
 
-def test_small_numbers_are_withheld():
-    assert metrics.count(4) == {"value": None, "fewer_than": 5}
-    assert metrics.count(0) == {"value": None, "fewer_than": 5}
-    assert metrics.count(5) == {"value": 5}
-    assert metrics.money(10_000, 4) == {"cents": None, "fewer_than": 5}
-    assert metrics.money(10_000, 5) == {"cents": 10_000}
-
-
-def test_metrics_suppress_and_never_name_anyone(team, joined_member, post_by, make_membership):
-    authors = [joined_member(display_name=f"author_{n}") for n in range(4)]
-    for author in authors:
-        post_by(author)
-    make_membership(user=authors[0])
-    client, _ = team(roles.STAFF)
-    data = client.get("/api/staff/metrics/?range=90d").json()
-    assert data["feed"]["posts"] == {"value": None, "fewer_than": 5}
-    assert data["members"]["total_active"]["value"] is None
-    post_by(joined_member(display_name="author_5"))
-    data = client.get("/api/staff/metrics/?range=90d").json()
-    assert data["feed"]["posts"] == {"value": 5}
-    raw = client.get("/api/staff/metrics/?range=12m").content.decode()
-    export = client.post("/api/staff/metrics/export/", {"range": "12m"}, format="json")
-    for text in (raw, export.content.decode()):
-        assert "author_" not in text and "@example.org" not in text
-    assert AuditLog.objects.filter(category="export", action="metrics_export").exists()
-    assert len(data["series"]) == 13
-
-
-def test_no_person_level_metric_endpoints():
+def test_the_staff_section_has_no_metrics(team):
     from django.urls import get_resolver
 
-    staff = get_resolver().url_patterns
-    names = {name for name in _all_names(staff) if name.startswith("staff-")}
-    metric_routes = {reverse(name) for name in names if name.startswith("staff-metrics")}
-    # Only the dashboard and its export: neither takes a person, an id or a handle.
-    assert metric_routes == {"/api/staff/metrics/", "/api/staff/metrics/export/"}
+    names = set(_all_names(get_resolver().url_patterns))
+    assert not {name for name in names if name.startswith(("staff-metrics", "staff-overview"))}
+    client, _ = team(roles.ADMIN)
+    for path in (
+        "/api/staff/metrics/",
+        "/api/staff/overview/",
+        "/api/staff/settings/age-verification/",
+    ):
+        assert client.get(path).status_code == 404, path
 
 
 def _all_names(patterns):
@@ -497,8 +458,8 @@ def test_ban_ends_membership_and_flags_the_door(team, make_membership, desk_staf
     with pytest.raises(desk.DeskError, match="Do not admit"):
         desk.renew(desk_staff, membership, "cash", 1000)
     staff_login(client, desk_staff)
-    page = client.get(reverse("admin:memberships_door_desk"), {"q": membership.reference_code})
-    assert "Do not admit" in page.content.decode()
+    data = client.get("/api/staff/door/", {"q": membership.reference_code}).json()
+    assert data["results"][0]["do_not_admit"] is True
 
 
 def test_ban_reversal_clears_the_flags(team, make_membership):

@@ -4,8 +4,6 @@ from datetime import timedelta
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Q, Sum
-from django.db.models.functions import Coalesce
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
@@ -164,10 +162,12 @@ class EventAdmin(ModelAdmin):
 
     @admin.display(description="Going", ordering="going_total")
     def going(self, obj):
-        if obj.rsvps_purged_at:
-            return obj.final_going_count
+        """The same figure as the RSVP counts page (apps.core.metrics), small ones withheld."""
+        from apps.core import metrics
+
+        going = metrics.count(obj.final_going_count if obj.rsvps_purged_at else obj.going_total)
         capacity = f" / {obj.capacity}" if obj.capacity else ""
-        return f"{obj.going_total}{capacity}"
+        return f"{going['display']}{capacity}"
 
     @admin.display(description="Door list")
     def door_list_link(self, obj):
@@ -229,26 +229,22 @@ class EventAdmin(ModelAdmin):
         return extra + super().get_urls()
 
     def rsvp_counts_view(self, request):
-        """RSVPs as numbers per event (upcoming first, then the last month); no names."""
+        """RSVPs as numbers per event (upcoming first, then the last month), from
+        apps.core.metrics like every other number; no names."""
+        from apps.core import metrics
+
         if not request.user.has_perm("events.view_rsvp"):
             raise PermissionDenied
         since = timezone.now() - timedelta(days=30)
-        events = (
-            Event.objects.filter(starts_at__gte=since, is_private_hold=False)
-            .annotate(
-                going=Coalesce(
-                    Sum("rsvps__party_size", filter=Q(rsvps__status=RSVP.Status.GOING)), 0
-                ),
-                waiting=Count("rsvps", filter=Q(rsvps__status=RSVP.Status.WAITLIST)),
-                checked=Coalesce(Sum("rsvps__party_size", filter=Q(rsvps__checked_in=True)), 0),
-            )
-            .order_by("starts_at")
+        events = Event.objects.filter(starts_at__gte=since, is_private_hold=False).order_by(
+            "starts_at"
         )
         context = {
             **self.admin_site.each_context(request),
             "title": "RSVPs",
             "opts": RSVP._meta,
-            "events": events,
+            "rows": metrics.event_counts(events),
+            "small": metrics.SMALL,
             "now": timezone.now(),
         }
         return TemplateResponse(request, "admin/events/rsvp_counts.html", context)

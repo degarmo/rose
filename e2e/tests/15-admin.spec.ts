@@ -10,7 +10,6 @@ const ADMIN_PAGES = [
   'memberships/membership/',
   'memberships/payment/',
   'memberships/tier/',
-  'memberships/membership/door-desk/',
   'memberships/membership/summary/',
   'events/event/',
   'events/event/add/',
@@ -137,13 +136,10 @@ test.describe('The admin in Rose’s look', () => {
     await card.getByRole('button', { name: 'Show signature name' }).click()
     await expect(card.getByText('Riley Testperson')).toBeVisible()
 
-    // The admin's door desk sees the same result.
+    // The admin's membership list sees the same result.
     const data = fixtures()
-    await desk.goto(`${data.admin_path}memberships/membership/door-desk/?q=${code}`)
-    const adminCard = desk.locator('.rose-desk-card', { hasText: name })
-    await expect(adminCard.getByText('Active', { exact: true })).toBeVisible()
-    await expect(adminCard.getByText('ID verified')).toBeVisible()
-    await expect(adminCard.getByText('Succeeded · Cash')).toBeVisible()
+    await desk.goto(`${data.admin_path}memberships/membership/?q=${code}`)
+    await expect(desk.locator('#result_list tbody tr', { hasText: code }).getByText('Active', { exact: true })).toBeVisible()
 
     expect(seen.offsite).toEqual([])
     await member.context().close()

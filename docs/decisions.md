@@ -816,3 +816,27 @@ Prompt 12 was stopped before prompt 13 began and was done afterwards, so its dec
 472. This replaces decision 461. Memberships migration 0007 changes nothing and only prints how many active accounts have feed access and no ID check (18 on the development database), so the club knows the effect before turning the check on in production. Accounts migration 0010 drops the email timestamp and clears the notices the first version of 0007 had stamped (nobody had been emailed about them). The scheduled notice task is gone.
 473. Switching it on tells each person it closes the feed to: one neutral email ("A note about your account") and the notice on their verify card. That happens at most once per person per switch-on. `SiteSettings.age_verification_switched_on_at` records the switch-on, and `Profile.age_check_notice_at` records the switch-on each person was told about; `apps.memberships.tasks.notify_age_check_switched_on` runs once the change is committed and skips anyone already told. Switching it off and on again tells them again.
 
+## One dashboard, one door desk, one set of numbers
+
+474. The admin dashboard (Unfold, `apps/core/dashboard.py`) is the only dashboard. The staff section's dashboard, its metrics API (`/api/staff/metrics/`, its export and `/api/staff/overview/`) and its age verification card and API are removed. The staff section keeps the hands-on tools: the door desk, the reports inbox, members and the team (admin). Its tabs have a **Dashboard** link that opens the admin dashboard, shown to every team role.
+475. Every number comes from `apps/core/metrics.py` (moved from `apps/safety/metrics.py`):
+    - the dashboard's cards, charts and tables
+    - the sidebar badges
+    - the membership summary, the RSVP counts page and the events list's Going column
+    - the export
+
+    Each metric is defined once and documented in `docs/ops/metrics.md`. "Open reports" is open plus in review everywhere. The old Reports badge also counted posts waiting for approval, which is why it said 11 where the dashboard said 9; those posts are now their own metric, on the Feed posts badge. "ID checks needed" is memberships pending payment with `paid_awaiting_id_check`, on an active account. The admin Reports page no longer shows item counts that could be mistaken for the report count.
+476. **(privacy)** Suppression happens in the service, so no screen can skip it. A count from 1 to 4 is withheld; zero shows as 0. Zero identifies nobody, and a badge saying "<5" when nothing is waiting would mislead. This changes decision 405, which withheld zero too, as that brief said. Withheld figures show as "<5", with "fewer than 5" as their tooltip and for screen readers, through `admin/rose/metric.html`. That keeps every KPI card readable at 390 to 1920 pixels wide: the cards wrap rather than clip. Badges show the same "<5". The membership summary and RSVP counts pages now withhold small numbers too, where they used to show them exactly.
+477. On the dashboard, the Admin and Staff roles (and superusers) see everything:
+    - the KPI cards and the 30-day, 90-day and 12-month range switch
+    - charts of revenue, payments, RSVPs and feed posts
+    - the tier table (active, new, renewing, lapsing, expired, and all tiers)
+    - revenue this month and last, feed activity and the events in the period
+    - Coming up and Quick actions
+    - the aggregate CSV export (`admin:metrics_export`, POST, logged)
+    - the age verification card, which only admins can use to change the setting
+
+    Moderators see only open reports, posts awaiting approval and ID checks needed. Door volunteers see ID checks needed; other staff accounts see the waiting cards their permissions cover.
+478. After logging in, the Admin and Staff roles (superusers included) land on the admin dashboard, moderators on the reports inbox, and door volunteers on the door desk. `/members/staff` itself sends the team to the inbox and volunteers to the door desk.
+479. One door desk: the staff section's (`/members/staff/door`). The admin's door desk view, templates, script and vendored jsQR copy are removed. Its address (`admin:memberships_door_desk`) redirects to the staff desk and keeps `?q=`. The sidebar's **Door desk**, a membership's **Open** link and the **ID checks needed** card (`?needs_id=1`) all open the staff desk. Every action the admin desk had is in the staff one, tested action by action. Only the staff desk is allowed the camera now. The session's `staff.door_desk_url` is gone, and the banner links admins to the setting's admin page (`staff.age_check_url`).
+

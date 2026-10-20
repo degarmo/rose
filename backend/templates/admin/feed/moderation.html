@@ -11,7 +11,7 @@
   </header>
   {% if not age_checked %}<p class="rose-card rose-subtle" role="note">Pictures are hidden until your own ID check is recorded at the door desk, with another team member as witness. The member feed's rule holds for the team too.</p>{% endif %}
 
-  <h2 class="rose-section-title">Reported posts, comments and profiles <span class="rose-chip">{{ report_groups|length }}</span></h2>
+  <h2 class="rose-section-title">Reported posts, comments and profiles</h2>
   {% for group in report_groups %}
   <section class="rose-card{% if group.hidden %} rose-card-muted{% endif %}">
     <header class="rose-desk-head">
@@ -32,7 +32,7 @@
   <p class="rose-card rose-subtle">No open reports.</p>
   {% endfor %}
 
-  <h2 class="rose-section-title">Posts waiting for approval <span class="rose-chip">{{ pending|length }}</span></h2>
+  <h2 class="rose-section-title">Posts waiting for approval</h2>
   {% for post in pending %}
   <section class="rose-card">
     <header class="rose-desk-head">

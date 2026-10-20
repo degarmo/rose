@@ -158,13 +158,13 @@ class AccountSerializer(serializers.ModelSerializer):
             "verify_url": None if verified else f"{admin}{reverse('admin:login')}?next={back}",
             # No authenticator yet: the two-step login starts by setting one up.
             "needs_enrollment": not TOTPDevice.objects.filter(user=user, confirmed=True).exists(),
+            # The admin dashboard: where Staff and Admin land after logging in.
             "admin_url": f"{admin}{reverse('admin:index')}",
-            "door_desk_url": f"{admin}{reverse('admin:memberships_door_desk')}"
-            if door_desk
-            else None,
-            # Off: the staff section shows a banner, which admins can open to change it.
+            # Off: the staff section shows a banner; admins open it to change the setting on
+            # its admin page (a reason and a fresh two-step code).
             "age_check_required": age_check_required(),
             "can_change_age_check": can_change_setting(user),
+            "age_check_url": f"{admin}{reverse('admin:pages_sitesettings_age_verification')}",
         }
 
     def get_feed_controls(self, user):

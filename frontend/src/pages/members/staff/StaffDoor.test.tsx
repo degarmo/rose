@@ -21,8 +21,7 @@ const VOLUNTEER: StaffSession = {
   verified: true,
   verify_url: null,
   needs_enrollment: false,
-  admin_url: '/admin/',
-  door_desk_url: '/admin/memberships/membership/door-desk/', age_check_required: true, can_change_age_check: false,
+  admin_url: '/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/',
 }
 
 function as(staff: Partial<StaffSession> | null): Account {
@@ -207,6 +206,20 @@ function titles(nav: HTMLElement) {
 function person(overrides: Partial<DoorPerson> = {}): DoorPerson {
   return { id: 31, display_name: 'quiet_lamp', team_account: false, feed_granted: true, is_you: false, id_checked: false, do_not_admit: false, actions: ['verify'], ...overrides }
 }
+
+describe('arriving from the admin', () => {
+  it('searches the code in the address, or opens the "Needs ID check" list', async () => {
+    door.search.mockResolvedValue(found([card()]))
+    const { unmount } = renderWithProviders(<StaffDoorPage />, { user: as({}), path: '/members/staff/door?q=UX3-D3X' })
+    expect(await screen.findByRole('article', { name: 'silver_orchid' })).toBeInTheDocument()
+    expect(door.search).toHaveBeenCalledWith('UX3-D3X')
+    unmount()
+    door.search.mockResolvedValue(found([], { needs_id: true, query: '' }))
+    renderWithProviders(<StaffDoorPage />, { user: as({}), path: '/members/staff/door?needs_id=1' })
+    expect(await screen.findByRole('heading', { name: 'Waiting for an ID check' })).toBeInTheDocument()
+    expect(door.search).toHaveBeenLastCalledWith('', true)
+  })
+})
 
 describe('ID checks at the door desk', () => {
   it('lists everyone waiting for an ID check, people without a membership included', async () => {

@@ -196,10 +196,14 @@ def test_admin_cannot_add_change_or_delete_donations(admin_client):
 # At the door
 
 
-def test_door_desk_records_a_donation(client, desk_staff, wording):
-    staff_login(client, desk_staff)
+def test_door_desk_records_a_donation(desk_staff, wording):
+    from rest_framework.test import APIClient
+
+    from tests.conftest import csrf_client_for
+
+    client = csrf_client_for(staff_login(APIClient(enforce_csrf_checks=True), desk_staff))
     client.post(
-        reverse("admin:memberships_door_desk"),
+        "/api/staff/door/",
         {
             "action": "record_donation",
             "method": "check",
@@ -207,6 +211,7 @@ def test_door_desk_records_a_donation(client, desk_staff, wording):
             "donor_display": "",
             "acknowledgement_email": "giver@private.example",
         },
+        format="json",
     )
     donation = Donation.objects.get()
     assert (donation.method, donation.amount_cents, donation.donor_display) == (

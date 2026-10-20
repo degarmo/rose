@@ -168,10 +168,26 @@ export async function enterWebsiteCode(page: Page, secret: string) {
   await page.getByRole('button', { name: 'Continue' }).click()
 }
 
-/** Open the admin with the two-step login, as door staff would. */
+/** Door staff: the two-step login, then the door desk (the staff section's, the only one). */
 export async function staffLogin(page: Page) {
   await twoStepLogin(page, fixtures().staff)
-  await expect(page.getByRole('link', { name: 'Door desk' }).first()).toBeVisible()
+  await page.goto('/members/staff/door')
+  await expect(page.getByRole('search').getByLabel('Reference code or display name')).toBeVisible()
+}
+
+/** Search the door desk for a reference code or display name. */
+export async function deskSearch(page: Page, query: string) {
+  const search = page.getByRole('search')
+  await search.getByLabel('Reference code or display name').fill(query)
+  await search.getByRole('button', { name: 'Search' }).click()
+}
+
+/** Run one action from a person's card on the door desk: its button, then its dialog. */
+export async function deskAction(page: Page, person: string, button: string, dialogTitle: string, submit: string, idCheck = true) {
+  await page.getByRole('article', { name: person }).getByRole('button', { name: button }).click()
+  const dialog = page.getByRole('dialog', { name: dialogTitle })
+  if (idCheck) await dialog.getByLabel('Photo ID checked, 18+').check()
+  await dialog.getByRole('button', { name: submit }).click()
 }
 
 /** A team member (moderator or admin) through the two-step login, then the staff section. */

@@ -1,9 +1,14 @@
-"""Aggregate numbers for the staff dashboard. Never lists of people.
+"""Every number staff see, in one place: the admin dashboard's cards, charts and tables,
+the sidebar badges and the export all call this module, and nothing else counts.
+Definitions are in docs/ops/metrics.md.
 
 - No figure names a person or links a person to an event: only counts and sums.
-- Any count below SMALL is withheld as "fewer than 5". A money total is withheld when
-  it comes from fewer than SMALL payments or gifts, since a small total can point to
-  someone.
+- Suppression happens here, so no caller can skip it. A count from 1 to 4 is withheld
+  as "fewer than 5" ("<5" where space is short); zero shows as 0, since it identifies
+  nobody. A money total is withheld when it comes from fewer than SMALL payments or
+  gifts, since a small total can point to someone.
+- Each figure carries its own `display` (the text to show) and `spoken` (the same, for
+  screen readers and the tooltip), so every screen shows the same thing for the same number.
 - There is no per-member view here, and the export is the same aggregates.
 """
 
@@ -19,15 +24,82 @@ SMALL = 5
 RANGES = {"30d": 30, "90d": 90, "12m": 365}
 
 
+WITHHELD = f"<{SMALL}"
+WITHHELD_LABEL = f"fewer than {SMALL}"
+
+
 def count(value):
     value = int(value or 0)
-    return {"value": value} if value >= SMALL else {"value": None, "fewer_than": SMALL}
+    if value == 0 or value >= SMALL:
+        return {"value": value, "display": f"{value:,}", "spoken": f"{value:,}"}
+    return {"value": None, "fewer_than": SMALL, "display": WITHHELD, "spoken": WITHHELD_LABEL}
 
 
 def money(cents, payments):
     if (payments or 0) < SMALL:
-        return {"cents": None, "fewer_than": SMALL}
-    return {"cents": int(cents or 0)}
+        return {"cents": None, "fewer_than": SMALL, "display": WITHHELD, "spoken": WITHHELD_LABEL}
+    cents = int(cents or 0)
+    dollars = f"${cents / 100:,.0f}"
+    return {"cents": cents, "display": dollars, "spoken": dollars}
+
+
+# Things waiting for staff. The same counts feed the dashboard's cards and the sidebar's
+# badges.
+
+
+def open_reports():
+    """Reports nobody has closed yet: open, or in review."""
+    from apps.feed.models import Report
+
+    return count(
+        Report.objects.filter(status__in=[Report.Status.OPEN, Report.Status.IN_REVIEW]).count()
+    )
+
+
+def posts_awaiting_approval():
+    """A member's first posts, held for review (processed, not yet approved or removed)."""
+    from apps.feed.models import FeedPost
+
+    return count(
+        FeedPost.objects.filter(status=FeedPost.Status.PENDING, is_processing=False).count()
+    )
+
+
+def id_checks_needed():
+    """Memberships that would be active but for a missing ID check: paid online, a free
+    plan, or imported paid-up, all waiting for the door desk."""
+    from apps.memberships.models import Membership
+
+    return count(
+        Membership.objects.filter(
+            status=Membership.Status.PENDING_PAYMENT,
+            paid_awaiting_id_check=True,
+            user__is_active=True,
+        ).count()
+    )
+
+
+def unanswered_messages():
+    """Contact form messages not yet marked handled."""
+    from apps.contact.models import ContactMessage
+
+    return count(ContactMessage.objects.filter(handled=False).count())
+
+
+def feed_access_without_id_check():
+    """Active accounts with feed access from any source and no valid ID check: who the
+    member feed's age check closes it to while it is on."""
+    from apps.memberships.access import feed_entitled_accounts
+    from apps.memberships.models import IdCheck
+
+    return count(feed_entitled_accounts().exclude(pk__in=IdCheck.valid().values("user_id")).count())
+
+
+def email_list():
+    """Confirmed newsletter subscribers."""
+    from apps.newsletter.models import Subscriber
+
+    return count(Subscriber.objects.filter(status=Subscriber.Status.CONFIRMED).count())
 
 
 def _aware(day):
@@ -112,16 +184,6 @@ def _new_in(memberships, start, stop, first_by_membership, paid_this_month):
     )
 
 
-def new_members(today):
-    """New memberships this month, every tier (guest passes excluded)."""
-    from apps.memberships.models import Membership
-
-    start, stop = _month_bounds(today)
-    first_by_membership, paid_this_month = _month_payments(start, stop)
-    memberships = Membership.objects.filter(tier__is_guest_pass=False)
-    return count(_new_in(memberships, start, stop, first_by_membership, paid_this_month))
-
-
 def membership_section(today):
     from apps.memberships.models import Membership
 
@@ -129,6 +191,7 @@ def membership_section(today):
     entitled = Membership.objects.filter(status__in=Membership.ENTITLED)
     first_by_membership, paid_this_month = _month_payments(start, stop)
     rows = []
+    totals = {"new": 0, "renewing": 0, "lapsing": 0, "expired": 0}
     for tier in _tiers():
         mine = Membership.objects.filter(tier=tier)
         new = _new_in(mine, start, stop, first_by_membership, paid_this_month)
@@ -149,6 +212,13 @@ def membership_section(today):
         expired = mine.filter(
             status=Membership.Status.EXPIRED, ended_at__gte=start, ended_at__lt=stop
         ).count()
+        for key, value in (
+            ("new", new),
+            ("renewing", renewing),
+            ("lapsing", lapsing),
+            ("expired", expired),
+        ):
+            totals[key] += value
         rows.append(
             {
                 "tier": tier.name,
@@ -163,7 +233,109 @@ def membership_section(today):
         "month": today.strftime("%B %Y"),
         "total_active": count(entitled.count()),
         "tiers": rows,
+        # Every tier together, counted before suppression (a sum of "fewer than 5"s
+        # would be no number at all).
+        "totals": {key: count(value) for key, value in totals.items()},
     }
+
+
+def memberships_by_status():
+    """Memberships in each state, guest passes aside."""
+    from apps.memberships.models import Membership
+
+    counts = dict(
+        Membership.objects.exclude(tier__is_guest_pass=True)
+        .values_list("status")
+        .annotate(n=Count("pk"))
+    )
+    return [
+        {"status": label, **count(counts.get(value, 0))}
+        for value, label in Membership.Status.choices
+    ]
+
+
+def _last_months(today, months):
+    """The first day of this month and the months before it, newest first."""
+    firsts = [today.replace(day=1)]
+    for _ in range(months - 1):
+        firsts.append(_previous_month(firsts[-1]))
+    return firsts
+
+
+def revenue_by_method(today, months=12):
+    """Membership and guest payments per month and method, refunds subtracted, no comps."""
+    from apps.memberships.models import Payment
+
+    methods = [m for m in Payment.Method.values if m != Payment.Method.COMP]
+    rows = []
+    for first in _last_months(today, months):
+        start, stop = _month_bounds(first)
+        payments = (
+            Payment.objects.filter(created_at__gte=start, created_at__lt=stop)
+            .exclude(status=Payment.Status.FAILED)
+            .exclude(method=Payment.Method.COMP)
+        )
+        cells = [
+            money(*_net(payments.filter(method=method), Payment.Status.REFUNDED))
+            for method in methods
+        ]
+        rows.append(
+            {
+                "month": first.strftime("%b %Y"),
+                "cells": cells,
+                "total": money(*_net(payments, Payment.Status.REFUNDED)),
+            }
+        )
+    return {"methods": [Payment.Method(m).label for m in methods], "rows": rows}
+
+
+def guest_visits_by_month(today, months=12):
+    """Paid guest nights per month."""
+    from apps.memberships.models import Payment
+
+    rows = []
+    for first in _last_months(today, months):
+        start, stop = _month_bounds(first)
+        visits = Payment.objects.filter(
+            status=Payment.Status.SUCCEEDED,
+            membership__tier__is_guest_pass=True,
+            created_at__gte=start,
+            created_at__lt=stop,
+        ).count()
+        rows.append({"month": first.strftime("%b %Y"), **count(visits)})
+    return rows
+
+
+def event_counts(events):
+    """Going, waitlist and checked in for each event: numbers only, never names."""
+    from django.db.models.functions import Coalesce
+
+    from apps.events.models import RSVP
+
+    annotated = events.annotate(
+        going_n=Coalesce(Sum("rsvps__party_size", filter=Q(rsvps__status=RSVP.Status.GOING)), 0),
+        waiting_n=Count("rsvps", filter=Q(rsvps__status=RSVP.Status.WAITLIST)),
+        checked_n=Coalesce(Sum("rsvps__party_size", filter=Q(rsvps__checked_in=True)), 0),
+    )
+    return [
+        {
+            "event": event,
+            "going": count(event.final_going_count if event.rsvps_purged_at else event.going_n),
+            "waiting": count(event.waiting_n),
+            "checked_in": count(
+                event.final_checked_in_count if event.rsvps_purged_at else event.checked_n
+            ),
+        }
+        for event in annotated
+    ]
+
+
+def next_events(now, limit=3):
+    """The next published events, with how many are going."""
+    from apps.events.models import Event
+
+    upcoming = Event.objects.published().filter(starts_at__gte=now).order_by("starts_at")[:limit]
+    return event_counts(Event.objects.filter(pk__in=[e.pk for e in upcoming]).order_by("starts_at"))
 
 
 def _net(queryset, refund_status):
@@ -205,34 +377,27 @@ def revenue_for(month_day):
 
 
 def events_section(since, now):
-    from apps.events.models import RSVP, Event
+    """Events from the start of the range to two months ahead, newest first."""
+    from apps.events.models import Event
 
-    rows = []
     events = (
         Event.objects.published()
         .filter(starts_at__gte=since, starts_at__lt=now + timedelta(days=60))
-        .annotate(
-            going=Sum("rsvps__party_size", filter=Q(rsvps__status=RSVP.Status.GOING)),
-            checked=Sum("rsvps__party_size", filter=Q(rsvps__checked_in=True)),
-        )
         .order_by("-starts_at")
     )
-    for event in events:
-        going = event.final_going_count if event.rsvps_purged_at else event.going
-        checked = event.final_checked_in_count if event.rsvps_purged_at else event.checked
-        rows.append(
-            {
-                "title": event.title,
-                "starts_at": event.starts_at,
-                "rsvps": count(going),
-                "check_ins": count(checked) if event.starts_at <= now else None,
-            }
-        )
-    return rows
+    return [
+        {
+            "title": row["event"].title,
+            "starts_at": row["event"].starts_at,
+            "rsvps": row["going"],
+            "check_ins": row["checked_in"] if row["event"].starts_at <= now else None,
+        }
+        for row in event_counts(events)
+    ]
 
 
 def feed_section(since, now):
-    from apps.feed.models import FeedComment, FeedPost, Report
+    from apps.feed.models import FeedComment, FeedPost
 
     published = FeedPost.objects.exclude(status=FeedPost.Status.PENDING)
     return {
@@ -244,9 +409,8 @@ def feed_section(since, now):
             .distinct()
             .count()
         ),
-        "open_reports": count(
-            Report.objects.filter(status__in=[Report.Status.OPEN, Report.Status.IN_REVIEW]).count()
-        ),
+        "open_reports": open_reports(),
+        "posts_awaiting_approval": posts_awaiting_approval(),
     }
 
 
@@ -284,8 +448,6 @@ def series(range_key, today):
 
 
 def dashboard(range_key, now=None):
-    from apps.newsletter.models import Subscriber
-
     if range_key not in RANGES:
         range_key = "30d"
     now = now or timezone.now()
@@ -302,7 +464,8 @@ def dashboard(range_key, now=None):
         },
         "events": events_section(since, now),
         "feed": feed_section(since, now),
-        "email_list": count(Subscriber.objects.filter(status=Subscriber.Status.CONFIRMED).count()),
+        "email_list": email_list(),
+        "id_checks_needed": id_checks_needed(),
         "series": series(range_key, today),
     }
 
@@ -311,7 +474,7 @@ def _shown(metric, key="value"):
     if metric is None:
         return ""
     value = metric.get(key)
-    return f"fewer than {SMALL}" if value is None else value
+    return WITHHELD_LABEL if value is None else value
 
 
 def export_csv(data):
@@ -343,8 +506,10 @@ def export_csv(data):
         "comments": "Comments",
         "active_posters_week": "Active posters this week",
         "open_reports": "Open reports",
+        "posts_awaiting_approval": "Posts awaiting approval",
     }
     for key, label in labels.items():
         writer.writerow(["Feed", "", label, _shown(data["feed"][key])])
     writer.writerow(["Email list", "", "Confirmed subscribers", _shown(data["email_list"])])
+    writer.writerow(["Door desk", "", "ID checks needed", _shown(data["id_checks_needed"])])
     return out.getvalue()

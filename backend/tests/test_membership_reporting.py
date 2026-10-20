@@ -30,12 +30,17 @@ def members(make_membership, make_user, make_tier):
 
 
 def test_summary_counts_and_revenue(admin_client, members):
+    """The same figures and rules as the dashboard (apps.core.metrics): few payments are
+    withheld, five or more show their total with refunds subtracted."""
     page = admin_client.get(reverse("admin:memberships_summary")).content.decode()
     assert "Membership summary" in page
     assert "Grace period" in page and "Monthly" in page
-    assert "25.00" in page  # cash this month
-    assert "20.00" in page  # online after the refund
-    assert "45.00" in page  # total
+    assert "&lt;5" in page and "25.00" not in page
+    for _ in range(4):
+        Payment.objects.create(membership=members, amount_cents=1000, method="cash")
+    page = admin_client.get(reverse("admin:memberships_summary")).content.decode()
+    assert "$65" in page  # cash: 25 + 4 x 10
+    assert "$85" in page  # the month's total: 65 + 25 online - 5 refunded
 
 
 def test_summary_needs_view_permission(client, django_user_model):

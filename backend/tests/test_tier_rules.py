@@ -324,9 +324,15 @@ def test_staff_status_changes_keep_the_count(limited, member_of, members_event, 
 
 
 @pytest.fixture
-def desk_client(client, desk_staff):
-    staff_login(client, desk_staff)
-    return client
+def desk_client(desk_staff):
+    """The door desk's API, as the tablet uses it."""
+    from rest_framework.test import APIClient
+
+    from tests.conftest import csrf_client_for
+
+    client = APIClient(enforce_csrf_checks=True)
+    client.default_format = "json"
+    return csrf_client_for(staff_login(client, desk_staff))
 
 
 def test_walk_in_counts_and_respects_the_limit(limited, member_of, members_event, desk_staff):
@@ -362,30 +368,25 @@ def test_walk_in_applies_the_tier_rules(make_tier, member_of, members_event, des
 def test_walk_in_from_the_desk_page(limited, member_of, members_event, desk_client):
     membership = member_of(limited)
     tonight = members_event(starts_at=today_at(12))
-    url = reverse("admin:memberships_door_desk")
-    page = desk_client.get(url, {"q": membership.reference_code}).content.decode()
-    assert "Check in tonight" in page and "1 left" in page
+    url = "/api/staff/door/"
+    data = desk_client.get(url, {"q": membership.reference_code}).json()
+    [card] = data["results"]
+    assert "walk_in" in card["actions"] and card["events_remaining"] == 1
+    assert [event["id"] for event in data["tonight_events"]] == [tonight.pk]
     desk_client.post(
         url,
-        {
-            "action": "walk_in",
-            "membership": membership.pk,
-            "event": tonight.pk,
-            "party_size": "1",
-            "q": membership.reference_code,
-        },
+        {"action": "walk_in", "membership": membership.pk, "event": tonight.pk, "party_size": 1},
     )
-    page = desk_client.get(url, {"q": membership.reference_code}).content.decode()
-    assert "0 left" in page
+    [card] = desk_client.get(url, {"q": membership.reference_code}).json()["results"]
+    assert card["events_remaining"] == 0
     assert RSVP.objects.get(event=tonight).checked_in
 
 
 def test_desk_rows_show_the_tier_rules(make_tier, member_of, desk_client):
     rose_plus = member_of(make_tier(guests_included_per_event=1, guest_discount=True))
-    page = desk_client.get(
-        reverse("admin:memberships_door_desk"), {"q": rose_plus.reference_code}
-    ).content.decode()
-    assert "Unlimited" in page and "1 included per event" in page and "Guest discount" in page
+    [card] = desk_client.get("/api/staff/door/", {"q": rose_plus.reference_code}).json()["results"]
+    assert card["events_remaining"] is None  # unlimited
+    assert card["tier"]["guests_included"] == 1 and card["tier"]["guest_discount"] is True
 
 
 # Free tiers

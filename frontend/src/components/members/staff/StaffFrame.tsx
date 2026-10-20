@@ -1,7 +1,7 @@
-import { ShieldCheck } from 'lucide-react'
+import { ArrowUpRight, ShieldCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router'
-import { AgeCheckOffBanner } from '@/components/members/staff/AgeCheckSetting'
+import { AgeCheckOffBanner } from '@/components/members/staff/AgeCheckBanner'
 import { useAuth } from '@/components/layout/authContext'
 import { PhoneBar } from '@/components/members/app/Nav'
 import { appButtonClasses } from '@/components/members/app/ui'
@@ -10,10 +10,9 @@ import { atLeast, ROLE_LABELS, type Role, type StaffSession } from '@/lib/safety
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
-const TABS: Array<{ to: string; label: string; minimum: Role | 'door'; end?: boolean }> = [
+const TABS: Array<{ to: string; label: string; minimum: Role | 'door' }> = [
   // First for door volunteers (their only tab); the team see it where they have the permission.
   { to: '/members/staff/door', label: 'Door desk', minimum: 'door' },
-  { to: '/members/staff', label: 'Dashboard', minimum: 'staff', end: true },
   { to: '/members/staff/reports', label: 'Reports', minimum: 'moderator' },
   { to: '/members/staff/members', label: 'Members', minimum: 'moderator' },
   { to: '/members/staff/team', label: 'Team', minimum: 'admin' },
@@ -91,12 +90,12 @@ export function StaffFrame({
           {actions}
         </div>
         <nav aria-label="Staff" className="mt-4 border-b border-border">
-          <ul className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none]">
+          {/* Wraps on a phone rather than scrolling, so no tab hides past the edge. */}
+          <ul className="-mb-px flex flex-wrap gap-x-5 md:gap-x-6">
             {TABS.filter((tab) => allowed(staff, tab.minimum)).map((tab) => (
               <li key={tab.to}>
                 <NavLink
                   to={tab.to}
-                  end={tab.end}
                   // The door desk loads afresh, so its camera permission applies.
                   reloadDocument={tab.minimum === 'door'}
                   className={({ isActive }) =>
@@ -107,11 +106,21 @@ export function StaffFrame({
                 </NavLink>
               </li>
             ))}
+            {staff.role && (
+              // The dashboard is the admin's (the only one); figures never appear here.
+              <li>
+                <a href={staff.admin_url} className="inline-flex h-11 items-center gap-1 whitespace-nowrap border-b border-transparent text-xs font-semibold uppercase tracking-[0.06em] text-fg-muted hover:text-fg">
+                  Dashboard
+                  <ArrowUpRight aria-hidden="true" className="size-3.5" />
+                  <span className="sr-only">(opens the admin)</span>
+                </a>
+              </li>
+            )}
           </ul>
         </nav>
         {!staff.age_check_required && (
           <div className="pt-4">
-            <AgeCheckOffBanner canChange={staff.can_change_age_check} />
+            <AgeCheckOffBanner staff={staff} />
           </div>
         )}
         <div className="pt-5">{children}</div>

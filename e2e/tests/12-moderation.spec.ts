@@ -1,4 +1,4 @@
-import { expect, fixtures, personPage, staffLogin, teamLogin, test } from './support'
+import { deskSearch, expect, fixtures, personPage, staffLogin, teamLogin, test } from './support'
 
 test.describe('Moderation', () => {
   test('a report, a suspension, the notice, an appeal and its reversal', async ({ browser, baseURL }, info) => {
@@ -92,9 +92,7 @@ test.describe('Moderation', () => {
 
     const desk = await personPage(browser, baseURL!)
     await staffLogin(desk)
-    await desk.getByRole('link', { name: 'Door desk' }).first().click()
-    await desk.getByLabel('Reference code or display name').fill(subjects.banned_code)
-    await desk.getByRole('button', { name: 'Search', exact: true }).click()
+    await deskSearch(desk, subjects.banned_code)
     await expect(desk.getByRole('alert').filter({ hasText: 'Do not admit' })).toBeVisible()
 
     await moderator.context().close()

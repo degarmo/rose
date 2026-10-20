@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn'
 import { formatDay } from '@/lib/format'
 import { doorApi, type DoorAction, type DoorCard, type DoorPerson, type DoorRequest, type DoorSearch } from '@/lib/safetyApi'
 import { useAsync } from '@/lib/useAsync'
+import { useSearchParams } from 'react-router'
 
 /** A reference code as printed: three letters or digits, a dash, three more (no 0, O, 1, I, L). */
 const CODE = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{3}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{3}$/
@@ -454,9 +455,11 @@ function PersonCard({ person, onOpen }: { person: DoorPerson; onOpen: (dialog: D
 export function StaffDoorPage() {
   const toast = useToast()
   const inputId = useId()
-  const [typed, setTyped] = useState('')
-  const [query, setQuery] = useState('')
-  const [needsId, setNeedsId] = useState(false)
+  // The admin links here with ?q=<code> (a membership's row) or ?needs_id=1 (its card).
+  const [params] = useSearchParams()
+  const [typed, setTyped] = useState(params.get('q') ?? '')
+  const [query, setQuery] = useState((params.get('q') ?? '').trim())
+  const [needsId, setNeedsId] = useState(params.get('needs_id') === '1')
   const [version, setVersion] = useState(0)
   const [scanning, setScanning] = useState(false)
   const [dialog, setDialog] = useState<Dialog | null>(null)

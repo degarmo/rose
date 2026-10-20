@@ -25,7 +25,10 @@ export function LoginPage() {
 
   function signedIn(session: Session) {
     auth.applySession(session)
-    navigate(landingAfterLogin(session.user, params.get('next'), next), { replace: true })
+    const landing = landingAfterLogin(session.user, params.get('next'), next)
+    // The admin dashboard is outside this app: a full page load.
+    if (/^https?:\/\//.test(landing)) window.location.assign(landing)
+    else navigate(landing, { replace: true })
   }
 
   async function submitCode(event: FormEvent<HTMLFormElement>) {

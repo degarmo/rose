@@ -1,4 +1,4 @@
-import { post, postForBlob, request } from './api'
+import { post, request } from './api'
 
 export type Role = 'moderator' | 'staff' | 'admin'
 
@@ -14,21 +14,14 @@ export interface StaffSession {
   verify_url: string | null
   /** No authenticator yet: the two-step login starts by setting one up. */
   needs_enrollment: boolean
-  /** The Django admin's home, and the door desk for those who may use it. */
+  /** The admin dashboard: Admin and Staff land there after logging in. */
   admin_url: string
-  door_desk_url: string | null
   /** The club's switch for the member feed's age check; off shows a banner on staff pages. */
   age_check_required: boolean
   /** Admins (and superusers) may change it, with a reason and a fresh two-step code. */
   can_change_age_check: boolean
-}
-
-export interface AgeCheckSetting {
-  required: boolean
-  can_change: boolean
-  switched_on_at: string | null
-  /** How many people with feed access have no ID check on file (counts only). */
-  unchecked_with_feed: number
+  /** Its page in the admin, where an admin changes it. */
+  age_check_url: string
 }
 
 export const ROLE_LABELS: Record<Role, string> = { moderator: 'Moderator', staff: 'Staff', admin: 'Admin' }
@@ -36,43 +29,6 @@ const RANK: Record<Role, number> = { moderator: 1, staff: 2, admin: 3 }
 
 export function atLeast(role: Role | null | undefined, minimum: Role) {
   return Boolean(role && RANK[role] >= RANK[minimum])
-}
-
-/** A count withheld below five: value null with fewer_than set. */
-export interface Count {
-  value: number | null
-  fewer_than?: number
-}
-
-export interface Money {
-  cents: number | null
-  fewer_than?: number
-}
-
-export type MetricsRange = '30d' | '90d' | '12m'
-
-export interface Metrics {
-  range: MetricsRange
-  generated_at: string
-  small: number
-  members: {
-    month: string
-    total_active: Count
-    tiers: Array<{ tier: string; active: Count; new: Count; renewing: Count; lapsing: Count; expired: Count }>
-  }
-  revenue: Record<'this_month' | 'last_month', { month: string; rows: Array<{ label: string } & Money>; total: Money }>
-  events: Array<{ title: string; starts_at: string; rsvps: Count; check_ins: Count | null }>
-  feed: { posts: Count; comments: Count; active_posters_week: Count; open_reports: Count }
-  email_list: Count
-  series: Array<{ label: string; payments: Count; revenue: Money; rsvps: Count; posts: Count }>
-}
-
-export interface Overview {
-  role: Role
-  open_reports: number
-  open_appeals: number
-  can_see_metrics: boolean
-  can_manage_team: boolean
 }
 
 export type ReportStatus = 'open' | 'in_review' | 'resolved' | 'dismissed'
@@ -201,11 +157,6 @@ export interface ActionRequest {
 const s = (path: string) => `/staff/${path}`
 
 export const staffApi = {
-  overview: () => request<Overview>(s('overview/')),
-  ageCheck: () => request<AgeCheckSetting>(s('settings/age-verification/')),
-  setAgeCheck: (payload: { required: boolean; reason: string; code: string }) => post<AgeCheckSetting>(s('settings/age-verification/'), payload),
-  metrics: (range: MetricsRange) => request<Metrics>(s(`metrics/?range=${range}`)),
-  exportMetrics: (range: MetricsRange) => postForBlob(s('metrics/export/'), { range }),
   reports: (status: ReportStatus) => request<ReportSummary[]>(s(`reports/?status=${status}`)),
   report: (id: number) => request<ReportDetail>(s(`reports/${id}/`)),
   setStatus: (id: number, status: ReportStatus) => post<ReportDetail>(s(`reports/${id}/status/`), { status }),

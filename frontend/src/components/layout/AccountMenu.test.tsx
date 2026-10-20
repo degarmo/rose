@@ -39,20 +39,18 @@ describe('AccountMenu', () => {
         verified: true,
         verify_url: null,
         needs_enrollment: false,
-        admin_url: 'https://site.example/admin/',
-        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/', age_check_required: true, can_change_age_check: false,
+        admin_url: 'https://site.example/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/',
       },
     })
     const block = screen.getByRole('list', { name: 'Staff' })
     expect(screen.getByText('Admin')).toBeInTheDocument()
     const links = Object.fromEntries(within(block).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')]))
     expect(links).toEqual({
-      Dashboard: '/members/staff',
+      Dashboard: 'https://site.example/admin/',
       Reports: '/members/staff/reports',
       'Door desk': '/members/staff/door',
       'Member app': '/members/feed',
       Website: '/',
-      'Django admin': 'https://site.example/admin/',
     })
   })
 
@@ -65,8 +63,7 @@ describe('AccountMenu', () => {
         verified: true,
         verify_url: null,
         needs_enrollment: false,
-        admin_url: 'https://site.example/admin/',
-        door_desk_url: 'https://site.example/admin/memberships/membership/door-desk/', age_check_required: true, can_change_age_check: false,
+        admin_url: 'https://site.example/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/',
       },
     })
     const block = screen.getByRole('list', { name: 'Staff' })

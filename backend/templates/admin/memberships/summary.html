@@ -7,25 +7,25 @@
 <div class="rose-stack">
   <header class="rose-page-head">
     <h1 class="rose-title">Membership summary</h1>
-    <p class="rose-subtle">Counts and totals only. Every export is logged.</p>
+    <p class="rose-subtle">Counts and totals only, the same as the dashboard's: any number from 1 to 4 shows as "&lt;{{ small }}". Every export is logged.</p>
   </header>
 
   <div class="rose-dashboard-grid">
     <section class="rose-card" aria-labelledby="by-status">
       <h2 id="by-status">By status</h2>
-      <table class="rose-table"><tbody>{% for label, n in status_rows %}<tr><th scope="row">{{ label }}</th><td class="rose-num">{{ n }}</td></tr>{% endfor %}</tbody></table>
+      <table class="rose-table"><tbody>{% for row in by_status %}<tr><th scope="row">{{ row.status }}</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=row %}</td></tr>{% endfor %}</tbody></table>
     </section>
     <section class="rose-card" aria-labelledby="by-tier">
-      <h2 id="by-tier">Active and grace, by tier</h2>
-      <table class="rose-table"><tbody>{% for row in tier_rows %}<tr><th scope="row">{{ row.tier__name }}</th><td class="rose-num">{{ row.n }}</td></tr>{% empty %}<tr><td class="rose-subtle">None yet</td></tr>{% endfor %}</tbody></table>
-    </section>
-    <section class="rose-card" aria-labelledby="this-month">
-      <h2 id="this-month">This month</h2>
-      <table class="rose-table"><tbody>
-        <tr><th scope="row">New</th><td class="rose-num">{{ new_this_month }}</td></tr>
-        <tr><th scope="row">Renewed</th><td class="rose-num">{{ renewed_this_month }}</td></tr>
-        <tr><th scope="row">Expired</th><td class="rose-num">{{ expired_this_month }}</td></tr>
-      </tbody></table>
+      <h2 id="by-tier">{{ members.month }}, by tier</h2>
+      <div class="rose-table-wrap">
+        <table class="rose-table">
+          <thead><tr><th scope="col">Tier</th><th scope="col" class="rose-num">Active</th><th scope="col" class="rose-num">New</th><th scope="col" class="rose-num">Renewing</th><th scope="col" class="rose-num">Lapsing</th><th scope="col" class="rose-num">Expired</th></tr></thead>
+          <tbody>
+            {% for row in members.tiers %}<tr><th scope="row">{{ row.tier }}</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.active %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.new %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.renewing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.lapsing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.expired %}</td></tr>{% endfor %}
+            <tr class="rose-table-total"><th scope="row">All tiers</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.total_active %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.new %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.renewing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.lapsing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.expired %}</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 
@@ -33,17 +33,18 @@
     <h2 id="revenue">Revenue, last 12 months (refunds subtracted)</h2>
     <div class="rose-table-wrap">
       <table class="rose-table">
-        <thead><tr><th scope="col">Month</th>{% for label in method_labels %}<th scope="col" class="rose-num">{{ label }}</th>{% endfor %}<th scope="col" class="rose-num">Total</th></tr></thead>
-        <tbody>{% for row in revenue_rows %}<tr><th scope="row">{{ row.month }}</th>{% for cell in row.cells %}<td class="rose-num">{{ cell }}</td>{% endfor %}<td class="rose-num"><strong>{{ row.total }}</strong></td></tr>{% endfor %}</tbody>
+        <thead><tr><th scope="col">Month</th>{% for label in revenue.methods %}<th scope="col" class="rose-num">{{ label }}</th>{% endfor %}<th scope="col" class="rose-num">Total</th></tr></thead>
+        <tbody>{% for row in revenue.rows %}<tr><th scope="row">{{ row.month }}</th>{% for cell in row.cells %}<td class="rose-num">{% include "admin/rose/metric.html" with metric=cell %}</td>{% endfor %}<td class="rose-num"><strong>{% include "admin/rose/metric.html" with metric=row.total %}</strong></td></tr>{% endfor %}</tbody>
       </table>
     </div>
+    <p class="rose-subtle rose-note">A month or method with fewer than {{ small }} payments is withheld.</p>
   </section>
 
   <section class="rose-card" aria-labelledby="guests">
     <h2 id="guests">Guest visits, last 12 months</h2>
     <table class="rose-table">
       <thead><tr><th scope="col">Month</th><th scope="col" class="rose-num">Visits</th></tr></thead>
-      <tbody>{% for row in guest_rows %}<tr><th scope="row">{{ row.month }}</th><td class="rose-num">{{ row.visits }}</td></tr>{% endfor %}</tbody>
+      <tbody>{% for row in guest_rows %}<tr><th scope="row">{{ row.month }}</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=row %}</td></tr>{% endfor %}</tbody>
     </table>
   </section>
 

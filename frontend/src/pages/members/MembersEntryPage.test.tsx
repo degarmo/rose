@@ -61,7 +61,7 @@ describe('/members', () => {
 })
 
 describe('getting into the app', () => {
-  it('lands the team on the staff dashboard, open-app members in the feed and everyone else on Home, unless they came from a page', () => {
+  it('lands Admin and Staff on the admin dashboard, moderators on the inbox, open-app members in the feed and everyone else on Home, unless they came from a page', () => {
     const open = { member_app: 'open' as const, staff: null }
     expect(landingAfterLogin(open, null, '/members/home')).toBe('/members/feed')
     expect(landingAfterLogin(open, '/', '/')).toBe('/members/feed')
@@ -69,8 +69,10 @@ describe('getting into the app', () => {
     for (const member_app of ['join', 'paused', null] as const) {
       expect(landingAfterLogin({ member_app, staff: null }, null, '/members/home')).toBe('/members/home')
     }
-    const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, door_desk: true, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', door_desk_url: null, age_check_required: true, can_change_age_check: false } }
-    expect(landingAfterLogin(owner, null, '/members/home')).toBe('/members/staff')
+    const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, door_desk: true, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/' } }
+    expect(landingAfterLogin(owner, null, '/members/home')).toBe('/a')
+    expect(landingAfterLogin({ ...owner, staff: { ...owner.staff, role: 'staff' as const } }, null, '/')).toBe('/a')
+    expect(landingAfterLogin({ ...owner, staff: { ...owner.staff, role: 'moderator' as const } }, null, '/')).toBe('/members/staff/reports')
     expect(landingAfterLogin(owner, '/events/x', '/events/x')).toBe('/events/x')
     expect(memberAppPath({ member_app: 'open' })).toBe('/members/feed')
     expect(memberAppPath({ member_app: 'join' })).toBe('/members/join-feed')

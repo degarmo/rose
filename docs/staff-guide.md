@@ -37,14 +37,25 @@ any section. Your name at the bottom opens the staff guide, your password and a 
 public site; the sun or moon there switches between light and dark. On a tablet or phone the
 menu hides behind the button at the top left.
 
-## The home page
+## The dashboard
 
-After you log in you see **Today**: totals for active members, new members this month,
-income this month, open reports and ID checks waiting, each linking to where you act. Below
-them are income for the last 12 months, active members by plan, the next three events with
-how many are going, and buttons for a new event, a new journal post, the door desk and the
-reports. It only shows numbers, never names, and any number below 5 shows as "fewer than 5"
-so nobody can be picked out. You only see the parts your role allows.
+The admin's home page, **Today**, is the only dashboard. Admins and staff land there after
+logging in.
+
+- **Cards** link to where you act: active members, new members this month, income this
+  month, the email list, open reports, posts awaiting approval and ID checks waiting.
+- **30 days, 90 days, 12 months** changes the charts: income, payments, RSVPs and feed posts.
+- **Tables** show members by plan (active, new, renewing, lapsing and expired), income this
+  month and last, feed activity and the events in the period.
+- **Coming up** lists the next three events.
+- **Export** downloads the same figures as a spreadsheet, and the download is recorded.
+- **Age verification card** shows whether the age check is on. Admins can change it from
+  there.
+
+It only shows numbers, never names. Any number from 1 to 4 shows as **<5** (hold the mouse
+over it: "fewer than 5"), so nobody can be picked out. The red numbers in the menu are the
+same figures as the cards. Moderators see only open reports, posts awaiting approval and ID
+checks needed. What every number means is in `docs/ops/metrics.md`.
 
 ## Posting to the journal
 
@@ -83,9 +94,9 @@ On the tablet at the door, sign in on the website as usual (email, password, the
 six-digit code) and you land on the **Door desk** in the member app, at
 `/members/staff/door`: a big search box, a **Scan QR** button and large buttons, made for a
 tablet or a phone. If you are on the team it is also under **Door desk** beside **Staff** in
-the member app's menu. The same desk is in the admin (**Today > Door desk**), with a link to
-the tablet one; both do exactly the same thing and record the same way. This guide is also in
-the admin: click your name at the bottom of the menu, then **Staff guide**.
+the member app's menu. It is the only door desk: **Today > Door desk** in the admin, a
+membership's **Open** link and the dashboard's **ID checks needed** card all open it. This
+guide is also in the admin: click your name at the bottom of the menu, then **Staff guide**.
 
 On the tablet desk each person shows as a card with their display name, plan, status,
 **ID verified** or **ID check needed**, events left this month and guests included, and a
@@ -142,7 +153,7 @@ The person gets a plain "You're all set" email and their feed opens without logg
 
 **Turning the age check off or on.** The club can switch the age check for the member feed
 off, for example before the door desk is staffed. Only an admin can do it: **Change** on the
-age verification card on the staff dashboard, or **Settings > Site settings > Age verification
+age verification card on the admin dashboard, or **Settings > Site settings > Age verification
 for the member feed > Open** in the admin. It asks for a reason and a new code from your
 authenticator app, says what will happen, and the change is logged. While it is off, an amber
 banner says so on every staff page, the verify card disappears for members, and the door desk
@@ -261,12 +272,14 @@ several. Most of this work now happens in the member app's staff section, below.
 ## The staff section (in the member app)
 
 Moderators, staff and admins work in the member app, under **Staff** in the sidebar (on a
-phone: your profile, then Settings, then Staff). Logging in on the website asks for the code
+phone: your profile, then Settings, then Staff). It holds the hands-on tools: the door desk,
+the reports inbox, members and, for admins, the team. It has no figures; **Dashboard** there
+opens the admin's. Moderators land on the reports inbox after logging in. Logging in on the website asks for the code
 from your authenticator app straight after your password, and that unlocks the staff section
 for the session; a new team member sets one up the first time they open it.
 
-- **Roles.** A *moderator* handles reports and member actions. *Staff* also see the
-  dashboard. An *admin* also manages the team (**Team**) and can see who sent a report.
+- **Roles.** A *moderator* handles reports and member actions. *Staff* also see the whole
+  admin dashboard. An *admin* also manages the team (**Team**) and can see who sent a report.
 - **Reports.** Open, In review, Resolved and Dismissed, plus **Appeals**. Reports cover
   posts, comments, profiles and concerns about something at an event or the club (from
   members, or from anyone through **Report a concern** on the website). What was reported
@@ -283,8 +296,6 @@ for the session; a new team member sets one up the first time they open it.
   report. The log keeps both.
 - **Appeals.** A member can appeal each action once. Appeals go to someone other than the
   moderator who acted; if that was you, someone else decides.
-- **Dashboard.** Counts and totals only. Anything below 5 shows as "fewer than 5", so
-  nobody can be picked out. **Export** downloads the same figures.
 
 People who report learn only that their report was received, then reviewed. Never tell
 anyone more, and never tell a member who reported them.

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, mailLink, mailSubjects, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
+import { deskAction, deskSearch, expect, mailLink, mailSubjects, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
 
 const PASSWORD = 'a-long-e2e-password-42'
 
@@ -46,16 +46,12 @@ test.describe('Guests', () => {
 
     const desk = await personPage(browser, baseURL!)
     await staffLogin(desk)
-    await desk.getByRole('link', { name: 'Door desk' }).first().click()
-    await desk.getByLabel('Reference code or display name').fill(code)
-    await desk.getByRole('button', { name: 'Search', exact: true }).click()
-    await expect(desk.getByText(name)).toBeVisible()
-    await expect(desk.getByText(/Guest pass/).first()).toBeVisible()
-    const visit = desk.locator('form', { has: desk.getByRole('heading', { name: 'Guest visit' }) })
-    await visit.getByLabel('Photo ID checked, 18+').check()
-    await visit.getByRole('button', { name: 'Record payment, in for tonight' }).click()
+    await deskSearch(desk, code)
+    const card = desk.getByRole('article', { name })
+    await expect(card.getByText('Guest pass')).toBeVisible()
+    await deskAction(desk, name, 'Guest visit', 'Guest visit', 'Record payment, in for tonight')
     await expect(desk.getByText(`${code} is in for tonight.`)).toBeVisible()
-    await expect(desk.getByText('Convert to member')).toBeVisible()
+    await expect(card.getByText('Convert to member')).toBeVisible()
 
     await guest.context().close()
     await desk.context().close()

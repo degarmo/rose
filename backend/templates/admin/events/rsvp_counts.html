@@ -7,24 +7,24 @@
 <div class="rose-stack">
   <header class="rose-page-head">
     <h1 class="rose-title">RSVPs</h1>
-    <p class="rose-subtle">Counts per event, from the last month on. Who is going is on each event's door list, for the people who run the door.</p>
+    <p class="rose-subtle">Counts per event, from the last month on. Any number from 1 to 4 shows as "&lt;{{ small }}". Who is going is on each event's door list, for the people who run the door.</p>
   </header>
   <section class="rose-card">
-    {% if events %}
+    {% if rows %}
     <div class="rose-table-wrap">
       <table class="rose-table">
         <thead><tr><th scope="col">Event</th><th scope="col">When</th><th scope="col" class="rose-num">Going</th><th scope="col" class="rose-num">Waitlist</th><th scope="col" class="rose-num">Checked in</th><th scope="col"></th></tr></thead>
         <tbody>
-          {% for event in events %}
+          {% for row in rows %}{% with event=row.event %}
           <tr>
             <td><span class="rose-row-title">{{ event.title }}</span>{% if not event.is_published %} <span class="rose-chip rose-chip-wait">Draft</span>{% elif event.ends_at < now %} <span class="rose-chip">Past</span>{% endif %}</td>
             <td>{{ event.starts_at|date:"D M j, g:i A" }}</td>
-            <td class="rose-num">{{ event.going }}{% if event.capacity %} / {{ event.capacity }}{% endif %}</td>
-            <td class="rose-num">{{ event.waiting }}</td>
-            <td class="rose-num">{{ event.checked }}</td>
+            <td class="rose-num">{% include "admin/rose/metric.html" with metric=row.going %}{% if event.capacity %} / {{ event.capacity }}{% endif %}</td>
+            <td class="rose-num">{% include "admin/rose/metric.html" with metric=row.waiting %}</td>
+            <td class="rose-num">{% include "admin/rose/metric.html" with metric=row.checked_in %}</td>
             <td><a class="rose-link" href="{% url 'admin:events_event_door' event.pk %}">Door list</a></td>
           </tr>
-          {% endfor %}
+          {% endwith %}{% endfor %}
         </tbody>
       </table>
     </div>

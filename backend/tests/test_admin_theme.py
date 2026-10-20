@@ -11,9 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.contact.models import ContactMessage
-from apps.core.dashboard import dashboard_callback
 from apps.events.services import submit_rsvp
-from apps.memberships.models import Payment
 from tests.conftest import PASSWORD, staff_login
 
 pytestmark = pytest.mark.django_db
@@ -73,15 +71,22 @@ def visible(user, path="/admin/"):
     return shown
 
 
-def links(user):
+def links(user, admin_only=True):
+    """The sidebar's links for this person; the door desk is the staff section's, on the
+    site itself, so admin_only leaves it out."""
     request = RequestFactory().get("/admin/")
     request.user = user
-    return [
+    found = [
         str(item["link"])
         for group in admin.site.get_sidebar_list(request)
         for item in group["items"]
         if item["has_permission"]
     ]
+    return [link for link in found if link.startswith("/")] if admin_only else found
+
+
+def test_the_door_desk_item_opens_the_staff_door_desk(desk_staff, settings):
+    assert f"{settings.SITE_URL}/members/staff/door" in links(desk_staff, admin_only=False)
 
 
 # Sidebar sections by role
@@ -190,8 +195,9 @@ def test_badges_count_what_is_waiting(admin_client, make_membership):
     make_membership(status="pending_payment", paid_awaiting_id_check=True)
     html = admin_client.get(reverse("admin:index")).content.decode()
     assert "a@example.org" not in html
-    assert re.search(r"Contact messages</span>\s*<span[^>]*>\s*1\s*<", html)
-    assert re.search(r"Door desk</span>\s*<span[^>]*>\s*1\s*<", html)
+    # One of each: a small number, shown as "<5" like everywhere else (apps.core.metrics).
+    assert re.search(r"Contact messages</span>\s*<span[^>]*>\s*&lt;5\s*<", html)
+    assert re.search(r"Door desk</span>\s*<span[^>]*>\s*&lt;5\s*<", html)
 
 
 def test_badge_callbacks_return_counts(admin_user, desk_staff, make_membership):
@@ -203,12 +209,12 @@ def test_badge_callbacks_return_counts(admin_user, desk_staff, make_membership):
     make_membership(status="pending_payment", paid_awaiting_id_check=True)
     request = RequestFactory().get("/admin/")
     request.user = admin_user
-    assert admin_nav.messages_badge(request) == "1"
-    assert admin_nav.desk_badge(request) == "1"
-    assert admin_nav.reports_badge(request) == ""
-    request.user = desk_staff
-    assert admin_nav.messages_badge(request) == ""
-    assert admin_nav.desk_badge(request) == "1"
+    assert admin_nav.messages_badge(request) == "<5"
+    assert admin_nav.desk_badge(request) == "<5"
+    assert admin_nav.reports_badge(request) == ""  # none: no badge at all
+    for _ in range(5):
+        make_membership(status="pending_payment", paid_awaiting_id_check=True)
+    assert admin_nav.desk_badge(request) == "6"
 
 
 # Every registered admin page, in the new look
@@ -234,7 +240,6 @@ def test_every_registered_model_renders_for_the_owner(admin_client, small_world)
 def test_custom_views_render_for_the_owner(admin_client):
     for name in (
         "admin:index",
-        "admin:memberships_door_desk",
         "admin:memberships_summary",
         "admin:feed_moderation",
         "admin:image_review",
@@ -255,7 +260,7 @@ EXTERNAL = re.compile(r"""(?:src|href|action)=["'](?:https?:)?//""", re.I)
 
 @pytest.mark.parametrize(
     "name",
-    ["admin:index", "admin:memberships_door_desk", "admin:events_event_add", "admin:login"],
+    ["admin:index", "admin:memberships_summary", "admin:events_event_add", "admin:login"],
 )
 def test_admin_pages_load_nothing_from_other_sites(name, admin_client, client, settings):
     response = (client if name == "admin:login" else admin_client).get(reverse(name))
@@ -295,90 +300,15 @@ def test_dashboard_needs_the_two_step_login(client, admin_user):
     assert client.get(reverse("admin:index")).status_code == 302
 
 
-# Dashboard: totals only, small numbers withheld
-
-
 @pytest.fixture
 def small_world(make_user, make_membership, make_event):
-    members = [
-        make_membership(
-            user=make_user(display_name="secret_member", email="secret@private.example")
-        )
-    ]
-    members += [make_membership() for _ in range(2)]
-    for membership in members:
-        Payment.objects.create(membership=membership, amount_cents=2500, method="cash")
+    """A little of everything, for the pages and forms above (the dashboard's own tests
+    are in tests/test_metrics.py)."""
+    make_membership(user=make_user(display_name="secret_member", email="secret@private.example"))
     make_membership(status="pending_payment", paid_awaiting_id_check=True)
     event = make_event(capacity=10, starts_at=timezone.now() + timedelta(days=3))
     submit_rsvp(make_user(), event, 2)
     return event
-
-
-def run_dashboard(user):
-    request = RequestFactory().get("/admin/")
-    request.user = user
-    return dashboard_callback(request, {})
-
-
-def kpis(context):
-    return {kpi.label: kpi.value for kpi in context["kpis"]}
-
-
-def test_small_numbers_show_as_fewer_than_five(admin_user, small_world):
-    context = run_dashboard(admin_user)
-    assert kpis(context) == {
-        "Active members": "fewer than 5",
-        "New this month": "fewer than 5",
-        "Revenue this month": "fewer than 5",
-        "Open reports": "fewer than 5",
-        "ID checks needed": "fewer than 5",
-    }
-    assert context["next_events"][0]["rsvps"] == "fewer than 5"
-    assert '"data": [null' in context["tier_chart"]
-    assert context["revenue_chart"].count("null") == 12
-
-
-def test_numbers_of_five_or_more_are_shown(admin_user, make_membership, make_tier):
-    tier = make_tier()
-    for _ in range(6):
-        membership = make_membership(tier=tier)
-        Payment.objects.create(membership=membership, amount_cents=2500, method="cash")
-    context = run_dashboard(admin_user)
-    shown = kpis(context)
-    assert shown["Active members"] == "6"
-    assert shown["New this month"] == "6"
-    assert shown["Revenue this month"] == "$150"
-    assert context["revenue_chart"].count("null") == 11
-
-
-def test_dashboard_page_shows_totals_and_never_names(admin_client, small_world):
-    html = admin_client.get(reverse("admin:index")).content.decode()
-    assert "Active members" in html and "fewer than 5" in html
-    assert "secret_member" not in html and "secret@private.example" not in html
-    assert small_world.title in html
-    assert "New event" in html and "Open door desk" in html
-
-
-def test_kpis_follow_permissions(desk_staff, role_user):
-    assert list(kpis(run_dashboard(desk_staff))) == [
-        "Active members",
-        "New this month",
-        "Revenue this month",
-        "ID checks needed",
-    ]
-    door = run_dashboard(desk_staff)
-    assert door["next_events"] is None
-    assert [label for label, _icon, _url in door["quick_actions"]] == ["Open door desk"]
-    moderator = run_dashboard(role_user("moderator"))
-    assert list(kpis(moderator)) == ["Open reports"]
-    assert moderator["revenue_chart"] is None and moderator["tier_chart"] is None
-    assert [label for label, _icon, _url in moderator["quick_actions"]] == ["Open reports"]
-    editor = run_dashboard(role_user("editor"))
-    assert kpis(editor) == {}
-    assert [label for label, _icon, _url in editor["quick_actions"]] == [
-        "New event",
-        "New journal post",
-    ]
 
 
 # Pages added with the new sidebar
@@ -388,8 +318,13 @@ def test_rsvp_counts_page_shows_numbers_and_no_names(admin_client, make_user, ma
     event = make_event(capacity=10)
     submit_rsvp(make_user(display_name="secret_guest"), event, 2)
     html = admin_client.get(reverse("admin:events_rsvp_counts")).content.decode()
-    assert event.title in html and '<td class="rose-num">2 / 10</td>' in html
+    # Two going: a small number, withheld like every other figure (apps.core.metrics).
+    assert event.title in html and "fewer than 5</span></span> / 10</td>" in html
     assert "secret_guest" not in html
+    for n in range(2):
+        submit_rsvp(make_user(display_name=f"guest_more_{n}"), event, 2)
+    html = admin_client.get(reverse("admin:events_rsvp_counts")).content.decode()
+    assert '<td class="rose-num">6 / 10</td>' in html
 
 
 def test_rsvp_counts_need_the_rsvp_permission(role_user):
@@ -522,7 +457,6 @@ def test_button_fields_are_in_plain_words(admin_client):
     ("name", "item"),
     [
         ("admin:events_rsvp_counts", "RSVPs (counts only)"),
-        ("admin:memberships_door_desk", "Door desk"),
         ("admin:memberships_summary", "Membership summary"),
         ("admin:feed_moderation", "Reports"),
         ("admin:memberships_membership_changelist", "Memberships"),

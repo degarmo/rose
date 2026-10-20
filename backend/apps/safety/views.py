@@ -10,7 +10,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db.models import Case, Q, When
-from django.http import Http404, HttpResponse
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -23,7 +23,6 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.core.api import CsrfProtectedAPIView, too_many_requests
-from apps.core.models import AuditLog, audit
 from apps.core.ratelimit import hashed_ip_key
 from apps.events.models import Event
 from apps.feed.access import feed_access_label
@@ -32,7 +31,7 @@ from apps.feed.views import deliver_image
 from apps.memberships.access import age_gate_passes, is_age_verified
 from apps.pages.content import page_entries
 
-from . import metrics, roles, services
+from . import roles, services
 from .api import StaffAPIView
 from .models import Appeal, MemberAction
 from .services import ActionInput, SafetyError
@@ -199,54 +198,7 @@ def appeal_payload(appeal, viewer):
     }
 
 
-# Staff: overview, metrics and the team
-
-
-class OverviewView(StaffAPIView):
-    """Badge counts for the staff navigation."""
-
-    def get(self, request):
-        role = roles.role_of(request.user)
-        return Response(
-            {
-                "role": role,
-                "open_reports": Report.objects.filter(
-                    status__in=[Report.Status.OPEN, Report.Status.IN_REVIEW]
-                ).count(),
-                "open_appeals": Appeal.objects.filter(status=Appeal.Status.OPEN).count(),
-                "can_see_metrics": roles.has_role(request.user, roles.STAFF),
-                "can_manage_team": roles.has_role(request.user, roles.ADMIN),
-            }
-        )
-
-
-class MetricsView(StaffAPIView):
-    minimum_role = roles.STAFF
-
-    def get(self, request):
-        return Response(metrics.dashboard(request.query_params.get("range", "30d")))
-
-
-class MetricsExportView(StaffAPIView):
-    minimum_role = roles.STAFF
-
-    def post(self, request):
-        range_key = str(request.data.get("range", "30d"))
-        data = metrics.dashboard(range_key)
-        audit(
-            AuditLog.Category.EXPORT,
-            "metrics_export",
-            request.user,
-            f"Staff metrics ({data['range']})",
-            "metrics",
-        )
-        response = HttpResponse(metrics.export_csv(data), content_type="text/csv; charset=utf-8")
-        stamp = timezone.localdate().isoformat()
-        response["Content-Disposition"] = (
-            f'attachment; filename="metrics-{data["range"]}-{stamp}.csv"'
-        )
-        response["Cache-Control"] = "private, no-store"
-        return response
+# Staff: the team
 
 
 class TeamView(StaffAPIView):
@@ -611,52 +563,3 @@ class ConcernView(CsrfProtectedAPIView):
         except SafetyError as exc:
             return Response({"detail": exc.message, "code": exc.code}, status=exc.status)
         return Response({"ok": True}, status=status.HTTP_201_CREATED)
-
-
-# The member feed's age check: the club's switch
-
-
-def age_check_setting_payload(user):
-    from apps.memberships.access import age_check_required, feed_entitled_accounts
-    from apps.memberships.age import can_change_setting
-    from apps.memberships.models import IdCheck
-    from apps.pages.models import SiteSettings
-
-    site = SiteSettings.load()
-    unchecked = feed_entitled_accounts().exclude(pk__in=IdCheck.valid().values("user_id")).count()
-    return {
-        "required": age_check_required(),
-        "can_change": can_change_setting(user),
-        "switched_on_at": _when(site.age_verification_switched_on_at),
-        # Counts only: how many people with feed access the check would close it to.
-        "unchecked_with_feed": unchecked,
-    }
-
-
-class AgeCheckSettingView(StaffAPIView):
-    """Everyone on the team sees the state; only admins change it, with a reason and a
-    fresh two-step code (apps.memberships.age.set_age_check_required)."""
-
-    write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
-
-    def get(self, request):
-        return Response(age_check_setting_payload(request.user))
-
-    def post(self, request):
-        from apps.memberships.age import AgeCheckError, can_change_setting, set_age_check_required
-
-        if not can_change_setting(request.user):
-            return Response(
-                {"detail": "Only an admin can change this setting."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-        try:
-            set_age_check_required(
-                request.user,
-                request.data.get("required") is True,
-                str(request.data.get("reason", "")),
-                str(request.data.get("code", "")),
-            )
-        except AgeCheckError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(age_check_setting_payload(request.user))

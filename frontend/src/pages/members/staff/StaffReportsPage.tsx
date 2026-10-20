@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn'
 import { formatDay } from '@/lib/format'
 import { staffApi, type Appeal, type ReportStatus, type ReportSummary } from '@/lib/safetyApi'
 import { useAsync } from '@/lib/useAsync'
-import { AgeCheckSettingCard } from '@/components/members/staff/AgeCheckSetting'
+import { useAuth } from '@/components/layout/authContext'
 
 type Tab = ReportStatus | 'appeals'
 
@@ -72,8 +72,11 @@ export function StaffReportsPage() {
   const [params, setParams] = useSearchParams()
   const requested = params.get('tab')
   const tab: Tab = isTab(requested) ? requested : 'open'
-  const reports = useAsync(() => (tab === 'appeals' ? Promise.resolve([]) : staffApi.reports(tab)), `reports:${tab}`)
-  const appeals = useAsync(() => (tab === 'appeals' ? staffApi.appeals('open') : Promise.resolve([])), `appeals:${tab}`)
+  // Nothing is asked of the server until the frame would show the inbox.
+  const staff = useAuth().user?.staff
+  const open = Boolean(staff?.role && staff.verified)
+  const reports = useAsync(() => (tab === 'appeals' || !open ? Promise.resolve([]) : staffApi.reports(tab)), `reports:${tab}:${open}`)
+  const appeals = useAsync(() => (tab === 'appeals' && open ? staffApi.appeals('open') : Promise.resolve([])), `appeals:${tab}:${open}`)
   const state = tab === 'appeals' ? appeals : reports
 
   return (
@@ -114,7 +117,6 @@ export function StaffReportsPage() {
                 : (reports.status === 'success' ? reports.data : []).map((report) => <ReportRow key={report.id} report={report} />)}
             </ul>
           ))}
-        <AgeCheckSettingCard />
       </div>
     </StaffFrame>
   )

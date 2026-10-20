@@ -176,13 +176,15 @@
   flex-direction: column;
   gap: 24px;
 }
+/* Cards wrap to a new row rather than shrinking below their content. */
 .rose-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 168px), 1fr));
   gap: 16px;
 }
 .rose-kpi {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 4px;
 }
@@ -207,6 +209,7 @@
   font-family: var(--font-display);
   font-size: 30px;
   line-height: 1.1;
+  overflow-wrap: anywhere;
   color: var(--color-font-important-light);
 }
 .dark .rose-kpi-value {
@@ -216,6 +219,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
   gap: 24px;
+}
+/* A wide table scrolls inside its card rather than widening the page. */
+.rose-dashboard-grid > * {
+  min-width: 0;
 }
 
 .rose-rows {
@@ -702,41 +709,7 @@
   overflow-x: auto;
 }
 
-/* Door desk (admin): large controls for a tablet. */
-.rose-desk {
-  display: flex;
-  max-width: 960px;
-  flex-direction: column;
-  gap: 16px;
-}
-.rose-desk-search-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.rose-desk-search-row .rose-input {
-  flex: 1 1 16rem;
-  min-height: 52px;
-  font-size: 22px;
-  letter-spacing: 0.08em;
-}
-.rose-desk-search-row .rose-button,
-.rose-desk-search-row .rose-button-secondary {
-  min-height: 52px;
-}
-.rose-desk-filter {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  min-height: 32px;
-}
-.rose-desk-camera video {
-  width: 100%;
-  max-width: 420px;
-  border-radius: 8px;
-  background: #000;
-}
+/* Card layout shared by the moderation queue, its forms and the rental pipeline. */
 .rose-desk-barred {
   border: 2px solid var(--color-red-600);
 }
@@ -747,26 +720,10 @@
   justify-content: space-between;
   gap: 12px;
 }
-.rose-desk-code {
-  font-family: var(--font-mono);
-  font-size: 18px;
-  letter-spacing: 0.08em;
-  color: var(--color-font-subtle-light);
-}
-.rose-desk-name {
-  font-family: var(--font-display);
-  font-size: 26px !important;
-  font-weight: 400 !important;
-}
 .rose-desk-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-.rose-desk-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
 }
 .rose-desk-form {
   padding: 16px;
@@ -777,22 +734,6 @@
 .dark .rose-desk-form {
   border-color: var(--color-base-800);
   background: var(--color-base-950);
-}
-.rose-desk-signature {
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: var(--color-base-50);
-}
-.rose-desk-subhead {
-  margin-top: 4px;
-}
-.rose-desk-refund {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
-.rose-desk-refund .rose-input {
-  width: 120px;
 }
 
 .rose-section-title {
@@ -1032,4 +973,97 @@ a.rose-banner:hover {
 }
 .dark a.rose-banner:hover {
   background: #78350f;
+}
+
+/* A withheld number ("<5"): the full wording is its tooltip and what screen readers say. */
+.rose-metric-withheld {
+  /* Holds its hidden screen-reader words, so they stay inside a scrolling table. */
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.rose-dashboard-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rose-segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-base-200);
+  border-radius: 8px;
+}
+.rose-segmented a {
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--color-font-subtle-light);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rose-segmented a.is-active {
+  background: var(--color-font-important-light);
+  color: #fff;
+}
+.dark .rose-segmented {
+  border-color: var(--color-base-700);
+}
+.dark .rose-segmented a {
+  color: var(--color-font-subtle-dark);
+}
+.dark .rose-segmented a.is-active {
+  background: var(--color-base-100);
+  color: var(--color-base-900);
+}
+.rose-age-card {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: start;
+}
+.rose-age-card > div {
+  flex: 1 1 360px;
+}
+/* A row's own label reads as text, not as a column heading. */
+.rose-table tbody th {
+  color: var(--color-font-important-light);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.dark .rose-table tbody th {
+  color: var(--color-font-important-dark);
+}
+.rose-table .rose-row-title,
+.rose-table .rose-subtle {
+  display: block;
+}
+.rose-table-total th,
+.rose-table-total td {
+  font-weight: 700;
+}
+/* On a phone, a table's columns fit the card rather than scrolling out of sight. */
+@media (max-width: 480px) {
+  .rose-table-wrap {
+    margin-inline: -12px;
+  }
+  .rose-table th,
+  .rose-table td {
+    padding: 8px 4px;
+  }
+  .rose-table thead th {
+    font-size: 11px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .rose-table tbody th {
+    font-size: 13px;
+  }
 }

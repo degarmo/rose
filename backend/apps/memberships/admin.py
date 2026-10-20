@@ -1,27 +1,21 @@
 import csv
-from collections import defaultdict
-from datetime import timedelta
-from urllib.parse import urlencode
 
 from django import forms
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
-from django.urls import path, reverse
+from django.urls import path
 from django.utils import timezone
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminTextareaWidget
 
-from apps.core.admin_auth import qr_data_uri
 from apps.core.admin_widgets import RichTextWidget
 from apps.core.email import site_link
 from apps.core.models import AuditLog, audit
 
-from . import desk
 from .models import (
     AgreementSignature,
     IdCheck,
@@ -373,16 +367,15 @@ class MembershipAdmin(ModelAdmin):
     @display(description="Door desk")
     def desk_link(self, obj):
         return format_html(
-            '<a class="rose-link" href="{}?q={}">Open</a>',
-            reverse("admin:memberships_door_desk"),
-            obj.reference_code,
+            '<a class="rose-link" href="{}">Open</a>',
+            site_link(f"/members/staff/door?q={obj.reference_code}"),
         )
 
     def get_urls(self):
         extra = [
             path(
                 "door-desk/",
-                self.admin_site.admin_view(self.door_desk_view),
+                self.admin_site.admin_view(self.door_desk_redirect),
                 name="memberships_door_desk",
             ),
             path(
@@ -396,144 +389,33 @@ class MembershipAdmin(ModelAdmin):
         ]
         return extra + super().get_urls()
 
-    # Door desk
+    # The door desk lives in the staff section (/members/staff/door), made for the tablet;
+    # the admin's old address sends people there.
 
-    def door_desk_view(self, request):
-        if not request.user.has_perm(desk.DESK_PERMISSION):
-            raise PermissionDenied
-        revealed = {}
-        if request.method == "POST":
-            try:
-                outcome = desk.perform(request.user, request.POST)
-            except desk.DeskError as exc:
-                self.message_user(request, str(exc), level=messages.ERROR)
-                outcome = None
-            if outcome is not None and outcome.signature:
-                revealed = outcome.signature
-            else:
-                if outcome is not None:
-                    self.message_user(request, outcome.message)
-                query = urlencode(
-                    {"q": request.POST.get("q", ""), "needs_id": request.POST.get("needs_id", "")}
-                )
-                return HttpResponseRedirect(f"{request.path}?{query}")
-        query = request.GET.get("q", "") or request.POST.get("q", "")
-        needs_id = (request.GET.get("needs_id") or request.POST.get("needs_id")) == "1"
-        if needs_id:
-            memberships, people = desk.needing_id_check()
-        else:
-            memberships, people = desk.find_memberships(query), desk.find_people(query)
-        results = []
-        for membership in memberships:
-            row = desk.card(membership)
-            row["signature_name"] = revealed.get(membership.pk)
-            results.append(row)
-        persons = [desk.person_card(user) for user in people]
-        mine = any(p["person"].pk == request.user.pk for p in persons) or any(
-            r["membership"].user_id == request.user.pk for r in results
+    def door_desk_redirect(self, request):
+        query = request.GET.urlencode()
+        return HttpResponseRedirect(
+            site_link("/members/staff/door") + (f"?{query}" if query else "")
         )
-        context = {
-            **self.admin_site.each_context(request),
-            "title": "Door desk",
-            "opts": self.model._meta,
-            "query": query,
-            "needs_id": needs_id,
-            "results": results,
-            "people": persons,
-            "witnesses": desk.witnesses_for(request.user) if mine else [],
-            "searched": bool(query.strip()) or needs_id,
-            # "Convert to member": the guest scans this and joins on their own phone,
-            # signed in to their own account, so their signature stays theirs.
-            "join_url": site_link("/join"),
-            "join_qr": qr_data_uri(site_link("/join"))
-            if any(r["is_guest_pass"] for r in results)
-            else None,
-            "donation_methods": desk.DONATION_METHODS,
-            "tonight_events": list(desk.tonight_events()) if results and not needs_id else [],
-            "staff_door_url": site_link("/members/staff/door"),
-        }
-        # The camera policy for this page is set by PrivacyHeadersMiddleware.
-        return TemplateResponse(request, "admin/memberships/door_desk.html", context)
 
     # Reporting
 
     def summary_view(self, request):
+        """Membership counts and revenue, from apps.core.metrics like every other number."""
+        from apps.core import metrics
+
         if not request.user.has_perm(REPORT_PERMISSION):
             raise PermissionDenied
-        now = timezone.localtime()
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        memberships = Membership.objects.exclude(tier__is_guest_pass=True)
-        by_status = dict(memberships.values_list("status").annotate(n=Count("id")))
-        by_tier = list(
-            Membership.objects.filter(status__in=Membership.ENTITLED, tier__is_guest_pass=False)
-            .values("tier__name")
-            .annotate(n=Count("id"))
-            .order_by("tier__name")
-        )
-        first_payments = {}
-        new_this_month = renewed_this_month = 0
-        for payment in Payment.objects.filter(
-            status=Payment.Status.SUCCEEDED, membership__tier__is_guest_pass=False
-        ).order_by("created_at"):
-            is_first = payment.membership_id not in first_payments
-            first_payments.setdefault(payment.membership_id, payment.created_at)
-            if payment.created_at >= month_start:
-                if is_first:
-                    new_this_month += 1
-                else:
-                    renewed_this_month += 1
-        expired_this_month = (
-            Membership.objects.filter(status=Membership.Status.EXPIRED, ended_at__gte=month_start)
-            .exclude(tier__is_guest_pass=True)
-            .count()
-        )
-
-        months = []
-        cursor = month_start
-        for _ in range(12):
-            months.append(cursor)
-            cursor = (cursor - timedelta(days=1)).replace(day=1)
-        revenue = defaultdict(lambda: defaultdict(int))
-        oldest = months[-1]
-        guest_visits = defaultdict(int)
-        for created_at in Payment.objects.filter(
-            created_at__gte=oldest,
-            status=Payment.Status.SUCCEEDED,
-            membership__tier__is_guest_pass=True,
-        ).values_list("created_at", flat=True):
-            guest_visits[timezone.localtime(created_at).strftime("%Y-%m")] += 1
-        for payment in Payment.objects.filter(
-            created_at__gte=oldest, status__in=[Payment.Status.SUCCEEDED, Payment.Status.REFUNDED]
-        ):
-            key = timezone.localtime(payment.created_at).strftime("%Y-%m")
-            sign = -1 if payment.status == Payment.Status.REFUNDED else 1
-            revenue[key][payment.method] += sign * payment.amount_cents
-        methods = [m for m in Payment.Method.values if m != Payment.Method.COMP]
-        revenue_rows = [
-            {
-                "month": month.strftime("%b %Y"),
-                "cells": [f"{revenue[month.strftime('%Y-%m')][m] / 100:.2f}" for m in methods],
-                "total": f"{sum(revenue[month.strftime('%Y-%m')][m] for m in methods) / 100:.2f}",
-            }
-            for month in months
-        ]
+        today = timezone.localdate()
         context = {
             **self.admin_site.each_context(request),
             "title": "Membership summary",
             "opts": self.model._meta,
-            "status_rows": [
-                (label, by_status.get(value, 0)) for value, label in Membership.Status.choices
-            ],
-            "tier_rows": by_tier,
-            "new_this_month": new_this_month,
-            "renewed_this_month": renewed_this_month,
-            "expired_this_month": expired_this_month,
-            "method_labels": [Payment.Method(m).label for m in methods],
-            "revenue_rows": revenue_rows,
-            "guest_rows": [
-                {"month": month.strftime("%b %Y"), "visits": guest_visits[month.strftime("%Y-%m")]}
-                for month in months
-            ],
+            "small": metrics.SMALL,
+            "by_status": metrics.memberships_by_status(),
+            "members": metrics.membership_section(today),
+            "revenue": metrics.revenue_by_method(today),
+            "guest_rows": metrics.guest_visits_by_month(today),
             "can_include_email": request.user.is_superuser,
         }
         return TemplateResponse(request, "admin/memberships/summary.html", context)

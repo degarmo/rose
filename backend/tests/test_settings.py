@@ -305,7 +305,7 @@ def test_a_staff_login_with_the_code_is_the_second_step(make_user, settings):
     client = csrf_client_for(client)
     reply = client.post("/api/account/login/two-step/", {"code": code_for(device)}, format="json")
     assert reply.json()["user"]["staff"]["verified"] is True
-    assert client.get("/api/staff/overview/").status_code == 200
+    assert client.get("/api/staff/reports/").status_code == 200
 
 
 # Feed settings that moved here

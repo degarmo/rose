@@ -1,4 +1,4 @@
-import { expect, fixtures, mailLink, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
+import { deskAction, deskSearch, expect, fixtures, mailLink, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
 
 const PASSWORD = 'a-long-e2e-password-42'
 
@@ -38,14 +38,10 @@ test.describe('Membership', () => {
     // Door staff log in with the second step and activate after checking ID.
     const desk = await personPage(browser, baseURL!)
     await staffLogin(desk)
-    await desk.getByRole('link', { name: 'Door desk' }).first().click()
-    await desk.getByLabel('Reference code or display name').fill(code)
-    await desk.getByRole('button', { name: 'Search', exact: true }).click()
-    await expect(desk.getByText(name)).toBeVisible()
+    await deskSearch(desk, code)
+    await expect(desk.getByRole('article', { name })).toBeVisible()
     await expect(desk.getByText('Jordan Testperson')).toHaveCount(0)
-    const activate = desk.locator('form', { has: desk.getByRole('heading', { name: 'Record payment and activate' }) })
-    await activate.getByLabel('Photo ID checked, 18+').check()
-    await activate.getByRole('button', { name: 'Record payment and activate' }).click()
+    await deskAction(desk, name, 'Record payment and activate', 'Record payment and activate', 'Record payment and activate')
     await expect(desk.getByText(`${code} is active.`)).toBeVisible()
 
     // The member now has the community.
@@ -80,6 +76,10 @@ test.describe('Membership', () => {
     await expect(page.getByText('That code did not work.')).toBeVisible()
     await page.goto(`${data.admin_path}memberships/membership/door-desk/`)
     await expect(page).toHaveURL(/\/login\//)
+    // The staff door desk shows nobody without the second step: it asks to log in.
+    await page.goto('/members/staff/door')
+    await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible()
+    await expect(page.getByLabel('Reference code or display name')).toHaveCount(0)
     await page.context().close()
   })
 })

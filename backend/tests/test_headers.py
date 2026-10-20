@@ -91,10 +91,10 @@ def test_media_view(member_client, photo_url, settings):
 
 def test_only_the_door_desk_may_use_the_camera(client, desk_staff):
     staff_login(client, desk_staff)
-    desk = client.get(reverse("admin:memberships_door_desk"))
-    assert_baseline(desk, referrer="same-origin", camera="(self)")
-    other = client.get(reverse("admin:memberships_summary"))
-    assert "camera=()" in other["Permissions-Policy"]
+    desk = client.get("/members/staff/door")
+    assert_baseline(desk, camera="(self)")
+    for other in ("/members/staff/reports", reverse("admin:memberships_summary")):
+        assert "camera=()" in client.get(other)["Permissions-Policy"], other
 
 
 def test_no_response_reveals_the_django_version(client, admin_client, dist):

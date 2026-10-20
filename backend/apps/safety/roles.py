@@ -1,7 +1,7 @@
 """Team roles, stored as Django groups.
 
 - Moderator: reports and member actions.
-- Staff: everything a moderator does, plus the metrics.
+- Staff: everything a moderator does, plus the admin dashboard's figures.
 - Admin: everything, plus managing the team and revealing who sent a report.
 
 A superuser counts as an admin. Every role also needs the staff two-step login

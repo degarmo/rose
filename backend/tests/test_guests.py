@@ -1,5 +1,6 @@
 """Guests: a one-night pass on the existing tier and join flow, run at the door desk."""
 
+import re
 from datetime import timedelta
 
 import pytest
@@ -32,9 +33,15 @@ def guest_tier(make_tier):
 
 
 @pytest.fixture
-def desk_client(client, desk_staff):
-    staff_login(client, desk_staff)
-    return client
+def desk_client(desk_staff):
+    """The door desk's API, as the tablet uses it."""
+    from rest_framework.test import APIClient
+
+    from tests.conftest import csrf_client_for
+
+    client = APIClient(enforce_csrf_checks=True)
+    client.default_format = "json"
+    return csrf_client_for(staff_login(client, desk_staff))
 
 
 def join_as_guest(client, tier, agreement, method="manual"):
@@ -52,11 +59,10 @@ def join_as_guest(client, tier, agreement, method="manual"):
 
 def guest_visit(client, membership, **extra):
     return client.post(
-        reverse("admin:memberships_door_desk"),
+        "/api/staff/door/",
         {
             "action": "guest_visit",
             "membership": membership.pk,
-            "q": membership.reference_code,
             "method": "cash",
             "amount": "15.00",
             **extra,
@@ -102,17 +108,17 @@ def test_guest_flow_end_to_end_through_the_door_desk(
     assert [m.subject for m in mail.outbox] == ["Your reference code"]
 
     # The desk shows a guest pass, with Guest visit instead of membership actions.
-    page = desk_client.get(
-        reverse("admin:memberships_door_desk"), {"q": membership.reference_code}
-    ).content.decode()
-    assert "Guest pass" in page and "Guest visit" in page and "Convert to member" in page
-    assert "Record payment and activate" not in page
+    data = desk_client.get("/api/staff/door/", {"q": membership.reference_code}).json()
+    [card] = data["results"]
+    assert card["is_guest_pass"] and "guest_visit" in card["actions"]
+    assert "activate" not in card["actions"]
+    assert data["join_url"].endswith("/join") and data["join_qr"].startswith("data:image/")
 
     # No ID check yet: refused until the box is ticked.
     guest_visit(desk_client, membership)
     membership.refresh_from_db()
     assert membership.status == "pending_payment"
-    guest_visit(desk_client, membership, id_checked="on")
+    guest_visit(desk_client, membership, id_checked=True)
     membership.refresh_from_db()
     assert membership.status == "active"
     assert membership.current_period_end - membership.current_period_start == timedelta(days=1)
@@ -207,4 +213,9 @@ def test_summary_counts_guest_visits_by_month(admin_client, make_membership, gue
     page = admin_client.get(reverse("admin:memberships_summary")).content.decode()
     month = timezone.localtime().strftime("%b %Y")
     assert "Guest visits, last 12 months" in page
-    assert f'<tr><th scope="row">{month}</th><td class="rose-num">3</td></tr>' in page
+    # Three visits is a small number, withheld like every other figure (apps.core.metrics).
+    assert re.search(rf'<th scope="row">{month}</th><td class="rose-num">.*?&lt;5', page)
+    for _ in range(2):
+        Payment.objects.create(membership=membership, amount_cents=1500, method="cash")
+    page = admin_client.get(reverse("admin:memberships_summary")).content.decode()
+    assert f'<tr><th scope="row">{month}</th><td class="rose-num">5</td></tr>' in page

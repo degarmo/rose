@@ -598,42 +598,32 @@ def test_the_check_is_on_by_default_for_a_new_database():
 def test_only_admins_change_it_with_a_reason_and_a_fresh_code_and_it_is_logged(
     team_member, django_capture_on_commit_callbacks
 ):
+    url = reverse("admin:pages_sitesettings_age_verification")
     for role in (roles.MODERATOR, roles.STAFF):
         user = team_member(role)
-        api = staff_api(user)
-        seen = api.get("/api/staff/settings/age-verification/").json()
-        assert seen["required"] is True and seen["can_change"] is False
-        refused = api.post(
-            "/api/staff/settings/age-verification/",
-            {"required": False, "reason": "Trying", "code": fresh_code(user)},
+        client = staff_login(Client(), user)
+        assert "Only an admin can change this setting." in client.get(url).content.decode()
+        refused = client.post(
+            url, {"required": "off", "reason": "Trying", "code": fresh_code(user)}
         )
         assert refused.status_code == 403
     admin = team_member(roles.ADMIN)
-    api = staff_api(admin)
-    assert api.get("/api/staff/settings/age-verification/").json()["can_change"] is True
-    no_reason = api.post(
-        "/api/staff/settings/age-verification/",
-        {"required": False, "reason": " ", "code": fresh_code(admin)},
-    )
-    assert no_reason.status_code == 400
-    wrong = api.post(
-        "/api/staff/settings/age-verification/",
-        {"required": False, "reason": "Soft launch", "code": "000000"},
-    )
-    assert wrong.status_code == 400
+    client = staff_login(Client(), admin)
+
+    def change(required, reason, code):
+        return client.post(url, {"required": required, "reason": reason, "code": code})
+
+    assert "Give a reason" in change("off", " ", fresh_code(admin)).content.decode()
+    assert "That code did not work" in change("off", "Soft launch", "000000").content.decode()
     code = fresh_code(admin)
-    done = api.post(
-        "/api/staff/settings/age-verification/",
-        {"required": False, "reason": "Soft launch", "code": code},
-    )
-    assert done.status_code == 200 and done.json()["required"] is False
+    assert change("off", "Soft launch", code).status_code == 302
+    from apps.memberships.access import age_check_required
+
+    assert age_check_required() is False
     # The same code twice is not fresh.
     with django_capture_on_commit_callbacks(execute=True):
-        reused = api.post(
-            "/api/staff/settings/age-verification/",
-            {"required": True, "reason": "Back on", "code": code},
-        )
-    assert reused.status_code == 400
+        reused = change("on", "Back on", code)
+    assert "That code did not work" in reused.content.decode()
     entry = AuditLog.objects.get(category=AuditLog.Category.SETTINGS)
     assert entry.action == "age_verification_off" and entry.actor == admin
     assert entry.target_label == "Age verification for the member feed"

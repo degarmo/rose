@@ -1,5 +1,0 @@
-<div class="rose-field">
-  <label for="witness-{{ key }}">Witness (another team member, here with you)</label>
-  <select id="witness-{{ key }}" name="witness" required><option value="">Choose</option>{% for w in witnesses %}<option value="{{ w.pk }}">{{ w.display_name }}</option>{% endfor %}</select>
-  <p class="rose-help">Your own check needs a second person. Both of you are named in the log.</p>
-</div>

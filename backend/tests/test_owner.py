@@ -22,8 +22,7 @@ from tests.conftest import PASSWORD, csrf_client_for, staff_login, verify_age
 pytestmark = pytest.mark.django_db
 
 STAFF_PATHS = [
-    "/api/staff/overview/",
-    "/api/staff/metrics/",
+    "/api/staff/door/?q=ow",
     "/api/staff/team/",
     "/api/staff/reports/",
     "/api/staff/appeals/",
@@ -92,8 +91,8 @@ def test_the_superuser_reaches_every_section_after_the_two_step_login(owner, cli
     for path in STAFF_PATHS:
         assert api.get(path).status_code == 200, path
     staff_login(client, owner)
-    assert client.get(reverse("admin:memberships_door_desk")).status_code == 200
-    assert client.get(reverse("admin:index")).status_code == 200
+    dashboard = client.get(reverse("admin:index")).content.decode()
+    assert "Revenue this month" in dashboard and "Age verification for the member feed" in dashboard
 
 
 def test_the_superuser_manages_the_team(owner, make_user):
@@ -116,7 +115,6 @@ def test_without_an_authenticator_the_session_routes_to_enrolment(owner):
     staff = client.get("/api/account/session/").json()["user"]["staff"]
     assert staff["role"] == "admin" and not staff["verified"] and staff["needs_enrollment"]
     assert staff["admin_url"].endswith(reverse("admin:index"))
-    assert staff["door_desk_url"].endswith(reverse("admin:memberships_door_desk"))
     for path in STAFF_PATHS:
         assert client.get(path).status_code == 404
     # The admin's login takes a signed-in, unverified superuser straight to enrolment.
@@ -129,13 +127,13 @@ def test_the_development_skip_works_only_in_development(owner, settings):
     client = login(owner)
     settings.DEV_SKIP_STAFF_2FA = True
     settings.DEBUG = True
-    assert client.get("/api/staff/metrics/").status_code == 200
+    assert client.get("/api/staff/team/").status_code == 200
     assert client.get("/api/account/session/").json()["user"]["staff"]["verified"]
     settings.DEBUG = False
-    assert client.get("/api/staff/metrics/").status_code == 404
+    assert client.get("/api/staff/team/").status_code == 404
     settings.DEBUG = True
     settings.DJANGO_ENV = "production"
-    assert client.get("/api/staff/metrics/").status_code == 404
+    assert client.get("/api/staff/team/").status_code == 404
 
 
 def test_the_deployment_check_refuses_the_development_skip(settings):
@@ -181,7 +179,7 @@ def test_the_admin_group_exists():
 
 
 def test_a_fresh_seed_demo_fills_the_dashboard(settings):
-    from apps.safety import metrics
+    from apps.core import metrics
 
     settings.DEBUG = True
     call_command("seed_demo", stdout=StringIO())

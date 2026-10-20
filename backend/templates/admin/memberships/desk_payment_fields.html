@@ -1,6 +1,0 @@
-<div class="rose-form-row">
-  <label class="rose-field">Method<select name="method"><option value="cash">Cash</option><option value="card_in_person">Card in person</option></select></label>
-  <label class="rose-field">Amount<input name="amount" inputmode="decimal" value="{{ r.default_amount }}"></label>
-</div>
-<label class="rose-field">Note<input name="note" maxlength="300"></label>
-{% if not no_id and not r.id_checked %}<label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}

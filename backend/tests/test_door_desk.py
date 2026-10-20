@@ -1,25 +1,31 @@
-"""The door desk: find, check ID, take payment, and log every action."""
+"""The door desk (the staff section's, /members/staff/door, through /api/staff/door/):
+find, check ID, take payment, and log every action. The admin's old address redirects."""
 
 from datetime import timedelta
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.core.models import AuditLog
 from apps.memberships import desk
 from apps.memberships.models import AgreementSignature, IdCheck, Membership, Payment
-from tests.conftest import staff_login
+from tests.conftest import csrf_client_for, staff_login
 
 pytestmark = pytest.mark.django_db
 TYPED = "Morgan Legalname"
 
 
 @pytest.fixture
-def desk_client(client, desk_staff):
+def desk_client(desk_staff):
+    from rest_framework.test import APIClient
+
+    client = APIClient(enforce_csrf_checks=True)
+    client.default_format = "json"
     staff_login(client, desk_staff)
-    return client
+    return csrf_client_for(client)
 
 
 @pytest.fixture
@@ -29,15 +35,15 @@ def joined(make_user, make_tier, agreement):
     return Membership.objects.create(user=user, tier=make_tier(price_cents=3000))
 
 
+DESK_URL = "/api/staff/door/"
+
+
 def desk_url():
-    return reverse("admin:memberships_door_desk")
+    return DESK_URL
 
 
 def act(client, membership, action, **data):
-    return client.post(
-        desk_url(),
-        {"action": action, "membership": membership.pk, "q": membership.reference_code, **data},
-    )
+    return client.post(desk_url(), {"action": action, "membership": membership.pk, **data})
 
 
 def door_log(action):
@@ -63,7 +69,6 @@ def test_search_never_shows_the_typed_name_or_email(desk_client, joined):
     page = desk_client.get(desk_url(), {"q": joined.reference_code}).content.decode()
     assert TYPED not in page
     assert joined.user.email not in page
-    assert "Show signature name" in page
 
 
 def test_show_signature_name_is_logged(desk_client, joined, desk_staff):
@@ -75,9 +80,10 @@ def test_show_signature_name_is_logged(desk_client, joined, desk_staff):
     assert TYPED not in entry.reason and TYPED not in entry.target_label
 
 
-def test_desk_allows_the_camera_only_there(desk_client, joined):
-    assert "camera=(self)" in desk_client.get(desk_url())["Permissions-Policy"]
-    assert "camera=()" in desk_client.get(reverse("admin:index"))["Permissions-Policy"]
+def test_desk_allows_the_camera_only_there(client, admin_client):
+    assert "camera=(self)" in client.get("/members/staff/door")["Permissions-Policy"]
+    assert "camera=()" in admin_client.get(reverse("admin:index"))["Permissions-Policy"]
+    assert "camera=()" in client.get("/members/staff/reports")["Permissions-Policy"]
 
 
 def test_desk_needs_permission(client, django_user_model):
@@ -85,14 +91,20 @@ def test_desk_needs_permission(client, django_user_model):
         email="s@example.org", display_name="plain_staff", password="pw-123456789", is_staff=True
     )
     staff_login(client, plain_staff)
-    assert client.get(desk_url()).status_code == 403
+    assert client.get(desk_url()).status_code == 404
 
 
 def test_desk_needs_the_two_step_check(client, desk_staff):
+    desk_staff.refresh_from_db()
     client.force_login(desk_staff)
-    response = client.get(desk_url())
+    assert client.get(desk_url()).status_code == 404
+
+
+def test_the_admins_old_address_sends_people_to_the_staff_door_desk(desk_staff, settings):
+    client = staff_login(Client(), desk_staff)
+    response = client.get(reverse("admin:memberships_door_desk"), {"q": "R7K-42Q"})
     assert response.status_code == 302
-    assert response["Location"].startswith(reverse("admin:login"))
+    assert response["Location"] == f"{settings.SITE_URL}/members/staff/door?q=R7K-42Q"
 
 
 # Actions
@@ -113,7 +125,7 @@ def test_record_payment_and_activate(desk_client, joined, desk_staff):
         "activate",
         method="cash",
         amount="30.00",
-        id_checked="on",
+        id_checked=True,
         note="At the door",
     )
     joined.refresh_from_db()
@@ -140,7 +152,7 @@ def test_online_payment_waiting_for_id(desk_client, joined):
     act(desk_client, joined, "activate_paid")
     joined.refresh_from_db()
     assert joined.status == "pending_payment"
-    act(desk_client, joined, "activate_paid", id_checked="on")
+    act(desk_client, joined, "activate_paid", id_checked=True)
     joined.refresh_from_db()
     assert joined.status == "active" and not joined.paid_awaiting_id_check
     assert door_log("activate_after_id_check").exists()
@@ -165,10 +177,10 @@ def test_renew_extends_from_the_later_of_today_or_period_end(
 
 
 def test_comp_needs_a_reason(desk_client, joined):
-    act(desk_client, joined, "comp", reason="", id_checked="on")
+    act(desk_client, joined, "comp", reason="", id_checked=True)
     joined.refresh_from_db()
     assert joined.status == "pending_payment"
-    act(desk_client, joined, "comp", reason="Volunteer of the month", id_checked="on")
+    act(desk_client, joined, "comp", reason="Volunteer of the month", id_checked=True)
     joined.refresh_from_db()
     assert joined.status == "active" and joined.source == "comp"
     assert joined.payments.get().method == "comp"
@@ -194,9 +206,9 @@ def test_refund_is_a_new_row(desk_client, desk_staff, make_membership):
     membership = make_membership()
     paid = Payment.objects.create(membership=membership, amount_cents=2500, method="cash")
     response = desk_client.post(
-        desk_url(), {"action": "refund", "payment": paid.pk, "amount": "10.00", "q": "x"}
+        desk_url(), {"action": "refund", "payment": paid.pk, "amount": "10.00"}
     )
-    assert response.status_code == 302
+    assert response.json() == {"message": "Refund recorded."}
     refund = Payment.objects.get(status="refunded")
     assert (
         refund.refund_of == paid

@@ -15,7 +15,7 @@
     {% if setting.required %}
     <p>Turning it off opens the member feed at once to everyone with feed access, ID check or not. These stay in force either way: the door desk checks ID before any membership starts, uploads still need the promise that everyone pictured is 18 or older, and "possibly under 18" reports still hide content at once. A banner stays on every staff page while it is off.</p>
     {% else %}
-    <p>Turning it on closes the member feed at once to the {{ setting.unchecked_with_feed }} {% if setting.unchecked_with_feed == 1 %}person{% else %}people{% endif %} with feed access and no ID check on file. Each of them gets one plain email and a note on their Home page, and the feed opens again as soon as the door desk records their check. Nothing they shared is lost.</p>
+    <p>Turning it on closes the member feed at once to everyone with feed access and no ID check on file: {% include "admin/rose/metric.html" with metric=setting.unchecked_with_feed %} {% if setting.unchecked_with_feed.value == 1 %}person{% else %}people{% endif %}. Each of them gets one plain email and a note on their Home page, and the feed opens again as soon as the door desk records their check. Nothing they shared is lost.</p>
     {% endif %}
   </section>
 

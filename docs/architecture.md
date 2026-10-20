@@ -46,7 +46,7 @@ security and restores are in `docs/ops/`.
 | `apps/rentals` | `RentalInquiry`; `services.py` (clash check, status changes, the private calendar hold), neutral emails, admin pipeline and confirm page, retention task. |
 | `apps/volunteers` | `VolunteerSignup`; neutral emails, admin filters and the logged CSV export, retention task. |
 | `apps/donations` | `Donation` (append-only), `DonationCheckout` (a started online gift), `Acknowledgement`, `AcknowledgementTemplate`; `services.py` (online checkout through the payment layer, provider events, gifts at the door, acknowledgements), printable acknowledgement page, retention task. |
-| `apps/safety` | The team and moderation casework. `roles.py` (Moderator, Staff and Admin as groups; superusers are admins), `models.py` (`ReportNote`, `MemberAction`, `Appeal`, `BlockedEmail`), `services.py` (concerns, the report workflow, actions and their reversal, appeals, roles; every step logged), `metrics.py` (aggregates only, small numbers withheld), `api.py` (`StaffAPIView`: role and two-step check before anything else, 404 otherwise), the staff API, the member's notices and appeals, the concern form. |
+| `apps/safety` | The team and moderation casework. `roles.py` (Moderator, Staff and Admin as groups; superusers are admins), `models.py` (`ReportNote`, `MemberAction`, `Appeal`, `BlockedEmail`), `services.py` (concerns, the report workflow, actions and their reversal, appeals, roles; every step logged), `api.py` (`StaffAPIView`: role and two-step check before anything else, 404 otherwise), the staff API, the member's notices and appeals, the concern form. |
 | `apps/newsletter` | The email list: `Subscriber`, `Suppression`, `Newsletter`; `services.py` (double opt-in, one-click leaving, batched sending with no tracking), the inbox preview, sending and suppression tasks. |
 | `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, MembershipUsage, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access; the tier rules: included events, events left this month, party limit), `usage.py` (the monthly event count and its purge), `join.py`, `desk.py` (door desk actions), `age.py` (recording and revoking the in-person age check, with a witness for team accounts, and the club's switch for it: admins only, a reason and a fresh two-step code, audited), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
@@ -90,7 +90,7 @@ security and restores are in `docs/ops/`.
 | GET | `/api/members/stories/` | Story circles (Tonight, This week, Journal, News) with the caller's seen state. The same for everyone apart from that state. |
 | POST | `/api/members/stories/seen/` | `{keys: [...]}`: mark story items seen (50 at most). |
 | GET | `/api/membership/tiers/`, `options/` | Tiers on offer; payment methods and the current agreement. Placeholders are never offered with DEBUG off. |
-| GET, POST | `/api/staff/...` | The staff section: overview, metrics (staff), team (admin), reports, notes, assignment, status, reveal (admin), members, actions, reversal, appeals, reported pictures. 404 to anyone without a role and a two-step-verified session. |
+| GET, POST | `/api/staff/...` | The staff section's tools: the door desk, team (admin), reports, notes, assignment, status, reveal (admin), members, actions, reversal, appeals, reported pictures. No figures (they are the admin dashboard's). 404 to anyone without a role and a two-step-verified session (the door desk: its permission instead of a role). |
 | GET, POST | `/api/account/notices/`, `notices/seen/`, `notices/<id>/appeal/`, `reports/` | The caller's own moderation decisions and one appeal each; the reports they sent, as received or reviewed. `seen/` marks them seen (Settings > Notices does it on opening). |
 | POST | `/api/concerns/` | Report a concern, signed in or not. Rate limited, honeypot; staff are told without the text. |
 | GET | `/api/membership/me/` | The caller's own membership, payments, entitlements and members-only events left this month. |
@@ -190,7 +190,7 @@ erDiagram
 - **Leave and erase** (`services.erase_feed_data`, run by `tasks.erase_member_feed`) deletes posts, image files, comments, likes, saved posts, seen-story records, follows, blocks and mutes they created, notifications and exports. Account deletion calls the same routine.
 - **Images**: the browser renders redactions on a canvas and uploads only the result. The server stores the raw upload in private `incoming/`, a worker strips metadata and re-encodes to WebP with a random name, and the raw file is deleted. Posts show "Processing" to their author until then.
 - **Private media**: no feed file has a URL of its own. `MediaView` and `AvatarMediaView` re-check access, blocks and post status on every request, then deliver a copy watermarked with the viewer's display name and date (`FEED_WATERMARK`; faint and sparse by default, about three marks across, set by `FEED_WATERMARK_OPACITY` and `FEED_WATERMARK_SPACING`, and readable once contrast is raised). The copy is rendered once per image, viewer and day and stored under `watermarks/`; on S3 the view answers `302` to a URL signed for 60 seconds, locally it streams the file. Either way the view's response is `Cache-Control: private, no-store`. Deleting an image deletes every copy of it; deleting an account deletes every copy carrying that person's name. `FEED_ENABLED=false` makes every feed path a 404 (docs/ops/incident.md).
-- **Moderation**: the staff section in the member app (`/members/staff`, `apps/safety`) is the main tool: the reports inbox, member actions with reversal, appeals and the dashboard. `/admin/feed/feedpost/moderation/` still lists open feed reports grouped by item, pending first posts and the action log. Every action and reversal writes an append-only `core.AuditLog` entry in the moderation category.
+- **Moderation**: the staff section in the member app (`/members/staff`, `apps/safety`) is the main tool: the reports inbox, member actions with reversal and appeals. `/admin/feed/feedpost/moderation/` still lists open feed reports grouped by item, pending first posts and the action log. Every action and reversal writes an append-only `core.AuditLog` entry in the moderation category.
 
 ## Membership and payments
 
@@ -251,19 +251,22 @@ flowchart LR
 ### Staff tools
 
 - **Admin look** (prompt 13): django-unfold 0.108.0, themed in `apps/core/static/core/rose-admin.css` with self-hosted fonts and Alpine's CSP build (`config/unfold.py`, `templates/unfold/`). `apps/core/admin_nav.py` builds the grouped sidebar by permission; `apps/core/dashboard.py` is the home page (aggregates only, small numbers withheld); `apps/core/admin_display.py` has the status chips and image previews; `apps/core/admin_widgets.py` the rich-text editor.
-- **Door desk** (`/admin/memberships/membership/door-desk/`, and `/members/staff/door` in the member app through `GET`/`POST /api/staff/door/`): built for a tablet. Both run `apps/memberships/desk.py` (search, the card and `perform()` for every action). Search by
+- **Door desk** (`/members/staff/door` in the member app, through `GET`/`POST /api/staff/door/`; the admin's old `/admin/memberships/membership/door-desk/` redirects there): the only door desk, built for a tablet. It runs `apps/memberships/desk.py` (search, the card and `perform()` for every action). Search by
   reference code (typed, or scanned with the camera and decoded on the tablet by the
-  vendored jsQR) or display name. Actions: record payment and activate (needs "Photo ID
+  jsQR package, loaded only when scanning) or display name. Actions: record payment and activate (needs "Photo ID
   checked, 18+" if there is no earlier ID check), activate after an online payment, renew,
   comp (reason), suspend and reinstate (reason), refund (a new row; online refunds also go to
   the provider), and check in tonight (a member arriving at a members-only event without an
   RSVP; the same tier rules apply and it uses one of the month's events). Each row shows the
   tier, events left this month (or "Unlimited"), guests included per event and "Guest
   discount". A free tier waits for its first-visit ID check like an online payment does. The typed signature name appears only after "Show signature name", which is
-  logged. These two pages alone send `Permissions-Policy: camera=(self)`.
+  logged. This page alone sends `Permissions-Policy: camera=(self)`.
+- **Dashboard** (`/admin/`, `apps/core/dashboard.py`): the only dashboard. Every figure on it,
+  the sidebar badges, the summary and the RSVP counts come from `apps/core/metrics.py`, which
+  withholds small numbers; definitions in `docs/ops/metrics.md`.
 - **Membership summary** (`/admin/memberships/membership/summary/`): counts by status and
-  tier, new, renewed and expired this month, and revenue by month and method for 12 months
-  with refunds subtracted. The CSV export is POST-only and logged; contact email is included
+  tier, new, renewing, lapsing and expired this month, and revenue by month and method for 12
+  months with refunds subtracted, all from `apps/core/metrics.py`. The CSV export is POST-only and logged; contact email is included
   only when a superuser ticks the box, which is logged separately.
 - Every door desk action, export and signature reveal writes `core.AuditLog`.
 

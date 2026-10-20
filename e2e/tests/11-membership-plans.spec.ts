@@ -1,4 +1,4 @@
-import { confirmAge, expect, fixtures, mailLink, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
+import { confirmAge, deskAction, deskSearch, expect, fixtures, mailLink, personPage, staffLogin, test, uniqueEmail, uniqueName } from './support'
 
 const PASSWORD = 'a-long-e2e-password-42'
 
@@ -59,14 +59,11 @@ test.describe('Membership plans', () => {
     // The door desk takes payment, checks ID and activates.
     const desk = await personPage(browser, baseURL!)
     await staffLogin(desk)
-    await desk.getByRole('link', { name: 'Door desk' }).first().click()
-    await desk.getByLabel('Reference code or display name').fill(code)
-    await desk.getByRole('button', { name: 'Search', exact: true }).click()
-    const activate = desk.locator('form', { has: desk.getByRole('heading', { name: 'Record payment and activate' }) })
-    await activate.getByLabel('Photo ID checked, 18+').check()
-    await activate.getByRole('button', { name: 'Record payment and activate' }).click()
+    await deskSearch(desk, code)
+    const person = (await desk.getByRole('article').first().getByRole('heading', { level: 2 }).textContent())!.trim()
+    await deskAction(desk, person, 'Record payment and activate', 'Record payment and activate', 'Record payment and activate')
     await expect(desk.getByText(`${code} is active.`)).toBeVisible()
-    await expect(desk.getByText('1 left')).toBeVisible()
+    await expect(desk.getByRole('article', { name: person }).getByText('1 left')).toBeVisible()
 
     // One members-only evening this month is included...
     await member.goto(`/events/${events.members_early}`)

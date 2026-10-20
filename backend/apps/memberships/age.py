@@ -245,3 +245,18 @@ def notify_switched_on(switched_on_at):
         user.profile.save(update_fields=["age_check_notice_at", "updated_at"])
         told += 1
     return told
+
+
+def setting_summary(user):
+    """The switch's state for the admin's page and dashboard card."""
+    from apps.core import metrics
+    from apps.pages.models import SiteSettings
+
+    from .access import age_check_required
+
+    return {
+        "required": age_check_required(),
+        "can_change": can_change_setting(user),
+        "switched_on_at": SiteSettings.load().age_verification_switched_on_at,
+        "unchecked_with_feed": metrics.feed_access_without_id_check(),
+    }

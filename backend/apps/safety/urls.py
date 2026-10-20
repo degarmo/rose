@@ -6,14 +6,6 @@ from . import views
 
 urlpatterns = [
     path("door/", DoorDeskView.as_view(), name="staff-door"),
-    path("overview/", views.OverviewView.as_view(), name="staff-overview"),
-    path(
-        "settings/age-verification/",
-        views.AgeCheckSettingView.as_view(),
-        name="staff-age-verification",
-    ),
-    path("metrics/", views.MetricsView.as_view(), name="staff-metrics"),
-    path("metrics/export/", views.MetricsExportView.as_view(), name="staff-metrics-export"),
     path("team/", views.TeamView.as_view(), name="staff-team"),
     path("rules/", views.RulesView.as_view(), name="staff-rules"),
     path("reports/", views.ReportListView.as_view(), name="staff-reports"),

@@ -5,51 +5,130 @@
 
 {% block content %}
 <div class="rose-dashboard">
-  <header class="rose-page-head">
-    <h1 class="rose-title">Today</h1>
-    <p class="rose-subtle">Totals only. Any number under {{ small }} shows as "fewer than {{ small }}".</p>
+  <header class="rose-page-head rose-page-head-row">
+    <div>
+      <h1 class="rose-title">Today</h1>
+      <p class="rose-subtle">Totals only. Any number from 1 to 4 shows as "&lt;{{ small }}" (fewer than {{ small }}).</p>
+    </div>
+    {% if full %}
+    <div class="rose-dashboard-tools">
+      <nav class="rose-segmented" aria-label="Period">
+        {% for key, label in ranges %}<a href="?range={{ key }}" class="{% if key == range %}is-active{% endif %}"{% if key == range %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}
+      </nav>
+      <form method="post" action="{% url 'admin:metrics_export' %}">{% csrf_token %}<input type="hidden" name="range" value="{{ range }}"><button type="submit" class="rose-button-secondary">Export</button></form>
+    </div>
+    {% endif %}
   </header>
 
-  {% if kpis %}
+  {% with cards=kpis|default:waiting %}
+  {% if cards %}
   <section class="rose-kpis" aria-label="Key figures">
-    {% for kpi in kpis %}
+    {% for kpi in cards %}
       {% component "unfold/components/card.html" with href=kpi.url size="md" %}
         <div class="rose-kpi">
           <svg class="rose-kpi-icon" aria-hidden="true"><use href="{% static 'core/icons.svg' %}#{{ kpi.icon }}"></use></svg>
           <p class="rose-kpi-label">{{ kpi.label }}</p>
-          <p class="rose-kpi-value">{{ kpi.value }}</p>
+          <p class="rose-kpi-value">{% include "admin/rose/metric.html" with metric=kpi.metric %}</p>
         </div>
       {% endcomponent %}
     {% endfor %}
   </section>
   {% endif %}
+  {% endwith %}
 
+  {% if full %}
+  <section class="rose-card rose-age-card" aria-labelledby="age-card">
+    <div>
+      <h2 id="age-card" class="rose-section-title">Age verification for the member feed: <span class="rose-chip {% if age_check.required %}rose-chip-open{% else %}rose-chip-wait{% endif %}">{% if age_check.required %}On{% else %}Off{% endif %}</span></h2>
+      <p class="rose-subtle">{% if age_check.required %}The feed opens only after an ID check at the door desk.{% else %}The feed is open without an ID check.{% endif %} With feed access and no ID check on file: {% include "admin/rose/metric.html" with metric=age_check.unchecked %}.</p>
+    </div>
+    {% if age_check.can_change %}<a class="rose-button-secondary" href="{{ age_check.url }}">Change</a>{% else %}<p class="rose-subtle">Only an admin can change this.</p>{% endif %}
+  </section>
+
+  <h2 class="rose-section-title">Over the last {{ range_label }}</h2>
   <div class="rose-dashboard-grid">
-    {% if revenue_chart %}
-      {% component "unfold/components/card.html" with title="Revenue, last 12 months" %}
-        {% component "unfold/components/chart/bar.html" with data=revenue_chart height=260 %}{% endcomponent %}
-        <p class="rose-subtle rose-note">A month with fewer than {{ small }} payments has no bar.</p>
+    {% for title, chart in series_charts %}
+      {% component "unfold/components/card.html" with title=title %}
+        {% component "unfold/components/chart/bar.html" with data=chart height=220 %}{% endcomponent %}
       {% endcomponent %}
-    {% endif %}
-    {% if tier_chart %}
-      {% component "unfold/components/card.html" with title="Active members by tier" %}
-        {% component "unfold/components/chart/bar.html" with data=tier_chart height=260 %}{% endcomponent %}
-        <p class="rose-subtle rose-note">A tier with fewer than {{ small }} active members has no bar.</p>
-      {% endcomponent %}
-    {% endif %}
+    {% endfor %}
+  </div>
+  <p class="rose-subtle rose-note">A period with fewer than {{ small }} payments, RSVPs or posts has no bar.</p>
+
+  <h2 class="rose-section-title">Members · {{ members.month }}</h2>
+  <div class="rose-dashboard-grid">
+    {% component "unfold/components/card.html" with title="By tier" %}
+      <div class="rose-table-wrap">
+        <table class="rose-table">
+          <thead><tr><th scope="col">Tier</th><th scope="col" class="rose-num">Active</th><th scope="col" class="rose-num">New</th><th scope="col" class="rose-num">Renewing</th><th scope="col" class="rose-num">Lapsing</th><th scope="col" class="rose-num">Expired</th></tr></thead>
+          <tbody>
+            {% for row in members.tiers %}
+            <tr><th scope="row">{{ row.tier }}</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.active %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.new %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.renewing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.lapsing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.expired %}</td></tr>
+            {% endfor %}
+            <tr class="rose-table-total"><th scope="row">All tiers</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.total_active %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.new %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.renewing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.lapsing %}</td><td class="rose-num">{% include "admin/rose/metric.html" with metric=members.totals.expired %}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    {% endcomponent %}
+    {% component "unfold/components/card.html" with title="Active members by tier" %}
+      {% component "unfold/components/chart/bar.html" with data=tier_chart height=240 %}{% endcomponent %}
+      <p class="rose-subtle rose-note">A tier with fewer than {{ small }} active members has no bar.</p>
+    {% endcomponent %}
   </div>
 
+  <h2 class="rose-section-title">Revenue</h2>
   <div class="rose-dashboard-grid">
-    {% if next_events is not None %}
+    {% for key, block in revenue.items %}
+      {% component "unfold/components/card.html" with title=block.month %}
+        <table class="rose-table">
+          <tbody>
+            {% for row in block.rows %}<tr><th scope="row">{{ row.label }}</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=row %}</td></tr>{% endfor %}
+            <tr class="rose-table-total"><th scope="row">Total</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=block.total %}</td></tr>
+          </tbody>
+        </table>
+      {% endcomponent %}
+    {% endfor %}
+  </div>
+  <p class="rose-subtle rose-note">Refunds subtracted. A total from fewer than {{ small }} payments or gifts is withheld.</p>
+
+  <div class="rose-dashboard-grid">
+    {% component "unfold/components/card.html" with title="Feed" %}
+      <table class="rose-table">
+        <tbody>
+          <tr><th scope="row">Posts, last {{ range_label }}</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=feed.posts %}</td></tr>
+          <tr><th scope="row">Comments, last {{ range_label }}</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=feed.comments %}</td></tr>
+          <tr><th scope="row">Active posters this week</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=feed.active_posters_week %}</td></tr>
+          <tr><th scope="row">Open reports</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=feed.open_reports %}</td></tr>
+          <tr><th scope="row">Posts awaiting approval</th><td class="rose-num">{% include "admin/rose/metric.html" with metric=feed.posts_awaiting_approval %}</td></tr>
+        </tbody>
+      </table>
+    {% endcomponent %}
+    {% component "unfold/components/card.html" with title="Events" %}
+      {% if events %}
+      <div class="rose-table-wrap">
+        <table class="rose-table">
+          <thead><tr><th scope="col">Event</th><th scope="col" class="rose-num">RSVPs</th><th scope="col" class="rose-num">Checked in</th></tr></thead>
+          <tbody>{% for row in events %}<tr><th scope="row"><span class="rose-row-title">{{ row.title }}</span><span class="rose-subtle">{{ row.starts_at|date:"D M j" }}</span></th><td class="rose-num">{% include "admin/rose/metric.html" with metric=row.rsvps %}</td><td class="rose-num">{% if row.check_ins %}{% include "admin/rose/metric.html" with metric=row.check_ins %}{% else %}<span class="rose-subtle">Not yet</span>{% endif %}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="rose-subtle">No events in this period.</p>
+      {% endif %}
+    {% endcomponent %}
+  </div>
+  {% endif %}
+
+  <div class="rose-dashboard-grid">
+    {% if full %}
       {% component "unfold/components/card.html" with title="Coming up" %}
         {% if next_events %}
         <ul class="rose-rows">
-          {% for event in next_events %}
+          {% for row in next_events %}
           <li>
-            <a href="{{ event.url }}" class="rose-row-link">
-              <span class="rose-date"><span>{{ event.starts_at|date:"D" }}</span><strong>{{ event.starts_at|date:"j" }}</strong></span>
-              <span class="rose-row-main"><span class="rose-row-title">{{ event.title }}</span><span class="rose-subtle">{{ event.starts_at|date:"F j, g:i a" }}</span></span>
-              <span class="rose-chip">{{ event.rsvps }} going</span>
+            <a href="{{ row.url }}" class="rose-row-link">
+              <span class="rose-date"><span>{{ row.event.starts_at|date:"D" }}</span><strong>{{ row.event.starts_at|date:"j" }}</strong></span>
+              <span class="rose-row-main"><span class="rose-row-title">{{ row.event.title }}</span><span class="rose-subtle">{{ row.event.starts_at|date:"F j, g:i a" }}</span></span>
+              <span class="rose-chip">{% include "admin/rose/metric.html" with metric=row.going %} going</span>
             </a>
           </li>
           {% endfor %}

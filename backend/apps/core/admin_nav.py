@@ -7,6 +7,9 @@ names. Sections: Today, Members, Events, Content, Community, Money, Outreach, Se
 
 from django.urls import reverse
 
+from apps.core.email import site_link
+from apps.core.middleware import STAFF_DOOR_PATH
+
 ICON = "admin/rose/nav_icon.html"
 
 
@@ -50,46 +53,45 @@ def _model(title, icon, app, model, badge=None):
     return _item(title, icon, _changelist(app, model), _perm(f"{app}.view_{model}"), badge)
 
 
-# Badges: Unfold calls these with the request and shows a non-empty result.
+# Badges: Unfold calls these with the request and shows a non-empty result. The counts
+# are apps.core.metrics', the same as the dashboard's cards: "<5" from 1 to 4, none at 0.
+
+
+def _badge(metric):
+    return "" if metric["value"] == 0 else metric["display"]
 
 
 def desk_badge(request):
-    """Paid online and waiting for their ID check at the door."""
-    if not request.user.has_perm("memberships.change_membership"):
-        return ""
-    from apps.memberships.models import Membership
+    """Memberships waiting for their ID check at the door."""
+    from apps.core import metrics
 
-    count = Membership.objects.filter(
-        status=Membership.Status.PENDING_PAYMENT, paid_awaiting_id_check=True
-    ).count()
-    return str(count) if count else ""
+    return _badge(metrics.id_checks_needed())
 
 
 def reports_badge(request):
-    """Open reports and posts waiting for review."""
-    if not request.user.has_perm("feed.view_feedpost"):
-        return ""
-    from apps.feed.models import FeedPost, Report
+    """Open reports: open or in review."""
+    from apps.core import metrics
 
-    count = (
-        Report.objects.filter(resolved_at__isnull=True).count()
-        + FeedPost.objects.filter(status=FeedPost.Status.PENDING).count()
-    )
-    return str(count) if count else ""
+    return _badge(metrics.open_reports())
+
+
+def pending_posts_badge(request):
+    """First posts waiting for approval."""
+    from apps.core import metrics
+
+    return _badge(metrics.posts_awaiting_approval())
 
 
 def messages_badge(request):
-    if not request.user.has_perm("contact.view_contactmessage"):
-        return ""
-    from apps.contact.models import ContactMessage
+    """Contact messages not yet handled."""
+    from apps.core import metrics
 
-    count = ContactMessage.objects.filter(handled=False).count()
-    return str(count) if count else ""
+    return _badge(metrics.unanswered_messages())
 
 
 def _active(link, links):
     """Highlight one item: the one whose address is the longest match for this page, so the
-    door desk (under the memberships list's address) is not also Memberships."""
+    membership summary (under the memberships list's address) is not also Memberships."""
 
     def check(request):
         path = request.path
@@ -121,10 +123,11 @@ def _groups():
             "title": "Today",
             "items": [
                 _item("Dashboard", "layout-dashboard", reverse("admin:index"), None),
+                # The door desk lives in the staff section, made for the tablet.
                 _item(
                     "Door desk",
                     "scan-line",
-                    reverse("admin:memberships_door_desk"),
+                    site_link(STAFF_DOOR_PATH),
                     _perm("memberships.change_membership"),
                     "apps.core.admin_nav.desk_badge",
                 ),
@@ -174,7 +177,13 @@ def _groups():
         {
             "title": "Community",
             "items": [
-                _model("Feed posts", "images", "feed", "feedpost"),
+                _model(
+                    "Feed posts",
+                    "images",
+                    "feed",
+                    "feedpost",
+                    "apps.core.admin_nav.pending_posts_badge",
+                ),
                 _model("Moderation log", "shield-alert", "safety", "memberaction"),
                 _model("Appeals", "scale", "safety", "appeal"),
             ],

@@ -3,41 +3,18 @@ import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Account } from '@/lib/api'
-import type { Metrics, ReportDetail, StaffSession } from '@/lib/safetyApi'
+import type { ReportDetail, StaffSession } from '@/lib/safetyApi'
 import { renderWithProviders, verifiedUser } from '@/test/render'
-import { StaffDashboardPage } from './StaffDashboardPage'
+import { StaffIndexPage } from './StaffIndexPage'
 import { StaffReportPage } from './StaffReportPage'
+import { StaffReportsPage } from './StaffReportsPage'
 
-const api = vi.hoisted(() => ({ metrics: vi.fn(), report: vi.fn(), revealReporter: vi.fn(), act: vi.fn(), rules: vi.fn(), ageCheck: vi.fn(), setAgeCheck: vi.fn() }))
+const api = vi.hoisted(() => ({ reports: vi.fn(), appeals: vi.fn(), report: vi.fn(), revealReporter: vi.fn(), act: vi.fn(), rules: vi.fn() }))
 
 vi.mock('@/lib/safetyApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/safetyApi')>()
   return { ...actual, staffApi: { ...actual.staffApi, ...api } }
 })
-
-const few = { value: null, fewer_than: 5 }
-
-const METRICS: Metrics = {
-  range: '30d',
-  generated_at: '2026-10-19T12:00:00Z',
-  small: 5,
-  members: {
-    month: 'October 2026',
-    total_active: { value: 42 },
-    tiers: [{ tier: 'Rose', active: { value: 12 }, new: few, renewing: { value: 6 }, lapsing: few, expired: few }],
-  },
-  revenue: {
-    this_month: { month: 'October 2026', rows: [{ label: 'Rose', cents: 48000 }, { label: 'Donations', cents: null, fewer_than: 5 }], total: { cents: 48000 } },
-    last_month: { month: 'September 2026', rows: [{ label: 'Rose', cents: null, fewer_than: 5 }], total: { cents: null, fewer_than: 5 } },
-  },
-  events: [{ title: 'Member Night', starts_at: '2026-10-10T19:30:00Z', rsvps: { value: 18 }, check_ins: few }],
-  feed: { posts: { value: 30 }, comments: { value: 11 }, active_posters_week: few, open_reports: few },
-  email_list: { value: 120 },
-  series: [
-    { label: 'Sep 21', payments: few, revenue: { cents: null, fewer_than: 5 }, rsvps: { value: 6 }, posts: { value: 9 } },
-    { label: 'Sep 28', payments: { value: 7 }, revenue: { cents: 28000 }, rsvps: few, posts: { value: 12 } },
-  ],
-}
 
 function report(overrides: Partial<ReportDetail> = {}): ReportDetail {
   return {
@@ -72,8 +49,7 @@ function as(staff: Partial<StaffSession> | null): Account {
     verified: true,
     verify_url: null,
     needs_enrollment: false,
-    admin_url: '/admin/',
-    door_desk_url: null, age_check_required: true, can_change_age_check: false,
+    admin_url: '/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/',
     ...staff,
   }
   return { ...verifiedUser, feed_access: true, member_app: 'open', staff: session }
@@ -81,10 +57,10 @@ function as(staff: Partial<StaffSession> | null): Account {
 
 beforeEach(() => {
   Object.values(api).forEach((fn) => fn.mockReset())
-  api.metrics.mockResolvedValue(METRICS)
+  api.reports.mockResolvedValue([])
+  api.appeals.mockResolvedValue([])
   api.report.mockResolvedValue(report())
   api.rules.mockResolvedValue(['Consent first'])
-  api.ageCheck.mockResolvedValue({ required: true, can_change: false, switched_on_at: null, unchecked_with_feed: 3 })
 })
 
 function renderReport(user: Account) {
@@ -98,34 +74,55 @@ function renderReport(user: Account) {
 
 describe('the staff section', () => {
   it('is a 404 for anyone without a team role', () => {
-    renderWithProviders(<StaffDashboardPage />, { user: as(null) })
+    renderWithProviders(<StaffReportsPage />, { user: as(null) })
     expect(screen.getByRole('heading', { name: 'This room is not on the map.' })).toBeInTheDocument()
-    expect(api.metrics).not.toHaveBeenCalled()
+    expect(api.reports).not.toHaveBeenCalled()
   })
 
   it('asks for the two-step login first', () => {
-    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'admin', verified: false, verify_url: 'https://site.example/admin/login/?next=x' }) })
+    renderWithProviders(<StaffReportsPage />, { user: as({ role: 'admin', verified: false, verify_url: 'https://site.example/admin/login/?next=x' }) })
     expect(screen.getByRole('heading', { name: 'Confirm it is you' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Continue' })).toHaveAttribute('href', 'https://site.example/admin/login/?next=x')
-    expect(api.metrics).not.toHaveBeenCalled()
+    expect(api.reports).not.toHaveBeenCalled()
   })
 
   it('starts with setting up an authenticator when there is none', () => {
-    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'admin', verified: false, verify_url: '/admin/login/?next=x', needs_enrollment: true }) })
+    renderWithProviders(<StaffReportsPage />, { user: as({ role: 'admin', verified: false, verify_url: '/admin/login/?next=x', needs_enrollment: true }) })
     expect(screen.getByRole('heading', { name: 'Set up your two-step login' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Set it up' })).toHaveAttribute('href', '/admin/login/?next=x')
   })
 
-  it('shows the metrics to staff, with small numbers withheld', async () => {
-    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'staff', verified: true, verify_url: null }) })
-    expect(await screen.findByText('42')).toBeInTheDocument()
-    const tiers = screen.getAllByRole('table')[0]
-    expect(within(tiers).getAllByText('Fewer than 5').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Fewer than 5 payments').length).toBeGreaterThan(0)
-    expect(screen.getByRole('link', { name: 'Reports' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Team' })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: '12 months' }))
-    await waitFor(() => expect(api.metrics).toHaveBeenLastCalledWith('12m'))
+  it('has no dashboard or figures: its tabs are the tools, and Dashboard opens the admin', async () => {
+    renderWithProviders(<StaffReportsPage />, { user: as({ role: 'admin', door_desk: true }) })
+    const nav = screen.getByRole('navigation', { name: 'Staff' })
+    const links = within(nav).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])
+    expect(links).toEqual([
+      ['Door desk', '/members/staff/door'],
+      ['Reports', '/members/staff/reports'],
+      ['Members', '/members/staff/members'],
+      ['Team', '/members/staff/team'],
+      ['Dashboard(opens the admin)', '/admin/'],
+    ])
+    await waitFor(() => expect(api.reports).toHaveBeenCalled())
+  })
+
+  it('shows a moderator the tools and the dashboard link, but not Team', () => {
+    renderWithProviders(<StaffReportsPage />, { user: as({ role: 'moderator' }) })
+    const names = within(screen.getByRole('navigation', { name: 'Staff' }))
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+    expect(names).toEqual(['Reports', 'Members', 'Dashboard(opens the admin)'])
+  })
+
+  it('sends /members/staff to the reports inbox, and a door volunteer to the door desk', () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/members/staff" element={<StaffIndexPage />} />
+        <Route path="/members/staff/reports" element={<p>Inbox</p>} />
+      </Routes>,
+      { user: as({ role: 'moderator' }), path: '/members/staff' },
+    )
+    expect(screen.getByText('Inbox')).toBeInTheDocument()
   })
 
   it('keeps reported content hidden until someone chooses to look', async () => {
@@ -164,45 +161,21 @@ describe('the staff section', () => {
   })
 })
 
-describe('the age verification setting', () => {
-  it('shows a banner on staff pages while it is off, which an admin can open to change it', async () => {
-    api.ageCheck.mockResolvedValue({ required: false, can_change: true, switched_on_at: null, unchecked_with_feed: 3 })
-    api.setAgeCheck.mockResolvedValue({ required: true, can_change: true, switched_on_at: '2026-10-20T12:00:00Z', unchecked_with_feed: 3 })
-    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'admin', age_check_required: false, can_change_age_check: true }) })
-    await userEvent.click(screen.getByRole('button', { name: /Age verification for the member feed is off/ }))
-    const dialog = await screen.findByRole('dialog', { name: 'Turn age verification on?' })
-    expect(within(dialog).getByText(/closes at once to the 3 people with feed access and no ID check/)).toBeInTheDocument()
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Turn it on' }))
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Give a reason for the change.')
-    await userEvent.type(within(dialog).getByLabelText(/^Reason for the change/), 'Opening to the public')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Turn it on' }))
-    expect(within(dialog).getByRole('alert')).toHaveTextContent('Enter the six-digit code')
-    await userEvent.type(within(dialog).getByLabelText(/^Six-digit code/), '123456')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Turn it on' }))
-    await waitFor(() => expect(api.setAgeCheck).toHaveBeenCalledWith({ required: true, reason: 'Opening to the public', code: '123456' }))
+describe('the age verification banner', () => {
+  it('shows on staff pages while it is off, linking admins to the setting', () => {
+    renderWithProviders(<StaffReportsPage />, { user: as({ role: 'admin', age_check_required: false, can_change_age_check: true }) })
+    expect(screen.getByRole('link', { name: /Age verification for the member feed is off/ })).toHaveAttribute(
+      'href',
+      'https://site.example/admin/pages/sitesettings/age-verification/',
+    )
   })
 
-  it('shows the banner without a way to change it to everyone else', () => {
-    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'staff', age_check_required: false, can_change_age_check: false }) })
+  it('shows without a way to change it to everyone else, and not at all while it is on', () => {
+    const { unmount } = renderWithProviders(<StaffReportsPage />, { user: as({ role: 'moderator', age_check_required: false }) })
     expect(screen.getByText('Age verification for the member feed is off')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Age verification for the member feed is off/ })).not.toBeInTheDocument()
-  })
-
-  it('shows no banner while it is on, and the state on the dashboard', async () => {
-    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'staff' }) })
+    expect(screen.queryByRole('link', { name: /Age verification/ })).not.toBeInTheDocument()
+    unmount()
+    renderWithProviders(<StaffReportsPage />, { user: as({ role: 'moderator' }) })
     expect(screen.queryByText('Age verification for the member feed is off')).not.toBeInTheDocument()
-    const card = await screen.findByRole('region', { name: /Age verification for the member feed: On/ })
-    expect(within(card).getByText('Only an admin can change this.')).toBeInTheDocument()
-    expect(within(card).queryByRole('button', { name: 'Change' })).not.toBeInTheDocument()
-  })
-
-  it('lets an admin turn it off from the dashboard card, after saying what stays', async () => {
-    api.ageCheck.mockResolvedValue({ required: true, can_change: true, switched_on_at: null, unchecked_with_feed: 3 })
-    renderWithProviders(<StaffDashboardPage />, { user: as({ role: 'admin', can_change_age_check: true }) })
-    const card = await screen.findByRole('region', { name: /Age verification for the member feed: On/ })
-    await userEvent.click(within(card).getByRole('button', { name: 'Change' }))
-    const dialog = screen.getByRole('dialog', { name: 'Turn age verification off?' })
-    expect(within(dialog).getByText(/door desk still checks ID before any membership starts/)).toBeInTheDocument()
-    expect(within(dialog).getByRole('button', { name: 'Turn it off' })).toBeInTheDocument()
   })
 })

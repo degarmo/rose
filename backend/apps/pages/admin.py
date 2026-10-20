@@ -96,8 +96,8 @@ class SiteSettingsAdmin(ModelAdmin):
             AgeCheckError,
             can_change_setting,
             set_age_check_required,
+            setting_summary,
         )
-        from apps.safety.views import age_check_setting_payload
 
         if not (request.user.has_perm("pages.view_sitesettings") or request.user.is_staff):
             raise PermissionDenied
@@ -121,7 +121,7 @@ class SiteSettingsAdmin(ModelAdmin):
             **self.admin_site.each_context(request),
             "title": "Age verification for the member feed",
             "opts": self.model._meta,
-            "setting": age_check_setting_payload(request.user),
+            "setting": setting_summary(request.user),
             "can_change": can_change_setting(request.user),
             "changes": AuditLog.objects.filter(
                 category=AuditLog.Category.SETTINGS, action__startswith="age_verification"

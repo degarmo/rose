@@ -9,19 +9,16 @@ test.describe('The owner', () => {
     await page.getByLabel('Password').fill(password)
     await page.getByRole('button', { name: 'Log in' }).click()
 
-    // The authenticator code at sign-in, then straight to the staff section, already unlocked.
+    // The authenticator code at sign-in, then straight to the admin dashboard (the only one).
     await enterWebsiteCode(page, owner.totp_secret)
-
-    // The dashboard, with numbers and bars rather than an empty page.
-    await expect(page).toHaveURL(/\/members\/staff$/)
-    await expect(page.getByText(/^Members · /)).toBeVisible()
-    const active = page.getByRole('region', { name: /^Members · / }).locator('div', { hasText: /^Active members/ }).first()
-    await expect(active).toContainText(/\d/)
-    await expect(page.getByRole('figure').filter({ hasText: 'RSVPs' }).locator('.bg-primary').first()).toBeAttached()
-    await expect(page.getByRole('figure').filter({ hasText: 'Revenue' }).locator('.bg-primary').first()).toBeAttached()
+    await expect(page).toHaveURL(new RegExp(`${fixtures().admin_path}$`))
+    const active = page.locator('.rose-kpi', { hasText: 'Active members' })
+    await expect(active.locator('.rose-kpi-value')).toHaveText(/\d/)
+    await expect(page.getByRole('heading', { name: /^Members · / })).toBeVisible()
+    await expect(page.locator('canvas').first()).toBeVisible()
 
     // The reports inbox has reports in it.
-    await page.getByRole('navigation', { name: 'Staff' }).getByRole('link', { name: 'Reports' }).click()
+    await page.goto('/members/staff/reports')
     await expect(page.getByRole('tab', { name: 'Open' })).toHaveAttribute('aria-selected', 'true')
     await expect(page.locator('main a[href^="/members/staff/reports/"]').first()).toBeVisible()
 

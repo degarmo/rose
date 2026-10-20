@@ -120,7 +120,7 @@ def test_login_with_authenticator_code(client, staff, enrolled):
     assert response["Location"] == reverse("admin:index")
     assert client.session.session_key != old_key  # rotated on login
     assert client.get(reverse("admin:index")).status_code == 200
-    assert client.get(reverse("admin:memberships_door_desk")).status_code == 200
+    assert client.get(reverse("admin:memberships_summary")).status_code == 200
 
 
 def test_backup_code_works_once(client, staff, enrolled, settings):
