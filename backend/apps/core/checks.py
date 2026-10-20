@@ -143,7 +143,13 @@ def no_demo_seed(app_configs=None, databases=None, **kwargs):
         # Before the first migration there is no table, and so no seed.
         return []
     if seeded:
-        return [_error("E010", "Demo seed data is in this database. Restore a clean database.")]
+        return [
+            _error(
+                "E010",
+                "Demo data (seed_demo or make_feed_member) is in this database. "
+                "Restore a clean database.",
+            )
+        ]
     return []
 
 

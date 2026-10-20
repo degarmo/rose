@@ -83,7 +83,8 @@ def audit(
 
 
 class SeedMarker(models.Model):
-    """Written by seed_demo. Its presence stops staging and production from starting."""
+    """Written by seed_demo and make_feed_member. Its presence stops staging and production
+    from starting."""
 
     created_at = models.DateTimeField(auto_now_add=True)
 

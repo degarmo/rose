@@ -21,6 +21,7 @@ from apps.core.models import AuditLog, audit
 
 from ...emails import send_import_invite
 from ...models import IdCheck, Membership, Tier
+from ...system import system_user
 
 COLUMNS = ["email", "display_name", "tier_slug", "period_end", "id_checked"]
 TRUE = {"yes", "y", "true", "1"}
@@ -38,17 +39,6 @@ class Row:
     period_end: datetime
     id_checked: bool
     user: User | None
-
-
-def system_user():
-    """The inactive account that imported ID checks are recorded against."""
-    user = User.objects.filter(email=SYSTEM_EMAIL).first()
-    if user is None:
-        user = User.objects.create_user(email=SYSTEM_EMAIL, display_name=SYSTEM_NAME)
-        user.set_unusable_password()
-        user.is_active = False
-        user.save()
-    return user
 
 
 class Command(BaseCommand):
@@ -145,7 +135,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def write(self, rows):
-        system = system_user()
+        # The inactive account imported ID checks are recorded against.
+        system = system_user(SYSTEM_EMAIL, SYSTEM_NAME)
         now = timezone.now()
         for row in rows:
             new_account = row.user is None

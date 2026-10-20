@@ -6,7 +6,7 @@ import { AuthContext, type AuthState } from '@/components/layout/authContext'
 import { MembersTestProvider } from '@/test/MembersTestProvider'
 import { ToastProvider } from '@/components/ui'
 import type { Account, Preferences } from '@/lib/api'
-import type { FeedAccount } from '@/lib/membersApi'
+import type { FeedAccount, FeedPath, FeedTeaser, PathStep } from '@/lib/membersApi'
 import type { MemberActionData } from '@/lib/safetyApi'
 import { me } from '@/test/members'
 import { makeMembership } from '@/test/membership'
@@ -42,6 +42,8 @@ const safety = vi.hoisted(() => ({
 }))
 const feed = vi.hoisted(() => ({
   get: vi.fn(),
+  path: vi.fn(),
+  teaser: vi.fn(),
   acceptGuidelines: vi.fn(),
   stepAway: vi.fn(),
   erase: vi.fn(),
@@ -159,6 +161,27 @@ function feedAccountFor(overrides: Partial<FeedAccount>): FeedAccount {
   }
 }
 
+const ORDER: PathStep['key'][] = ['email', 'plan', 'door', 'age', 'join']
+
+/** Home's checklist with every step before `at` done, `at` current and the rest to come. */
+function pathAt(at: PathStep['key'] | 'complete', changes: Partial<Record<PathStep['key'], object>> = {}): FeedPath {
+  const reached = at === 'complete' ? ORDER.length : ORDER.indexOf(at)
+  const state = (key: PathStep['key']) => {
+    const index = ORDER.indexOf(key)
+    return index < reached ? 'done' : index === reached ? 'current' : 'upcoming'
+  }
+  const steps = [
+    { key: 'email', state: state('email') },
+    { key: 'plan', state: state('plan'), included: false, tier: null },
+    { key: 'door', state: state('door'), included: false, reference_code: null, waiting_for: null },
+    { key: 'age', state: state('age'), notice: false },
+    { key: 'join', state: state('join'), paused: false, can_join: at === 'join', early: false },
+  ].map((step) => ({ ...step, ...changes[step.key as PathStep['key']] })) as PathStep[]
+  return { steps, complete: at === 'complete' }
+}
+
+const noTeaser: FeedTeaser = { tiles: [], post: null }
+
 function Where() {
   const location = useLocation()
   return <p data-testid="where">{location.pathname + location.hash}</p>
@@ -217,6 +240,8 @@ beforeEach(() => {
   safety.notices.mockResolvedValue([])
   safety.myReports.mockResolvedValue([])
   feed.get.mockResolvedValue(feedAccountFor({}))
+  feed.path.mockResolvedValue(pathAt('plan'))
+  feed.teaser.mockResolvedValue(noTeaser)
   membersApi.myBlocks.mockResolvedValue({ blocked: [] })
   membersApi.myMutes.mockResolvedValue({ muted: [] })
 })
@@ -617,10 +642,12 @@ describe('Home', () => {
     renderSettings('/members/home')
     expect(screen.getByRole('heading', { name: 'night_owl' })).toBeInTheDocument()
     expect(await screen.findByText("You don't have a membership yet")).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute('href', '/membership')
     expect(await screen.findByText('Nothing on the calendar yet')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Compare plans' })).toHaveAttribute('href', '/membership')
     expect(screen.getByText('The member community')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'See plans with the feed' })).toHaveAttribute('href', '/membership')
+    expect(screen.getByText('Members share photos, plans and conversation here')).toBeInTheDocument()
+    // The membership card's and the preview's.
+    for (const link of screen.getAllByRole('link', { name: 'See plans' })) expect(link).toHaveAttribute('href', '/membership')
   })
 
   it('shows the membership, what it includes, events with RSVP status and the way to join the feed', async () => {
@@ -645,13 +672,17 @@ describe('Home', () => {
         attendee_count: null,
       },
     ])
+    feed.path.mockResolvedValue(pathAt('join'))
     renderSettings('/members/home', {
       user: { ...verifiedUser, has_membership: true, member_app: 'join' },
     })
     expect(await screen.findByText('Monthly includes')).toBeInTheDocument()
     expect(screen.getByText('Members-only nights')).toBeInTheDocument()
     expect(await screen.findByText('Going')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Join the member feed' })).toHaveAttribute('href', '/members/join-feed')
+    expect(await screen.findByRole('link', { name: 'Join the community' })).toHaveAttribute('href', '/members/join-feed')
+    // A plan with the community is chosen: the preview has no plans button.
+    expect(screen.getByText('The member community')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'See plans' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Manage membership' })).toHaveAttribute('href', '/members/settings/membership')
   })
 })
@@ -660,26 +691,28 @@ describe('the age check', () => {
   const waiting = { ...verifiedUser, has_membership: true, member_app: 'verify' as const, age_check: { verified: false, needed: true, notice: false } }
   const paidWaiting = makeMembership({ reference_code: 'R7K-42Q', paid_awaiting_id_check: true, status_label: 'Waiting for ID check', id_checked: false })
 
-  it('shows the verify card on Home: what to bring, the door code once, and that nothing is stored', async () => {
+  it('shows the age check on Home as a step: what to bring, the door code once, and that nothing is stored', async () => {
     membership.me.mockResolvedValue({ membership: paidWaiting, entitlements: [] })
+    feed.path.mockResolvedValue(pathAt('door', { door: { reference_code: 'R7K-42Q', waiting_for: 'id_check' }, join: { early: true } }))
     renderSettings('/members/home', { user: waiting })
-    const card = await screen.findByRole('region', { name: 'Verify your age at your next visit.' })
-    expect(within(card).getByText(/A valid photo ID showing you are 18 or older/)).toBeInTheDocument()
-    expect(within(card).getByText(/We never copy or store your ID/)).toBeInTheDocument()
-    expect(await within(card).findByAltText('QR code for R7K-42Q')).toBeInTheDocument()
+    expect(await screen.findByText(/Bring a valid photo ID showing you are 18 or older/)).toBeInTheDocument()
+    expect(screen.getByText(/We never copy or store your ID/)).toBeInTheDocument()
+    expect(screen.getByText(/Already paid. Staff switch your membership on at your next visit/)).toBeInTheDocument()
+    expect(await screen.findByAltText('QR code for R7K-42Q')).toBeInTheDocument()
     expect(screen.getAllByText('R7K-42Q')).toHaveLength(1)
-    expect(within(card).getByRole('link', { name: 'Read the community guidelines now' })).toHaveAttribute('href', '/members/join-feed')
-    expect(screen.queryByRole('link', { name: 'Join the member feed' })).not.toBeInTheDocument()
-    expect(screen.getByText(/once staff have checked your ID at your next visit/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Read the community guidelines now' })).toHaveAttribute('href', '/members/join-feed')
+    expect(screen.queryByRole('link', { name: 'Join the community' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Verify your age at your next visit.' })).not.toBeInTheDocument()
   })
 
-  it('tells people who had the feed why it closed, and asks for the display name without a membership', async () => {
+  it('tells people who had the feed why it closed, and asks for the display name without a door code', async () => {
     membership.me.mockResolvedValue({ membership: null, entitlements: [] })
+    feed.path.mockResolvedValue(pathAt('age', { plan: { included: true }, door: { included: true }, age: { notice: true } }))
     renderSettings('/members/home', { user: { ...waiting, has_membership: false, age_check: { verified: false, needed: true, notice: true } } })
-    const card = await screen.findByRole('region', { name: 'Verify your age at your next visit.' })
-    expect(within(card).getByText(/now needs a quick check in person, for everyone/)).toBeInTheDocument()
-    expect(within(card).getByText('night_owl')).toBeInTheDocument()
-    expect(within(card).queryByAltText(/QR code/)).not.toBeInTheDocument()
+    expect(await screen.findByText(/now needs a quick check in person, for everyone/)).toBeInTheDocument()
+    expect(screen.getByText(/At the door, give your display name/)).toHaveTextContent('night_owl')
+    expect(screen.getAllByText('Included with your account.')).toHaveLength(2)
+    expect(screen.queryByAltText(/QR code/)).not.toBeInTheDocument()
   })
 
   it('shows the verify card in Settings, under Membership', async () => {

@@ -250,8 +250,44 @@ export const members = {
     }),
 }
 
+/** One step on the way into the member community (Home's "What's missing"). */
+export type PathState = 'done' | 'current' | 'upcoming'
+export type PathStep =
+  | { key: 'email'; state: PathState }
+  /** `tier`: a plan they have that leaves the community out. */
+  | { key: 'plan'; state: PathState; included: boolean; tier: string | null }
+  | {
+      key: 'door'
+      state: PathState
+      included: boolean
+      reference_code: string | null
+      waiting_for: 'payment' | 'id_check' | 'suspended' | null
+    }
+  /** Only while the club has the in-person age check switched on. */
+  | { key: 'age'; state: PathState; notice: boolean }
+  /** `early`: waiting only for the age check, so the guidelines can be read now. */
+  | { key: 'join'; state: PathState; paused: boolean; can_join: boolean; early: boolean }
+
+export interface FeedPath {
+  steps: PathStep[]
+  /** The feed opens now. */
+  complete: boolean
+}
+
+/** The preview for accounts without the feed: the club's own posts only. */
+export type TeaserTile =
+  | { kind: 'photo'; image: { url: string; srcset: string | null; alt: string; width: number | null; height: number | null } }
+  | { kind: 'note'; title: string }
+
+export interface FeedTeaser {
+  tiles: TeaserTile[]
+  post: ClubPost | null
+}
+
 export const feedAccount = {
   get: () => request<FeedAccount>('/account/feed/'),
+  path: () => request<FeedPath>('/account/feed/path/'),
+  teaser: () => request<FeedTeaser>('/account/feed/teaser/'),
   join: (guidelinesVersion: number, bio: string, hideFromDirectory: boolean) =>
     post<FeedAccount>('/account/feed/join/', {
       guidelines_version: guidelinesVersion,

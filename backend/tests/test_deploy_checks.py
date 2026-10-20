@@ -1,10 +1,12 @@
 """Staging and production refuse to start with anything unsafe."""
 
 import base64
+import io
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import CommandError, call_command
+from django.test import override_settings
 
 from apps.core import checks
 from apps.core.models import SeedMarker
@@ -107,6 +109,19 @@ def test_local_storage_is_refused(safe_production):
 
 def test_seed_data_is_refused(safe_production):
     SeedMarker.objects.create()
+    assert ids() == {"rose.E010"}
+    with pytest.raises(ImproperlyConfigured, match="rose.E010"):
+        checks.assert_deploy_safe()
+
+
+def test_a_database_touched_by_make_feed_member_is_refused(safe_production, make_tier):
+    make_tier(slug="rose")
+    with override_settings(
+        DJANGO_ENV="development",
+        DEBUG=True,
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ):
+        call_command("make_feed_member", "dev@test.local", stdout=io.StringIO())
     assert ids() == {"rose.E010"}
     with pytest.raises(ImproperlyConfigured, match="rose.E010"):
         checks.assert_deploy_safe()

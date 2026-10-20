@@ -93,8 +93,8 @@ export function NoMembership() {
 
 /**
  * Your membership at a glance (Home and Settings): tier, status, when it renews or expires,
- * events left this month and, while it is open, the door code with its QR (unless the age
- * check card beside it already shows it: `showCode`).
+ * events left this month and, while it is open, the door code with its QR (unless something
+ * beside it already shows it, Home's checklist or the age check card: `showCode`).
  */
 export function MembershipCard({ membership, footer, showCode = true }: { membership: MyMembership; footer?: ReactNode; showCode?: boolean }) {
   const running = membership.status === 'active' || membership.status === 'grace'

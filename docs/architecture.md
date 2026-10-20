@@ -82,6 +82,7 @@ security and restores are in `docs/ops/`.
 | POST | `/api/events/rsvp/cancel/` | Cancel from an emailed, signed link. |
 | GET | `/api/journal/posts/[<slug>/]` | Cursor-paginated, 12 per page. |
 | GET, POST | `/api/account/feed/`, `join/`, `guidelines/`, `step-away/`, `erase/` | Feed controls in Settings. 404 unless the person is entitled or has feed history. |
+| GET | `/api/account/feed/path/`, `teaser/` | For Home, for any signed-in account while the feed exists (404 with it switched off). `path/`: "What's missing", the steps between the caller and the feed (email, plan, door, age check while it is on, joining), each done, current or upcoming. `teaser/`: the preview for accounts without the feed, built only from the club's journal photos, announcement titles and latest journal post: never a member's post, profile, avatar, name or a count. |
 | any | `/api/members/...` | The feed. Every path and method returns 404 unless `can_view_feed` passes, before CSRF or anything else is checked. See below. |
 | GET | `/api/members/home/?tab=` | The app's home feed: member posts with the club's journal posts (as "Rose") interleaved by date. The cursor holds timestamps and public ids, never database ids. |
 | GET | `/api/members/saved/` | The caller's own saved posts. There is no way to see anyone else's. |

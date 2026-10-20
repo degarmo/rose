@@ -1,21 +1,22 @@
-"""Feed controls in Settings: join, step away and erase.
+"""Feed controls in Settings: join, step away and erase; and, for Home, the way in.
 
 These live outside /api/members/ because people who have stepped away must
 still reach them. They are hidden (404) from anyone with no feed entitlement
-and no feed history.
+and no feed history. The way in (what is missing, and the club-only preview) is for
+every signed-in account, since it is mostly read by people without the feed.
 """
 
 from django.conf import settings
 from django.http import FileResponse, Http404
 from rest_framework import status
-from rest_framework.permissions import SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.api import CsrfProtectedAPIView, check_write_limit
 from apps.core.private_media import private_media, with_private_headers
 
-from . import access, services
+from . import access, path, services
 from .api import SessionWithoutCsrf, enforce_csrf
 from .models import FeedPost, Guidelines, GuidelinesAcceptance
 from .views import guidelines_payload
@@ -76,6 +77,27 @@ def account_feed_payload(user):
             "has_avatar": bool(profile.avatar),
         },
     }
+
+
+class FeedPathBase(CsrfProtectedAPIView):
+    """Read-only, for any signed-in account, while the member feed exists at all."""
+
+    permission_classes = [IsAuthenticated]
+
+    def initial(self, request, *args, **kwargs):
+        if not settings.FEED_ENABLED:
+            raise Http404
+        super().initial(request, *args, **kwargs)
+
+
+class FeedPathView(FeedPathBase):
+    def get(self, request):
+        return Response(path.feed_path(request.user))
+
+
+class FeedTeaserView(FeedPathBase):
+    def get(self, request):
+        return Response(path.teaser(request))
 
 
 class FeedAccountView(FeedAccountBase):

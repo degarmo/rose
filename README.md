@@ -49,7 +49,7 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    | `demo.unverified@example.org` | Plain account, email not confirmed |
    | `desk.volunteer@example.org` | Staff (door desk only, no team role) |
    | `team.moderator@example.org` | Team: Moderator (reports and member actions) |
-   | `team.staff@example.org` | Team: Staff (adds the metrics) |
+   | `team.staff@example.org` | Team: Staff (adds the full admin dashboard) |
    | `team.admin@example.org` | Team: Admin (adds the team and revealing reporters) |
 
    Other `member.*@example.org` and `guest.*@example.org` accounts cover each membership
@@ -63,7 +63,7 @@ changing anything, especially the privacy checklist and the RSVP privacy rules.
    ```
 
    It asks for a password for a new account and upgrades an existing one; running it again
-   changes nothing. Log in on the site with that email: you land on the staff dashboard,
+   changes nothing. Log in on the site with that email: you land on the admin dashboard,
    which first sets up the two-step login with an authenticator app (required for all
    staff, also locally). To try the staff section locally without an authenticator, start
    the API with `DEV_SKIP_STAFF_2FA=true`; it only works with DEBUG on, and staging and
@@ -145,6 +145,33 @@ If ports 5433, 6380, 8000 or 5173 are taken, override them, for example
    npm run build
    npm audit --omit=dev
    ```
+
+## See the member app locally
+
+The member app (the photo feed at `/members/feed`) opens only for an account with a confirmed
+email, a membership on a tier that includes the feed, switched on at the door desk, an ID
+check (while the club has the age check on) and the feed joined. Two ways to get one locally,
+both DEBUG only:
+
+- **The demo logins.** `seed_demo` (step 2 of option A, step 3 of option B) prints them. Log
+  in as `demo.member@example.org` (password `rose-demo-only`) to land in the feed, or as
+  `member.active@example.org` to go through joining it.
+- **Your own account, in one step.**
+
+  ```sh
+  docker compose exec api python manage.py make_feed_member you@test.local
+  # option B, from backend/: .venv/bin/python manage.py make_feed_member you@test.local
+  ```
+
+  It creates the account (or finishes an existing one), starts a Rose membership through the
+  door desk (`--tier` picks another tier), records the ID check, accepts the guidelines and
+  joins the feed, printing each step. Run it again and it only does what is missing. A new
+  account gets an email with a link to choose a password: open Mailpit at
+  http://localhost:8025, follow the link, choose a password, then log in at
+  http://localhost:5173/account/login. You land in the feed.
+
+Any other account sees "What's missing" on Home (`/members/home`), with the next step to
+take, and a preview of the community built only from the club's own posts.
 
 ## Browser tests
 

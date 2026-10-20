@@ -47,7 +47,7 @@ test.describe('Membership', () => {
     // The member now has the community.
     await member.goto('/members/home')
     await expect(member.getByText(/Paid through/)).toBeVisible()
-    await member.getByRole('link', { name: 'Join the member feed' }).click()
+    await member.getByRole('link', { name: 'Join the community' }).click()
     await member.getByRole('button', { name: 'Read the guidelines' }).click()
     await member
       .getByLabel('Community guidelines', { exact: true })

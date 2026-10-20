@@ -8,4 +8,6 @@ urlpatterns = [
     path("guidelines/", views.AcceptGuidelinesView.as_view(), name="account-feed-guidelines"),
     path("step-away/", views.StepAwayView.as_view(), name="account-feed-step-away"),
     path("erase/", views.EraseView.as_view(), name="account-feed-erase"),
+    path("path/", views.FeedPathView.as_view(), name="account-feed-path"),
+    path("teaser/", views.FeedTeaserView.as_view(), name="account-feed-teaser"),
 ]

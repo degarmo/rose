@@ -179,8 +179,8 @@ export function LoadError({ title, onRetry }: { title: string; onRetry: () => vo
   )
 }
 
-/** Confirm your email: needed to RSVP, join and pay online. */
-export function VerifyEmailBanner() {
+/** Sends a new email confirmation link, then says so. */
+export function ResendVerification({ sentClassName }: { sentClassName?: string }) {
   const toast = useToast()
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -199,19 +199,24 @@ export function VerifyEmailBanner() {
       setSending(false)
     }
   }
+  return sent ? (
+    <p role="status" className={cn('text-sm font-semibold', sentClassName)}>
+      A new link is on its way.
+    </p>
+  ) : (
+    <AppButton variant="secondary" onClick={() => void resend()} disabled={sending}>
+      {sending ? 'Sending' : 'Send a new link'}
+    </AppButton>
+  )
+}
+
+/** Confirm your email: needed to RSVP, join and pay online. */
+export function VerifyEmailBanner() {
   return (
     <div className="flex flex-col gap-3 rounded-app bg-tint p-4 sm:flex-row sm:items-center">
       <MailWarning aria-hidden="true" className="size-6 shrink-0 text-tint-fg" />
       <p className="flex-1 text-sm text-tint-fg">Confirm your email to RSVP and join. Check your inbox for our link.</p>
-      {sent ? (
-        <p role="status" className="text-sm font-semibold text-tint-fg">
-          A new link is on its way.
-        </p>
-      ) : (
-        <AppButton variant="secondary" onClick={() => void resend()} disabled={sending}>
-          {sending ? 'Sending' : 'Send a new link'}
-        </AppButton>
-      )}
+      <ResendVerification sentClassName="text-tint-fg" />
     </div>
   )
 }

@@ -25,7 +25,10 @@ test.describe('Settings in the member app', () => {
     await expect(page).toHaveURL(/\/members\/home$/)
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
     await expect(page.getByText("You don't have a membership yet")).toBeVisible()
-    await expect(page.getByRole('link', { name: 'See plans', exact: true })).toHaveAttribute('href', '/membership')
+    // The membership card's and the community preview's.
+    const plans = page.getByRole('link', { name: 'See plans', exact: true })
+    await expect(plans).toHaveCount(2)
+    for (const link of await plans.all()) await expect(link).toHaveAttribute('href', '/membership')
     // No feed for this account: its pages are the website's 404.
     await expect(page.locator('a[href="/members/explore"]')).toHaveCount(0)
 
@@ -61,7 +64,7 @@ test.describe('Settings in the member app', () => {
     page.on('load', () => (loads += 1))
 
     await page.goto('/members/home')
-    await expect(page.getByRole('link', { name: 'Join the member feed' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Join the community' })).toBeVisible()
     await page.goto('/members/settings')
     await page.getByRole('navigation', { name: 'Settings' }).getByRole('link', { name: /^Privacy/ }).click()
     await expect(page.getByText('Feed privacy')).toBeVisible()
@@ -74,7 +77,7 @@ test.describe('Settings in the member app', () => {
 
     // Joining refreshes the session, so the feed opens straight away: no reload.
     const before = loads
-    await page.getByRole('link', { name: 'Join the member feed' }).click()
+    await page.getByRole('link', { name: 'Join the community' }).click()
     await page.getByRole('button', { name: 'Read the guidelines' }).click()
     await page.getByLabel('Community guidelines', { exact: true }).evaluate((element) => element.scrollTo(0, element.scrollHeight))
     await page.getByLabel('I agree to the community guidelines').check()

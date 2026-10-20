@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Camera, CalendarDays, Check, CircleUser, Heart, Lock, Sparkles } from 'lucide-react'
+import { ArrowRight, CalendarDays, Check } from 'lucide-react'
 import { Link } from 'react-router'
 import { useAuth } from '@/components/layout/authContext'
 import { PhoneBar } from '@/components/members/app/Nav'
@@ -6,11 +6,13 @@ import { Wordmark } from '@/components/members/app/primitives'
 import { eventAction, timeOnly } from '@/components/members/app/events'
 import { DateTile } from '@/components/members/app/RightRail'
 import { appButtonClasses, ICON } from '@/components/members/app/ui'
-import { AgeCheckCard } from '@/components/members/settings/AgeCheckCard'
+import { CommunityTeaser } from '@/components/members/home/CommunityTeaser'
+import { WhatsMissing } from '@/components/members/home/WhatsMissing'
 import { MembershipCard, NoMembership } from '@/components/members/settings/MembershipCard'
 import { Card, EmptyNote, LoadError, Skeleton, StatusChip, VerifyEmailBanner } from '@/components/members/settings/ui'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { isOpen, membershipApi, type MyMembership } from '@/lib/membershipApi'
+import { feedAccount } from '@/lib/membersApi'
 import { useAsync } from '@/lib/useAsync'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
 
@@ -101,61 +103,31 @@ function PlanIncludes({ membership }: { membership: MyMembership }) {
   )
 }
 
-const FEED_ADDS = [
-  {
-    icon: Camera,
-    text: 'A private feed of photos and notes, seen only by members',
-  },
-  { icon: Sparkles, text: 'Stories from the club and from other members' },
-  {
-    icon: CircleUser,
-    text: 'A profile with a picture that doesn’t have to be you',
-  },
-  { icon: Heart, text: 'Likes, comments and saved posts' },
-]
-
-/** What unlocking the member feed would add, with the next step. */
-function FeedUnlock() {
-  const auth = useAuth()
-  const app = auth.user?.member_app ?? null
-  return (
-    <Card title="The member community" icon={Lock}>
-      <p className="text-fg-muted">
-        {app === 'paused'
-          ? 'Your feed access is paused. It reopens when the pause ends.'
-          : app === 'verify'
-            ? 'It is yours once staff have checked your ID at your next visit. It then adds:'
-            : 'It stays off until you turn it on. Unlocking it adds:'}
-      </p>
-      <ul className="mt-3 flex flex-col gap-2.5">
-        {FEED_ADDS.map(({ icon: Icon, text }) => (
-          <li key={text} className="flex gap-3 text-fg">
-            <Icon aria-hidden="true" size={20} strokeWidth={ICON.stroke} className="shrink-0 text-fg-muted" />
-            {text}
-          </li>
-        ))}
-      </ul>
-      {app !== 'paused' && app !== 'verify' && (
-        <Link to={app === 'join' ? '/members/join-feed' : '/membership'} className={appButtonClasses('primary', 'mt-4')}>
-          {app === 'join' ? 'Join the member feed' : 'See plans with the feed'}
-        </Link>
-      )}
-    </Card>
-  )
-}
-
 /**
- * Home for accounts without the feed (design: the member app's shell): a greeting, the
- * membership card or the way to one, the next evenings with your RSVP status, what the plan
- * includes and what the member feed would add.
+ * Home (design: the member app's shell): a greeting; "What's missing" between this account
+ * and the member community, step by step; the membership card or the way to one; the next
+ * evenings with your RSVP status; what the plan includes; and, for accounts without the
+ * feed, a preview of it built only from the club's own posts.
  */
 export function HomePage() {
   useDocumentMeta({ title: 'Home', noindex: true })
   const auth = useAuth()
-  const membership = useAsync(() => membershipApi.me(), 'my-membership')
   const user = auth.user
+  const membership = useAsync(() => membershipApi.me(), 'my-membership')
+  const path = useAsync(
+    () => feedAccount.path(),
+    `feed-path:${user?.email_verified}:${user?.member_app}:${user?.feed_access}`,
+  )
   if (!user) return null
   const current = membership.status === 'success' ? membership.data.membership : null
+  // With the member feed switched off for the whole site, there is no way in to show.
+  const feedOff = path.status === 'error' && path.error instanceof ApiError && path.error.status === 404
+  const steps = path.status === 'success' ? path.data.steps : []
+  const door = steps.find((step) => step.key === 'door')
+  // The door code shows once: in the checklist while the door is still to come.
+  const codeInPath = Boolean(door?.key === 'door' && door.reference_code && door.waiting_for !== 'suspended')
+  const planChosen = steps.some((step) => step.key === 'plan' && step.state === 'done')
+  const cardShowsCode = path.status === 'success' ? !codeInPath : path.status === 'error'
 
   return (
     <>
@@ -172,7 +144,14 @@ export function HomePage() {
           <p className="text-meta text-fg-muted">{greeting()}</p>
           <h1 className="text-2xl font-semibold text-fg">{user.display_name}</h1>
         </header>
-        {!user.email_verified && <VerifyEmailBanner />}
+        {!user.email_verified && path.status === 'error' && <VerifyEmailBanner />}
+        {path.status === 'loading' && (
+          <div className="rounded-app border border-border p-4">
+            <Skeleton lines={5} />
+          </div>
+        )}
+        {path.status === 'success' && <WhatsMissing path={path.data} displayName={user.display_name} cardShowsCode={cardShowsCode && isOpen(current)} />}
+        {path.status === 'error' && !feedOff && <LoadError title="Your next steps did not load" onRetry={path.retry} />}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
           <div className="flex min-w-0 flex-col gap-4">
             {membership.status === 'loading' && (
@@ -181,12 +160,11 @@ export function HomePage() {
               </div>
             )}
             {membership.status === 'error' && <LoadError title="Your membership did not load" onRetry={membership.retry} />}
-            {membership.status === 'success' && <AgeCheckCard membership={current} />}
             {membership.status === 'success' &&
               (current ? (
                 <MembershipCard
                   membership={current}
-                  showCode={!user.age_check.needed}
+                  showCode={cardShowsCode}
                   footer={
                     <Link to="/members/settings/membership" className={appButtonClasses('secondary', 'self-start')}>
                       Manage membership
@@ -202,18 +180,9 @@ export function HomePage() {
             <Card title="Coming up" icon={CalendarDays}>
               <ComingUp />
             </Card>
-            {user.feed_access ? (
-              <Card title="The member feed" icon={BookOpen}>
-                <p className="text-fg-muted">Your feed is open.</p>
-                <Link to="/members/feed" className={appButtonClasses('primary', 'mt-3')}>
-                  Open the feed
-                </Link>
-              </Card>
-            ) : (
-              <FeedUnlock />
-            )}
           </div>
         </div>
+        {!user.feed_access && !feedOff && <CommunityTeaser showPlans={!planChosen} />}
       </div>
     </>
   )

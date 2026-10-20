@@ -81,11 +81,11 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             "\nNext steps:\n"
-            "  1. Log in on the website with this email. You land on the staff dashboard.\n"
-            "  2. The staff section asks for the two-step login. The first time, it sets up\n"
-            "     an authenticator app (scan the code, then keep the ten backup codes safe).\n"
-            "  3. After that, Staff in the account menu leads to the dashboard, reports, the\n"
-            "     door desk, the member app and the Django admin.\n"
+            "  1. Log in on the website with this email. You land on the admin dashboard.\n"
+            "  2. It asks for the two-step login. The first time, it sets up an\n"
+            "     authenticator app (scan the code, then keep the ten backup codes safe).\n"
+            "  3. After that, the account menu leads to the dashboard and to the staff\n"
+            "     section: the door desk, reports, members and the team.\n"
             "  4. The member feed opens once your own ID check is recorded at the door desk,\n"
             "     with a second team member as witness, as it is for everyone.\n"
             "  For local development only, DEV_SKIP_STAFF_2FA=true (with DEBUG on) skips\n"

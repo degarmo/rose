@@ -6,9 +6,10 @@ import { isOpen, type MyMembership } from '@/lib/membershipApi'
 import { DoorCode } from './MembershipCard'
 
 /**
- * The in-person age check (Home and Settings > Membership): what to bring, the door code to
- * show, and that nothing is copied. Shown while `age_check.needed` is true: staff record the
- * check at the door desk, and the feed opens without logging out (the session is read again).
+ * The in-person age check in Settings > Membership (Home has it as a step of "What's
+ * missing"): what to bring, the door code to show, and that nothing is copied. Shown while
+ * `age_check.needed` is true: staff record the check at the door desk, and the feed opens
+ * without logging out (the session is read again).
  */
 export function AgeCheckCard({ membership }: { membership: MyMembership | null }) {
   const auth = useAuth()
