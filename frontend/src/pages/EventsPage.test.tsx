@@ -159,6 +159,20 @@ describe('the featured event', () => {
     expect(screen.getAllByRole('article', { name: 'Winter ball' })).toHaveLength(1)
   })
 
+  it('arrives with the filters and the events on the first load, so nothing on screen is pushed down', async () => {
+    serve(20)
+    let answer: (value: { event: EventSummary | null }) => void = () => {}
+    apiMock.featuredEvent.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+    renderEvents()
+    // The events load meanwhile, but nothing below the title shows until the banner is known.
+    expect(await screen.findByText('Showing 1–15 of 20')).not.toBeVisible()
+    expect(screen.queryByRole('group', { name: 'Category' })).not.toBeInTheDocument()
+    answer({ event: star })
+    const banner = await screen.findByRole('article', { name: 'Winter ball' })
+    expect(banner.compareDocumentPosition(screen.getByRole('group', { name: 'Category' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(await screen.findByText('Showing 1–15 of 20')).toBeVisible()
+  })
+
   it('goes when a category leaves it out', async () => {
     serve(20)
     apiMock.featuredEvent.mockImplementation(async (category: EventCategory | '') => ({ event: !category || category === 'special' ? star : null }))

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { EventGridCard } from '@/components/content/EventGridCard'
-import { FeaturedEvent } from '@/components/content/FeaturedEventBanner'
+import { FeaturedEventBanner } from '@/components/content/FeaturedEventBanner'
 import { MonthCalendar } from '@/components/content/MonthCalendar'
 import { PageHero } from '@/components/content/PageHero'
 import { EmptyState, ErrorState, SkeletonCards } from '@/components/content/States'
@@ -204,6 +204,12 @@ export function EventsPage() {
   const category: EventCategory | '' = isEventCategory(rawCategory) ? rawCategory : ''
   const month = parseMonth(params.get('month'))
   const page = Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1)
+  const featured = useAsync(() => api.featuredEvent(category), `featured|${category}`)
+  // The banner sits above the filters and the events. On the first load they wait for it (the
+  // requests run side by side), so nothing already on screen is pushed down when it arrives.
+  const [settled, setSettled] = useState(false)
+  if (!settled && featured.status !== 'loading') setSettled(true)
+  const banner = featured.status === 'success' ? featured.data.event : null
 
   function withChanges(changes: Record<string, string | null>) {
     const next = new URLSearchParams(params)
@@ -239,16 +245,23 @@ export function EventsPage() {
         }
       >
         {/* Above the filters; the grid leaves it out, and a category without it hides it. */}
-        <FeaturedEvent category={category} className="mt-6 lg:mt-8" />
-        <FilterChips
-          label="Category"
-          options={CATEGORY_CHIPS}
-          value={category}
-          onChange={(next) => update({ category: next || null, page: null })}
-          className="-mx-5 mt-4 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:mt-6 lg:px-0"
-        />
+        {banner && <FeaturedEventBanner event={banner} className="mt-6 lg:mt-8" />}
+        {settled && (
+          <FilterChips
+            label="Category"
+            options={CATEGORY_CHIPS}
+            value={category}
+            onChange={(next) => update({ category: next || null, page: null })}
+            className="-mx-5 mt-4 px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:mt-6 lg:px-0"
+          />
+        )}
       </PageHero>
-      <section aria-label="Events" className={cn('mx-auto max-w-[1440px] pb-12 lg:pb-16', GUTTER)}>
+      {!settled && (
+        <div aria-busy="true" className={cn('mx-auto min-h-dvh max-w-[1440px] pb-12 pt-4 lg:pb-16 lg:pt-6', GUTTER)}>
+          <SkeletonCards count={6} />
+        </div>
+      )}
+      <section aria-label="Events" hidden={!settled} className={cn('mx-auto max-w-[1440px] pb-12 lg:pb-16', GUTTER)}>
         <div>
           {view === 'grid' ? (
             <EventsGrid
