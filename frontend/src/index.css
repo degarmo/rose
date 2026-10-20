@@ -24,7 +24,7 @@
   --ui-link: #ce2156;
   --ui-tint: #fdeef2;
   --ui-tint-fg: #a3123f;
-  --ui-wordmark: #5a0f23;
+  --ui-ink: #5a0f23;
   --ui-tier-selected: #fffbfc;
   --ui-danger: #c62828;
   --ui-wait: #fff4de;
@@ -52,7 +52,7 @@
   --ui-link: #e0527d;
   --ui-tint: #2a1218;
   --ui-tint-fg: #f1a6bd;
-  --ui-wordmark: #f1d9df;
+  --ui-ink: #f1d9df;
   --ui-tier-selected: #1a1416;
   --ui-danger: #f87171;
   --ui-wait: #2b2210;
@@ -91,7 +91,7 @@
   --color-link: var(--ui-link);
   --color-tint: var(--ui-tint);
   --color-tint-fg: var(--ui-tint-fg);
-  --color-wordmark: var(--ui-wordmark);
+  --color-ink: var(--ui-ink);
   --color-oxblood: #5a0f23;
   --color-on-oxblood: #f1d9df;
   --color-tier-selected: var(--ui-tier-selected);
@@ -114,7 +114,7 @@
   --font-display: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
   --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
   --font-app: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  /* Fraunces even inside the app, where font-display is the system face: the wordmark, the club's name. */
+  /* Fraunces even inside the app, where font-display is the system face: the club's handle and story titles. */
   --font-serif: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
 
   --text-display: 4rem;
@@ -280,7 +280,7 @@
 
 /*
  * The member app (everything under /members): the system face at 14/18, weights 400 and
- * 600. Fraunces stays for the "Rose" wordmark alone.
+ * 600. Fraunces stays for the club's own voice: its handle and story titles.
  */
 @layer base {
   .member-app {

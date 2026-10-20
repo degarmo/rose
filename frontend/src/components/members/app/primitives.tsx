@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react'
 import type { ButtonHTMLAttributes } from 'react'
+import { Logo } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
-import { config } from '@/lib/config'
 import { leaveNow, quickExitUrl } from '@/lib/quickExit'
 import { appButtonClasses, type Variant } from './ui'
 
@@ -16,28 +16,13 @@ export function AppButton({
 }
 
 /**
- * The club's short name in Fraunces, oxblood (lighter in dark appearance), for the
- * sidebar and the phone bar. The only Fraunces in the app.
+ * The club's avatar (its story and club posts): the rose on a soft blush circle. The club's
+ * name is beside it, so it carries no alt text of its own.
  */
-export function Wordmark({ className }: { className?: string }) {
-  return (
-    <span aria-hidden="true" className={cn('whitespace-nowrap font-serif text-[1.75rem] leading-none text-wordmark', className)}>
-      {config.shortName}
-    </span>
-  )
-}
-
-/** The club's avatar: "R" on oxblood (design: the "Rose" story and club posts). */
 export function RoseMark({ className }: { className?: string }) {
   return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-oxblood font-serif leading-none text-on-oxblood',
-        className,
-      )}
-    >
-      R
+    <span aria-hidden="true" className={cn('inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-blush p-[3px]', className)}>
+      <Logo variant="mark" height={32} decorative className="size-full" />
     </span>
   )
 }

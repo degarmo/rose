@@ -18,13 +18,13 @@ function writeNames() {
 /** The modules read the page once, when first imported. */
 async function load() {
   vi.resetModules()
-  const [{ config }, meta, { Wordmark }, primitives] = await Promise.all([
+  const [{ config }, meta, { Logo }, primitives] = await Promise.all([
     import('./config'),
     import('./useDocumentMeta'),
-    import('@/components/layout/Wordmark'),
+    import('@/components/brand/Logo'),
     import('@/components/members/app/primitives'),
   ])
-  return { config, ...meta, Wordmark, MemberWordmark: primitives.Wordmark }
+  return { config, ...meta, Logo, RoseMark: primitives.RoseMark }
 }
 
 beforeEach(writeNames)
@@ -70,21 +70,20 @@ describe('the club name', () => {
     expect(tabName('/membership')).toBe('The Chicago Example')
   })
 
-  it('shows the short form on phones and the full name from the small breakpoint up', async () => {
-    const { Wordmark } = await load()
+  it('names the logo with the display name, linking Home in the header', async () => {
+    const { Logo } = await load()
     render(
       <MemoryRouter>
-        <Wordmark />
+        <Logo to="/" height={44} />
       </MemoryRouter>,
     )
-    expect(screen.getByText('Chicago Example')).toHaveClass('sm:hidden')
-    expect(screen.getByText('The Chicago Example')).toHaveClass('hidden', 'sm:inline')
-    expect(screen.getByRole('link')).toHaveClass('whitespace-nowrap')
+    expect(screen.getByRole('link', { name: 'The Chicago Example' })).toHaveAttribute('href', '/')
   })
 
-  it('uses the short form in the member sidebar', async () => {
-    const { MemberWordmark } = await load()
-    const { container } = render(<MemberWordmark />)
-    expect(container).toHaveTextContent(/^Chicago Example$/)
+  it('gives the club avatar no alt text of its own: the name is beside it', async () => {
+    const { RoseMark } = await load()
+    const { container } = render(<RoseMark />)
+    expect(container.querySelector('img')).toHaveAttribute('alt', '')
+    expect(container).not.toHaveTextContent('Chicago')
   })
 })

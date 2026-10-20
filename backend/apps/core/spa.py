@@ -22,6 +22,8 @@ SITE_IMAGES_META = '<meta name="rose-site-images" content="{}" />'
 # (the age gate shows the name; member-app tabs and calendar notes use the neutral one).
 NAME_META = '<meta name="rose-site-{}" content="{}" />'
 OPEN_GRAPH = '<meta property="og:{}" content="{}" />'
+# The preview picture for a shared link: the emblem on blush (scripts/build_brand_assets.py).
+OPEN_GRAPH_IMAGE = ("/brand/og-image.jpg", 1200, 630)
 # The name under a home-screen icon is always the neutral one.
 HOME_SCREEN_META = '<meta name="{}" content="{}" />'
 HOME_SCREEN_NAMES = ("apple-mobile-web-app-title", "application-name")
@@ -30,6 +32,15 @@ TITLE = re.compile(r"<title>[^<]*</title>")
 MEMBER_APP = "/members"
 # The storage buckets serve every image, so their connections start with the page.
 PRECONNECT = '<link rel="preconnect" href="{}" />'
+# A first visit opens on the age gate, where the emblem is the largest thing: it is fetched
+# with the page rather than once the app has drawn the gate. The candidates and size match
+# the gate's <Logo height={120}> exactly, so the browser uses this download for it.
+AGE_COOKIE = "age_ok"
+GATE_EMBLEM = (
+    '<link rel="preload" as="image" type="image/webp" fetchpriority="high" imagesrcset="'
+    + ", ".join(f"/brand/emblem-{width}.webp {width}w" for width in (120, 240, 480, 960))
+    + '" imagesizes="247px" />'
+)
 
 
 def _excluded_prefixes():
@@ -41,7 +52,7 @@ def _index_template(path, modified):
     return path.read_text(encoding="utf-8")
 
 
-def index_html(path_requested="/"):
+def index_html(path_requested="/", age_confirmed=True):
     path = settings.FRONTEND_DIST / "index.html"
     if not path.is_file():
         raise Http404("The site has not been built. Run `npm run build` in frontend/.")
@@ -58,8 +69,18 @@ def index_html(path_requested="/"):
         *(HOME_SCREEN_META.format(name, neutral) for name in HOME_SCREEN_NAMES),
     ]
     if not member_app:
-        tags += [OPEN_GRAPH.format("site_name", display), OPEN_GRAPH.format("title", display)]
+        image, width, height = OPEN_GRAPH_IMAGE
+        tags += [
+            OPEN_GRAPH.format("site_name", display),
+            OPEN_GRAPH.format("title", display),
+            OPEN_GRAPH.format("image", escape(f"{settings.SITE_URL}{image}")),
+            OPEN_GRAPH.format("image:width", width),
+            OPEN_GRAPH.format("image:height", height),
+            OPEN_GRAPH.format("image:alt", display),
+        ]
     tags += [PRECONNECT.format(escape(origin)) for origin in settings.MEDIA_ORIGINS]
+    if not age_confirmed:
+        tags.append(GATE_EMBLEM)
     head = "".join(f"    {tag}\n" for tag in tags)
     return html.replace("</head>", f"{head}  </head>", 1)
 
@@ -70,7 +91,10 @@ def spa(request, path=""):
     last_segment = full.rstrip("/").rsplit("/", 1)[-1]
     if full.startswith(_excluded_prefixes()) or "." in last_segment:
         raise Http404
-    response = HttpResponse(index_html(full), content_type="text/html; charset=utf-8")
+    age_confirmed = request.COOKIES.get(AGE_COOKIE) == "1"
+    response = HttpResponse(
+        index_html(full, age_confirmed), content_type="text/html; charset=utf-8"
+    )
     response["Cache-Control"] = "no-cache"
     if _is_past_event_page(full):
         # Old links still work, but search engines should not list an evening that is over.

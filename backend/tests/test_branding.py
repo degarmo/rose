@@ -135,25 +135,39 @@ def test_member_app_tabs_and_home_screen_names_stay_neutral(named, client, built
     assert "<title>Rose</title>" in html
     assert '<meta name="apple-mobile-web-app-title" content="Rose" />' in html
     assert '<meta name="application-name" content="Rose" />' in html
-    assert "og:title" not in html and "og:site_name" not in html
-    # The app still knows the short name for its sidebar.
+    assert "og:title" not in html and "og:site_name" not in html and "og:image" not in html
+    # The app still knows the short name for its story viewer.
     assert f'<meta name="rose-site-short-name" content="{SHORT}" />' in html
 
 
 # Headings and titles use the setting
 
 
-def test_public_pages_carry_the_name(named, client, built_page):
+def test_public_pages_carry_the_name(named, settings, client, built_page):
     html = client.get("/visit").content.decode()
     assert f"<title>{NAME}</title>" in html
     assert f'<meta property="og:title" content="{NAME}" />' in html
     assert f'<meta property="og:site_name" content="{NAME}" />' in html
+    # Shared links preview the emblem, from this site.
+    image = f'<meta property="og:image" content="{settings.SITE_URL}/brand/og-image.jpg" />'
+    assert image in html
+    assert '<meta property="og:image:width" content="1200" />' in html
     assert f'<meta name="rose-site-display-name" content="{NAME}" />' in html
     assert f'<meta name="rose-site-short-name" content="{SHORT}" />' in html
     assert '<meta name="rose-site-neutral-name" content="Rose" />' in html
     assert '<meta name="apple-mobile-web-app-title" content="Rose" />' in html
     # Only the member app is neutral, not a page whose path starts the same way.
     assert f"<title>{NAME}</title>" in client.get("/membership").content.decode()
+
+
+def test_a_first_visit_fetches_the_gate_emblem_with_the_page(client, built_page):
+    preload = '<link rel="preload" as="image" type="image/webp"'
+    first = client.get("/events").content.decode()
+    assert preload in first and 'imagesizes="247px"' in first
+    assert "/brand/emblem-480.webp 480w" in first
+    # Past the gate there is no gate emblem to fetch.
+    client.cookies["age_ok"] = "1"
+    assert preload not in client.get("/events").content.decode()
 
 
 def test_the_name_is_escaped_in_the_page(settings, client, built_page):
@@ -165,12 +179,14 @@ def test_the_name_is_escaped_in_the_page(settings, client, built_page):
 def test_the_admin_shows_the_name(named, admin_client):
     page = admin_client.get(reverse("admin:index")).content.decode()
     assert f"Dashboard | {NAME}" in page
-    assert f'<span class="rose-wordmark">{NAME}</span>' in page
+    assert "core/brand/emblem-240.png" in page and f'alt="{NAME}"' in page
+    # The admin's tab icon is the rose, self-hosted.
+    assert "core/brand/favicon-32.png" in page and "favicon.svg" not in page
 
 
 def test_the_sign_in_page_shows_the_name(named, client):
     page = client.get(reverse("admin:login")).content.decode()
-    assert NAME in page
+    assert "core/brand/emblem-480.webp" in page and f'alt="{NAME}"' in page
 
 
 def test_page_copy_and_faqs_fill_in_the_name(named, api_client):

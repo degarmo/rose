@@ -1,8 +1,8 @@
 /*
  * Rose's look for the admin (django-unfold), from docs/design/tokens.md: the rose accent,
- * soft neutrals, 8px corners, Manrope for the interface and Fraunces for titles and the
- * wordmark. Fonts are served from this site (no Google Fonts). Light is the default; the
- * dark appearance uses the member app's dark tokens.
+ * soft neutrals, 8px corners, Manrope for the interface and Fraunces for titles; the emblem
+ * heads the sidebar and the sign-in pages. Fonts are served from this site (no Google
+ * Fonts). Light is the default; the dark appearance uses the member app's dark tokens.
  */
 
 @font-face {
@@ -118,15 +118,12 @@
   letter-spacing: -0.01em;
 }
 
-/* The wordmark: the club's name in Fraunces, oxblood (blush in the dark). */
-.rose-wordmark {
-  font-family: var(--font-display);
-  font-size: 28px;
-  line-height: 1;
-  color: #5a0f23;
-}
-.dark .rose-wordmark {
-  color: #f1d9df;
+/* The emblem: the sidebar header and the sign-in pages. */
+.rose-emblem {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: 40px;
 }
 
 /* Lucide icons in the sidebar, sized as Unfold's own (18px). */
@@ -384,7 +381,8 @@
   color: var(--color-font-default-dark);
 }
 .rose-sign-in-mark {
-  font-size: 36px;
+  height: 72px;
+  align-self: flex-start;
 }
 .rose-sign-in h1 {
   font-size: 26px;

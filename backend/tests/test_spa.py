@@ -55,7 +55,7 @@ def test_index_has_no_preconnect_without_object_storage(client, dist, settings):
         "/media/feed/x.webp",
         "/static/missing.css",
         "/assets/missing.js",
-        "/favicon.ico",
+        "/apple-touch-icon-precomposed.png",
         "/something.php",
     ],
 )

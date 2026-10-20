@@ -1,6 +1,7 @@
 import { ArrowLeft, Bell, Compass, Globe, House, LogOut, Menu, Moon, ScanLine, Search, Settings, ShieldCheck, SquarePlus, User, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router'
+import { Logo } from '@/components/brand/Logo'
 import { useAuth } from '@/components/layout/authContext'
 import { Switch } from '@/components/ui'
 import { chooseAppearance } from '@/lib/appearance'
@@ -8,7 +9,6 @@ import { cn } from '@/lib/cn'
 import type { Me } from '@/lib/membersApi'
 import { leaveNow, quickExitUrl } from '@/lib/quickExit'
 import { profilePath } from './postUtils'
-import { Wordmark } from './primitives'
 import { ICON } from './ui'
 
 export type Panel = 'search' | 'notifications' | null
@@ -170,8 +170,8 @@ interface SidebarProps {
 
 /**
  * Tablets and up (design: "Sidebar 245px, 1px right border"): fixed on the left. Labels
- * and the wordmark from 1264px; below that, and whenever the Search or Notifications panel
- * is open, a 72px icon rail with "R" and the active item outlined.
+ * and the emblem from 1264px; below that, and whenever the Search or Notifications panel
+ * is open, a 72px icon rail with the rose and the active item outlined.
  */
 export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
   const auth = useAuth()
@@ -231,10 +231,9 @@ export function Sidebar({ me, panel, onPanel, onCreate }: SidebarProps) {
       )}
     >
       <Link to={home} onClick={() => onPanel(null)} className={cn('flex shrink-0 items-center pb-5 pt-6', collapsed ? 'justify-center' : 'justify-center wide:justify-start wide:px-3')}>
-        <Wordmark className={cn('hidden text-[1.375rem]', !collapsed && 'wide:inline')} />
-        <span aria-hidden="true" className={cn('font-serif text-2xl leading-none text-wordmark', !collapsed && 'wide:hidden')}>
-          R
-        </span>
+        {/* The emblem in the wide sidebar; the rose alone when it is a rail. */}
+        <Logo height={40} decorative priority className={cn('hidden', !collapsed && 'wide:block')} />
+        <Logo variant="mark" height={36} decorative priority className={cn(!collapsed && 'wide:hidden')} />
         <span className="sr-only">Home</span>
       </Link>
       <ul className="flex flex-1 flex-col">
@@ -305,7 +304,7 @@ export function BackButton({ to }: { to?: string }) {
 }
 
 interface PhoneBarProps {
-  /** The bar's title (16/600), or the wordmark when absent. */
+  /** The bar's title (16/600), or the rose (HomeBar). */
   title?: ReactNode
   /** A back arrow: one step back, or to the path given. */
   back?: boolean | string
@@ -333,13 +332,13 @@ export function PhoneBar({ title, back = false, actions, rule = false, className
   )
 }
 
-/** The feed's phone bar: the wordmark, Notifications and the quick exit. */
+/** The feed's phone bar: the rose, Notifications and the quick exit. */
 export function HomeBar({ me }: { me: Me }) {
   return (
     <PhoneBar
       title={
         <Link to="/members/feed" className="flex items-center">
-          <Wordmark className="text-2xl" />
+          <Logo variant="mark" height={28} decorative priority />
           <span className="sr-only">Home</span>
         </Link>
       }

@@ -291,7 +291,7 @@ def test_csp_has_no_unsafe_inline(admin_client):
 def test_login_pages_are_plain_and_discreet(client):
     html = client.get(reverse("admin:login")).content.decode()
     assert 'id="nav-sidebar"' not in html
-    assert "rose-wordmark" in html and "core/rose-admin.css" in html
+    assert "core/brand/emblem-240.webp" in html and "core/rose-admin.css" in html
     assert "Email" in html and "Password" in html
 
 

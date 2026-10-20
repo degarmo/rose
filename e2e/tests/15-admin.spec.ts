@@ -51,9 +51,9 @@ test.describe('The admin in Rose’s look', () => {
     const page = await personPage(browser, baseURL!)
     const seen = watch(page, baseURL!)
 
-    // The sign-in screens: the wordmark and nothing about the club.
+    // The sign-in screens: the emblem and nothing else about the club.
     await page.goto(`${data.admin_path}login/`)
-    await expect(page.locator('.rose-wordmark').first()).toBeVisible()
+    await expect(page.locator('.rose-emblem').first()).toBeVisible()
     await expect(page.locator('#nav-sidebar')).toHaveCount(0)
     await twoStepLogin(page, data.owner)
     await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()

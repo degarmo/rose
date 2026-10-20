@@ -73,7 +73,7 @@ export function GuestsPage() {
 
       <section aria-labelledby="guest-id" className={BAND}>
         <div className="flex flex-col gap-2 rounded-card bg-blush p-5 lg:flex-row lg:gap-6 lg:p-8">
-          <IdCard aria-hidden="true" strokeWidth={1.5} className="size-8 shrink-0 text-wordmark" />
+          <IdCard aria-hidden="true" strokeWidth={1.5} className="size-8 shrink-0 text-ink" />
           <div className="flex flex-col gap-2 lg:gap-1.5">
             <Copy copy={copy} k="id.title" as="h2" id="guest-id" className="text-xl leading-[1.3] text-fg lg:text-2xl" />
             <Copy copy={copy} k="id.body" lines={2} className="max-w-[720px] text-sm leading-[1.6] text-fg-muted-tint lg:text-[0.9375rem]" />

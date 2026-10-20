@@ -35,8 +35,8 @@ Contrast ratios are WCAG 2.1 ratios, measured on the background named.
 | `link` | `#CE2156` | `#E0527D` | Text links ("All events", "See roles →", "Edit", "Clear all", "Post", "Next", "Done", "Required"), the date name over event cards, the step number "01" on Visit. Dark `#E0527D` is DS "Rose (dark), links on dark", 5.4:1 on `#0A0A0A`. |
 | `tint` | `#FDEEF2` | `#2A1218` | "Open" badge, App right-rail date tiles, today in the month calendar. |
 | `tint-fg` | `#A3123F` | `#F1A6BD` | Text on `tint`: 6.9:1 (light), 9.1:1 (dark). |
-| `wordmark` | `#5A0F23` | `#F1D9DF` | The "Rose" wordmark only (Site header and footer, App sidebar and top bar, age gate), and the paywall and photo-ID icons. |
-| `oxblood` | `#5A0F23` | `#5A0F23` | Fixed oxblood: the values band (Site home) and the club's "R" avatar in the app. |
+| `ink` | `#5A0F23` | `#F1D9DF` | The paywall lock and the photo-ID icons. |
+| `oxblood` | `#5A0F23` | `#5A0F23` | Fixed oxblood: the values band (Site home), the "Tonight" story circle and the community teaser tile. |
 | `on-oxblood` | `#F1D9DF` | `#F1D9DF` | Text on `oxblood` (10.3:1). |
 | `tier-selected` | `#FFFBFC` | `#1A1416` | Site Join step 1: the highlighted tier card. |
 
@@ -65,12 +65,13 @@ Contrast ratios are WCAG 2.1 ratios, measured on the background named.
 
 Tokens: `font-display` (Fraunces on the site; the system face inside the app),
 `font-sans` (Manrope), `font-app` (system UI) and `font-serif` (Fraunces everywhere, for the
-wordmark and the club's name in the app). Two families, both self-hosted from
+club's name and story titles in the app). Two families, both self-hosted from
 `@fontsource-variable` (no Google Fonts request):
 **Fraunces** (variable, `opsz` 9–144, weights 300–500 used, italic for the signature field)
 and **Manrope** (variable, weights 400–700 used). The member app uses the system UI stack
 (`system-ui, -apple-system, 'Segoe UI', sans-serif`) at weights 400 and 600, with Fraunces for
-the wordmark alone.
+the club's name and story titles alone. The logo is the club's emblem, an image (see
+docs/design-system.md, Logo), not type.
 
 ### Public site (`font-sans` = Manrope, `font-display` = Fraunces)
 
@@ -87,13 +88,11 @@ the wordmark alone.
 | `text-small` | 14 | Manrope 400–600 | Card meta, nav links (500), footer, buttons (compact). |
 | `text-caption` | 13 | Manrope 400–600 | Field errors, notes in panels, card dates, filter chip text. |
 | `text-label` | 11, caps, .06em | Manrope 600 | Category and level chips, "Most members" tag. 12 caps .06em for the date name and "You're in". 13 caps .08em for section labels in the designs. |
-| `text-wordmark` | 28 (header), 22 (footer), 36 / 32 (age gate), 26 (phone header) | Fraunces 400, `wordmark` | "Rose". |
 
 ### Member app (`.member-app`)
 
 | Token | Size / line | Weight | Used in |
 | --- | --- | --- | --- |
-| `app-wordmark` | 28 (sidebar), 24 (phone top bar, collapsed rail "R") | Fraunces 400, `wordmark` | "Rose". |
 | `app-title` | 16 | 600 | Phone top-bar titles (handle, "Post", "Notifications", "Settings", "New post"), modal headers. 20 (400) for the profile handle on desktop; 24/600 for panel titles (Search, Notifications); 20/600 for the Settings page title. |
 | `app-base` | 14 / 18 | 400 and 600 | Everything else: handles (600), captions, comments, nav labels, buttons. |
 | `app-meta` | 12 / 18 | 400, `fg-muted` | Story labels, comment times, rail event times, toggle sub-labels. |

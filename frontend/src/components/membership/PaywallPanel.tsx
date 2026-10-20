@@ -64,7 +64,7 @@ export function PaywallPanel({ title, benefit, tiers = [], size = 'sm', headingL
       data-testid="paywall"
       className={cn('flex flex-col items-start rounded-field bg-blush', size === 'lg' ? 'gap-2 p-6 sm:p-8' : 'gap-1.5 p-4 sm:gap-2 sm:p-5', className)}
     >
-      <Lock aria-hidden="true" strokeWidth={1.6} className="size-[22px] text-wordmark" />
+      <Lock aria-hidden="true" strokeWidth={1.6} className="size-[22px] text-ink" />
       <Heading className={cn('text-fg', size === 'lg' ? 'text-2xl' : 'font-sans text-sm font-semibold')}>{title}</Heading>
       <p className={cn('text-fg-muted-tint', size === 'sm' && 'text-[0.8125rem]')}>{benefit}</p>
       {includes && <p className="text-[0.8125rem] text-fg-muted-tint">{includes}</p>}

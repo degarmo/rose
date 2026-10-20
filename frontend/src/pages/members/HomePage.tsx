@@ -1,8 +1,8 @@
 import { ArrowRight, CalendarDays, Check } from 'lucide-react'
 import { Link } from 'react-router'
+import { Logo } from '@/components/brand/Logo'
 import { useAuth } from '@/components/layout/authContext'
 import { PhoneBar } from '@/components/members/app/Nav'
-import { Wordmark } from '@/components/members/app/primitives'
 import { eventAction, timeOnly } from '@/components/members/app/events'
 import { DateTile } from '@/components/members/app/RightRail'
 import { appButtonClasses, ICON } from '@/components/members/app/ui'
@@ -134,7 +134,7 @@ export function HomePage() {
       <PhoneBar
         title={
           <Link to="/members/home" className="flex items-center">
-            <Wordmark className="text-2xl" />
+            <Logo variant="mark" height={28} decorative priority />
             <span className="sr-only">Home</span>
           </Link>
         }

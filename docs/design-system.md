@@ -28,14 +28,14 @@ only the design's colours exist (plus `white`, `black`, `transparent`). The name
 - Neutrals: `canvas`, `surface`, `blush`, `fg`, `fg-muted`, `fg-muted-tint` (muted text on
   `blush` or `tint`), `fg-faint` (disabled text only), `border`, `control`, `field`, `dot`.
 - Rose: `primary` and `primary-hover` (fills), `link` (rose text, lighter in dark), `tint`
-  and `tint-fg`, `wordmark` (the "Rose" wordmark only), `oxblood` and `on-oxblood` (the home
-  values band), `tier-selected`.
+  and `tint-fg`, `ink` (oxblood, blush in dark: the paywall lock and photo-ID icons), `oxblood`
+  and `on-oxblood` (the home values band), `tier-selected`.
 - Status: `danger`, `wait`/`wait-fg`, `full-fg`; badges combine them (`Badge`).
 - Pictures: `wash-rose` and `wash-warm` (the striped placeholder under every picture),
   `story`, `scrim`.
 - Type: `font-display` (Fraunces; the system face inside the app), `font-sans` (Manrope),
-  `font-app` (system UI), `font-serif` (Fraunces everywhere, for the wordmark and the
-  club's name in the app). Sizes `text-display`, `text-h1`, `text-h2-lg`, `text-h2`,
+  `font-app` (system UI), `font-serif` (Fraunces everywhere, for the club's name and story
+  titles in the app). Sizes `text-display`, `text-h1`, `text-h2-lg`, `text-h2`,
   `text-card-title`, `text-lead`, `text-body`, `text-label`, `text-meta`, `text-app`.
 - Shape: `rounded-app` (8), `rounded-field` (12), `rounded-sheet` (12), `rounded-card` (16),
   `rounded-panel` (20); `shadow-modal`, `shadow-sheet`, `shadow-panel`.
@@ -64,6 +64,50 @@ Every text colour passes WCAG AA (4.5:1) on the background it is used on; the ra
 `blush` and `tint` uses `fg-muted-tint` (`#6B6B6B`), and the member app's 11px footer links
 use `fg-muted` rather than `#A3A3A3` (2.5:1).
 
+## Logo
+
+The logo is the club's neon emblem (decision 503). `scripts/build_brand_assets.py` makes every
+file from the owner's PNG, which stays out of the repository (see the README, Brand assets);
+nothing loads the source.
+
+- **`full`**: the whole emblem, about 2.06 : 1, glow included. `frontend/public/brand/emblem-{120,240,480,960}`.
+- **`mark`**: the rose head alone on a transparent square, for small or tight places. The
+  leaves cross the neon line and the letters, so they are left out.
+  `frontend/public/brand/rose-{64,128,256,512}`.
+
+Both come as WebP with a 256-colour PNG fallback. In the React app one component draws them:
+`Logo` (`components/brand/Logo.tsx`), a `<picture>` with `srcset` and `sizes`, a fixed width
+and height (no shift while it loads), and `to` to make it a link. Its alt text is the
+site's display name (`config.displayName`, from the setting); `decorative` drops the alt
+when a name or label is already beside it. Nothing else loads a logo file.
+
+The age gate's emblem is the largest thing on a first visit, so the server preloads it
+(`apps/core/spa.py`, `GATE_EMBLEM`) when the visitor has no `age_ok` cookie; its candidates and
+`imagesizes` match `<Logo height={120}>`, and change with it.
+
+**Minimum size.** The full emblem no smaller than 36px tall (below that the lettering
+blurs); use the mark instead. The mark down to 16px (the favicon).
+
+| Place | Variant | Height |
+| --- | --- | --- |
+| Website header (`Header`) | full, link Home, fetched first | 44 from 1024px, 36 below |
+| Website footer (`Footer`) | full, link Home | 56 |
+| Age gate (`AgeGate`) | full | 120 |
+| Member app and staff section sidebar from 1264px (`Sidebar`) | full, link Home | 40 |
+| Collapsed rail, below 1264px (`Sidebar`) | mark, link Home | 36 |
+| Phone top bar on Home (`HomeBar`, the Home page's `PhoneBar`) | mark | 28 |
+| Export download page | full | 40 |
+| Club posts and stories avatar (`RoseMark`) | mark on a `blush` circle, no alt (the name is beside it) | 32 |
+| Admin sidebar header and sign-in pages (`templates/unfold/helpers/site_icon.html`, `templates/admin/rose/sign_in.html`) | full, `backend/apps/core/static/core/brand/` | 40, 72 |
+| Tab icon, site and admin (`favicon.ico` 16/32/48, at the site's root; `favicon-32.png`) | mark | |
+| Home-screen icons (`apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, `manifest.webmanifest`) | mark on a white tile | |
+| Link previews on public pages (`og-image.jpg`, 1200 × 630, on blush) | full | |
+
+Not branded: `/exit` (an unbranded white page, decision 15), emails, receipts, calendar
+files, notifications and member-app tab titles (the neutral "Rose").
+
+The glow reads on white, `#FAFAFA`, blush and the dark canvas without a box behind it.
+
 ## Website components
 
 `frontend/src/components/ui` (exported from `ui/index.ts`):
@@ -84,8 +128,8 @@ use `fg-muted` rather than `#A3A3A3` (2.5:1).
 
 `frontend/src/components/layout`: `Header` (72px; a quiet version with the step indicator
 on `/join`), `Footer` (the full footer on the home page, the one-row footer elsewhere),
-`QuickExit` (the Leave pill), `AgeGate`, `NavDropdown`, `AccountMenu`, `SubscribeForm`,
-`Wordmark`, and `SiteFrame` (header, main and footer around any content, also used for the
+`QuickExit` (the Leave pill), `AgeGate`, `NavDropdown`, `AccountMenu`, `SubscribeForm`
+and `SiteFrame` (header, main and footer around any content, also used for the
 member app's 404).
 
 `frontend/src/components/content`: `PageHero` (title block, optional picture column and

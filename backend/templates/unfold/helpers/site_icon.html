@@ -1,5 +1,9 @@
-{# The sidebar header: the site's name as the wordmark, in place of Unfold's icon. #}
+{% load static %}
+{# The sidebar header: the club's emblem (self-hosted), in place of Unfold's icon. Its alt text is the site's name from settings. #}
 <a href="{% url 'admin:index' %}" class="rose-brand">
-    <span class="rose-wordmark">{{ site_header }}</span>
+    <picture>
+        <source type="image/webp" srcset="{% static 'core/brand/emblem-240.webp' %} 240w, {% static 'core/brand/emblem-480.webp' %} 480w" sizes="82px">
+        <img class="rose-emblem" src="{% static 'core/brand/emblem-240.png' %}" srcset="{% static 'core/brand/emblem-240.png' %} 240w, {% static 'core/brand/emblem-480.png' %} 480w" sizes="82px" width="82" height="40" alt="{{ site_header }}">
+    </picture>
     <span class="sr-only">Dashboard</span>
 </a>

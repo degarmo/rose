@@ -278,6 +278,21 @@ Images are never hotlinked. To add one:
 New images are recorded as `faces_visible: true, consent_confirmed: false` unless you say
 otherwise, and images in that state are never shown on the site.
 
+## Brand assets
+
+The logo, tab icons, home-screen icons and link-preview image are all made from the owner's
+emblem, a transparent PNG kept in `photos/` (ignored by git). To replace them, put the new
+PNG there and run, from the repository root:
+
+```
+backend/.venv/bin/python scripts/build_brand_assets.py photos/<emblem>.png
+```
+
+It rewrites `frontend/public/brand/` (the site) and `backend/apps/core/static/core/brand/`
+(the admin) and prints each file with its size; commit those, not the source. If the new
+emblem's rose sits elsewhere, adjust `ROSE_CENTRE` and `ROSE_RADII` at the top of the script.
+Where each file is used: [docs/design-system.md](docs/design-system.md), Logo.
+
 ## Layout
 
 ```

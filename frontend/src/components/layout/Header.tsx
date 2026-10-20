@@ -1,6 +1,7 @@
 import { Menu } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
+import { Logo } from '@/components/brand/Logo'
 import { cn } from '@/lib/cn'
 import { ButtonLink, GUTTER, Modal } from '../ui'
 import { AccountMenu } from './AccountMenu'
@@ -8,7 +9,6 @@ import { useAuth } from './authContext'
 import { NavDropdown } from './NavDropdown'
 import { isGroup, JOIN_LINK, NAV, type NavLinkItem } from './navigation'
 import { QuickExit } from './QuickExit'
-import { Wordmark } from './Wordmark'
 
 /** "My feed": shown only to people the member app opens for. */
 function MyFeedLink({ onNavigate, className }: { onNavigate?: () => void; className: string }) {
@@ -94,8 +94,9 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 /**
  * The website header (design: 72px on desktop, 56px on phones, 1px rule below): the
- * wordmark, the navigation, then Log in, Join and the Leave control. Below 1280px the
- * navigation moves into a menu and Leave stays beside the menu button.
+ * emblem (36px tall on phones, 44px from 1024px), the navigation, then Log in, Join and the
+ * Leave control. Below 1280px the navigation moves into a menu and Leave stays beside the
+ * menu button.
  */
 /** Where the join flow shows its steps (design: the Join header). Filled by `JoinSteps`. */
 export const JOIN_STEPS_SLOT = 'join-steps'
@@ -106,7 +107,7 @@ export function Header() {
   const [menuPath, setMenuPath] = useState<string | null>(null)
 
   if (pathname === '/join' || pathname.startsWith('/join/')) {
-    // Joining has its own quiet header: the wordmark, the steps and Leave, nothing to wander off to.
+    // Joining has its own quiet header: the emblem, the steps and Leave, nothing to wander off to.
     return (
       <header className="sticky top-0 z-30 border-b border-border bg-canvas print:hidden">
         <a
@@ -116,7 +117,7 @@ export function Header() {
           Skip to content
         </a>
         <div className={cn('mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-7 xl:h-18', GUTTER)}>
-          <Wordmark />
+          <Logo to="/" height={44} sizes="(min-width: 1024px) 91px, 74px" priority className="h-9 lg:h-11" />
           <div id={JOIN_STEPS_SLOT} className="hidden lg:block" />
           <QuickExit />
         </div>
@@ -133,7 +134,7 @@ export function Header() {
         Skip to content
       </a>
       <div className={cn('mx-auto flex h-14 max-w-[1440px] items-center gap-7 xl:h-18', GUTTER)}>
-        <Wordmark />
+        <Logo to="/" height={44} sizes="(min-width: 1024px) 91px, 74px" priority className="h-9 lg:h-11" />
         <nav aria-label="Main" className="hidden flex-1 items-center gap-6 xl:flex">
           {NAV.map((entry) => {
             if (isGroup(entry)) return <NavDropdown key={entry.label} group={entry} />

@@ -2,7 +2,8 @@ import { Download, PackageCheck } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { QuickExit } from '@/components/layout/QuickExit'
-import { AppButton, Wordmark } from '@/components/members/app/primitives'
+import { Logo } from '@/components/brand/Logo'
+import { AppButton } from '@/components/members/app/primitives'
 import { api } from '@/lib/api'
 import { fragmentParams } from '@/lib/format'
 import { useDocumentMeta } from '@/lib/useDocumentMeta'
@@ -37,7 +38,7 @@ export function ExportDownloadPage() {
 
   return (
     <div className="member-app flex min-h-dvh flex-col items-center px-4 py-16">
-      <Wordmark />
+      <Logo height={40} />
       <main className="mt-8 flex w-full max-w-[400px] flex-col gap-4 rounded-app border border-border bg-canvas p-6">
         <PackageCheck aria-hidden="true" className="size-8 text-fg" strokeWidth={1.5} />
         <h1 className="text-xl font-semibold text-fg">Your data</h1>

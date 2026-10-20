@@ -23,8 +23,14 @@ UNFOLD = {
     "SITE_FAVICONS": [
         {
             "rel": "icon",
-            "type": "image/svg+xml",
-            "href": lambda request: static("core/favicon.svg"),
+            "sizes": "48x48",
+            "href": lambda request: static("core/brand/favicon.ico"),
+        },
+        {
+            "rel": "icon",
+            "type": "image/png",
+            "sizes": "32x32",
+            "href": lambda request: static("core/brand/favicon-32.png"),
         },
     ],
     "SIDEBAR": {

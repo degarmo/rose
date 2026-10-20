@@ -217,6 +217,8 @@ FRONTEND_DIST = Path(env.str("FRONTEND_DIST", default=str(REPO_DIR / "frontend" 
 WHITENOISE_ROOT = FRONTEND_DIST if FRONTEND_DIST.is_dir() else None
 WHITENOISE_INDEX_FILE = False
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+# The web app manifest (home-screen icons), served with its own type under nosniff.
+WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
 
 
 def whitenoise_immutable(path, url):
