@@ -33,7 +33,7 @@ copy:
       body:
         rich: >-
           <p>Nobody but our hosts. Other guests, members and visitors never see who is coming, not even people going to the same evening. Some events show a total number of people attending, never names.</p>
-          <p>We delete RSVPs 30 days after each event, keeping only how many people came. Calendar files you download just say “Rose - Evening” with no address unless you choose to include the details.</p>
+          <p>We delete RSVPs 30 days after each event, keeping only how many people came. Calendar files you download just say “{site_name} - Evening” with no address unless you choose to include the details.</p>
     4:
       title: Gifts and the email list
       body:

@@ -102,3 +102,42 @@ def test_the_sign_in_page_shows_the_name(client, settings):
     settings.SITE_NAME = NAME
     page = client.get(reverse("admin:login")).content.decode()
     assert NAME in page
+
+
+def test_page_copy_and_faqs_fill_in_the_name(settings, api_client):
+    from apps.pages.models import FAQItem, PageContent
+
+    settings.SITE_NAME = NAME
+    PageContent.objects.create(page="home", key="intro", value="{site_name} is a club.")
+    PageContent.objects.create(
+        page="home", key="body", value="<p>Welcome to {site_name}</p>", format="rich"
+    )
+    FAQItem.objects.create(question="What is {site_name}?", answer="{site_name} is a club.")
+    entries = api_client.get("/api/content/home/").json()["entries"]
+    assert entries["intro"]["value"] == f"{NAME} is a club."
+    assert entries["body"]["value"] == f"<p>Welcome to {NAME}</p>"
+    faq = api_client.get("/api/faqs/").json()[0]
+    assert faq["question"] == f"What is {NAME}?" and faq["answer"] == f"{NAME} is a club."
+
+
+def test_the_filled_in_name_follows_a_change(settings, api_client):
+    from apps.pages.models import PageContent
+
+    PageContent.objects.create(page="home", key="intro", value="{site_name} is a club.")
+    assert api_client.get("/api/content/home/").json()["entries"]["intro"]["value"] == (
+        "Rose is a club."
+    )
+    site = SiteSettings.load()
+    site.site_name = NAME
+    site.save()
+    assert api_client.get("/api/content/home/").json()["entries"]["intro"]["value"] == (
+        f"{NAME} is a club."
+    )
+
+
+def test_demo_tiers_carry_the_name(settings):
+    from apps.memberships.demo import upsert_tiers
+
+    settings.SITE_NAME = NAME
+    tiers = upsert_tiers(placeholder=True)
+    assert tiers["rose"].name == NAME and tiers["rose-plus"].name == f"{NAME} +"

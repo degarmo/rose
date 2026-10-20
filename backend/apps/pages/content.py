@@ -4,13 +4,14 @@ Both are read on most requests and change rarely, so each is cached in full and
 the cache entry is dropped whenever a row is saved or deleted (signals below).
 """
 
+import html
 import re
 
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from apps.core.branding import forget_site_name
+from apps.core.branding import forget_site_name, site_name
 
 from .models import PageContent, Redirect, SiteSettings, normalise_path
 
@@ -25,6 +26,18 @@ BUILTIN_REDIRECTS = {
 }
 
 
+SITE_NAME_TOKEN = "{site_name}"
+
+
+def with_site_name(text, rich=False):
+    """Copy may say {site_name}; it is filled in from the setting when served, so the
+    words follow the club's name without anyone writing it into the repository."""
+    if SITE_NAME_TOKEN not in text:
+        return text
+    name = site_name()
+    return text.replace(SITE_NAME_TOKEN, html.escape(name) if rich else name)
+
+
 def page_entries(page):
     """{key: {"value": str, "format": "plain" | "rich"}} for one page."""
     cache_key = PAGE_KEY.format(page)
@@ -35,7 +48,13 @@ def page_entries(page):
             for row in PageContent.objects.filter(page=page)
         }
         cache.set(cache_key, entries, TIMEOUT)
-    return entries
+    return {
+        key: {
+            "value": with_site_name(entry["value"], rich=entry["format"] == "rich"),
+            "format": entry["format"],
+        }
+        for key, entry in entries.items()
+    }
 
 
 def redirect_map():

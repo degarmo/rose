@@ -178,7 +178,9 @@ class PageContent(models.Model):
 
     page = models.SlugField(max_length=60, db_index=True)
     key = models.CharField(max_length=120)
-    value = models.TextField(blank=True)
+    value = models.TextField(
+        blank=True, help_text="Write {site_name} for the club's name; it follows Site settings."
+    )
     format = models.CharField(max_length=5, choices=Format.choices, default=Format.PLAIN)
     updated_at = models.DateTimeField(auto_now=True)
 
