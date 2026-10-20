@@ -26,6 +26,7 @@ function makeEvent(extra: Partial<EventDetail> = {}): EventDetail {
     timing: 'upcoming',
     location_label: 'Main floor',
     hero_image: null,
+    image_fallback: 'social',
     rsvp: {
       state: 'open',
       can_rsvp: true,

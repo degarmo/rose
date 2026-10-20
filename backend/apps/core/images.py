@@ -127,6 +127,19 @@ def variant_name(name, width):
     return f"{stem}-{width}w.webp"
 
 
+def save_variants(storage, name, clean, widths, missing_only=False):
+    """Store a narrower WebP copy of an image beside it for each width below its own.
+    `missing_only` skips copies already there (for images stored before a width existed)."""
+    for width in widths:
+        if width >= clean.width:
+            continue
+        target = variant_name(name, width)
+        if missing_only and storage.exists(target):
+            continue
+        copy, _ = encode_webp(clean, max_width=width)
+        storage.save(target, ContentFile(copy))
+
+
 @deconstructible
 class RandomizedUploadTo:
     """`upload_to` callable that discards the uploaded filename entirely."""
@@ -166,8 +179,5 @@ class SanitizedImageField(models.ImageField):
             if self.variant_widths:
                 setattr(model_instance, f"{self.name}_width", width)
                 setattr(model_instance, f"{self.name}_height", height)
-                for variant in self.variant_widths:
-                    if variant < width:
-                        copy, _ = encode_webp(clean, max_width=variant)
-                        file.storage.save(variant_name(file.name, variant), ContentFile(copy))
+                save_variants(file.storage, file.name, clean, self.variant_widths)
         return super().pre_save(model_instance, add)

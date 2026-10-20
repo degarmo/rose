@@ -191,7 +191,7 @@ test.describe('Website screenshots (palette check)', () => {
     await page.goto('/')
     await snap(page, 'website-age-gate', info)
     await confirmAge(page.context(), baseURL!)
-    const events = (await (await request.get('/api/events/')).json()) as Array<{ slug: string }>
+    const { results: events } = (await (await request.get('/api/events/')).json()) as { results: Array<{ slug: string }> }
     for (const [name, path] of [
       ['website-home', '/'],
       ['website-events', '/events'],

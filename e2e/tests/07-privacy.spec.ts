@@ -112,7 +112,7 @@ test.describe('Privacy and accessibility on every page @smoke', () => {
   test('an event and a class page', async ({ page, baseURL, request }) => {
     await confirmAge(page.context(), baseURL!)
     const watch = watchRequests(page, baseURL!)
-    const events = (await (await request.get('/api/events/')).json()) as Array<{ slug: string }>
+    const { results: events } = (await (await request.get('/api/events/')).json()) as { results: Array<{ slug: string }> }
     const classes = (await (await request.get('/api/education/opportunities/')).json()) as Array<{ slug: string }>
     for (const path of [`/events/${events[0].slug}`, ...(classes[0] ? [`/education/${classes[0].slug}`] : [])]) {
       expectDocumentHeaders(await visit(page, path, watch))

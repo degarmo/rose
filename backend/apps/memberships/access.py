@@ -16,6 +16,8 @@ The tier rules for members-only events live here too: which events a tier includ
 many it allows each calendar month, and how many guests come with the member.
 """
 
+from contextlib import contextmanager
+
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -78,15 +80,47 @@ def feed_entitled_accounts():
     )
 
 
+@contextmanager
+def remembered(user):
+    """Within the block, this person's membership and monthly use are looked up once, not once
+    per event: for lists. Never around a change (an RSVP), which would make them stale."""
+    if not (user and user.is_authenticated):
+        yield
+        return
+    user._access_memo = {}
+    try:
+        yield
+    finally:
+        del user._access_memo
+
+
+def _remember(user, key, compute):
+    memo = getattr(user, "_access_memo", None)
+    if memo is None:
+        return compute()
+    if key not in memo:
+        memo[key] = compute()
+    return memo[key]
+
+
 def active_membership(user):
     """The membership currently giving access. Grace counts as entitled."""
     if not (user and user.is_authenticated and user.is_active):
         return None
-    return (
+    return _remember(user, "membership", lambda: _membership_of(user))
+
+
+def _membership_of(user):
+    membership = (
         Membership.objects.filter(user=user, status__in=Membership.ENTITLED)
         .select_related("tier")
+        .prefetch_related("tier__allowed_event_tags")
         .first()
     )
+    if membership is not None and hasattr(user, "_access_memo"):
+        # Inside remembered(): each month's use is looked up once too (events_used).
+        membership._used_by_month = {}
+    return membership
 
 
 ALL = frozenset({FEED, MEMBERS_EVENTS, MEMBERS_EDUCATION})
@@ -126,6 +160,15 @@ def party_limit(tier, event):
 
 
 def events_used(membership, month):
+    memo = getattr(membership, "_used_by_month", None)
+    if memo is None:
+        return _events_used(membership, month)
+    if month not in memo:
+        memo[month] = _events_used(membership, month)
+    return memo[month]
+
+
+def _events_used(membership, month):
     row = MembershipUsage.objects.filter(membership=membership, month=month).first()
     return row.events_used if row else 0
 

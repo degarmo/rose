@@ -11,7 +11,9 @@ pytestmark = pytest.mark.django_db
 
 
 def slugs(response):
-    return [item["slug"] for item in response.json()]
+    """The list is paginated; the calendar is not."""
+    data = response.json()
+    return [item["slug"] for item in (data["results"] if isinstance(data, dict) else data)]
 
 
 def test_list_is_upcoming_published_and_ordered(api_client, make_event):
@@ -56,7 +58,9 @@ def test_rsvp_states(api_client, signed_in, make_event, make_user):
     make_event(slug="members", audience="members")
     make_event(slug="soon", rsvp_opens_at=timezone.now() + timedelta(days=1))
     make_event(slug="open")
-    states = {item["slug"]: item["rsvp"] for item in api_client.get("/api/events/").json()}
+    states = {
+        item["slug"]: item["rsvp"] for item in api_client.get("/api/events/").json()["results"]
+    }
     assert states["full"]["state"] == "waitlist"
     assert states["no-waitlist"]["state"] == "full"
     assert states["members"]["state"] == "members_only"

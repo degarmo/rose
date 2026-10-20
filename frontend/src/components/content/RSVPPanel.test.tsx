@@ -46,6 +46,7 @@ function makeEvent(rsvp: Partial<RSVPState> = {}, extra: Partial<EventDetail> = 
     timing: 'upcoming',
     location_label: 'Main floor',
     hero_image: null,
+    image_fallback: 'social',
     rsvp: rsvpState(rsvp),
     attendee_count: null,
     body: '<p>Body</p>',

@@ -432,7 +432,10 @@ export interface EventSummary {
   /** From the event's own times on the server: the one definition of "past". */
   timing: 'upcoming' | 'happening' | 'past'
   location_label: string
+  /** Null when there is none, or it shows faces without confirmed consent. */
   hero_image: RemoteImage | null
+  /** Which category's picture stands in when there is no hero image. */
+  image_fallback: EventCategory
   rsvp: RSVPState
   attendee_count: number | null
 }
@@ -460,6 +463,11 @@ export interface Page<T> {
   next: string | null
   previous: string | null
   results: T[]
+}
+
+/** A numbered page that also says how many there are in all. */
+export interface CountedPage<T> extends Page<T> {
+  count: number
 }
 
 function cursorFrom(url: string | null): string | null {
@@ -557,8 +565,11 @@ export const api = {
   signOutEverywhere: () => post<Session>('/account/sign-out-everywhere/'),
   myRSVPs: () => request<MyRSVPItem[]>('/account/rsvps/'),
 
-  events: (category: EventCategory | '' = '') =>
-    request<EventSummary[]>(`/events/${query({ category })}`),
+  /** Upcoming and happening-now events, soonest first, a page (15 by default) at a time. */
+  events: (category: EventCategory | '' = '', page = 1, pageSize?: number) =>
+    request<CountedPage<EventSummary>>(
+      `/events/${query({ category, page: page > 1 ? String(page) : undefined, page_size: pageSize ? String(pageSize) : undefined })}`,
+    ),
   eventCalendar: (start: string, end: string, category: EventCategory | '' = '') =>
     request<EventSummary[]>(`/events/calendar/${query({ start, end, category })}`),
   event: (slug: string) => request<EventDetail>(`/events/${encodeURIComponent(slug)}/`),

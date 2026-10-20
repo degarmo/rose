@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '@/components/layout/authContext'
 import { Button, FormField, Input, Select, Textarea } from '@/components/ui'
-import { ApiError, request, type EventSummary } from '@/lib/api'
+import { ApiError, request, type CountedPage, type EventSummary } from '@/lib/api'
 import { formatDay } from '@/lib/format'
 import { safetyApi } from '@/lib/safetyApi'
 import { useAsync } from '@/lib/useAsync'
@@ -16,7 +16,7 @@ const LIMIT = 4000
  */
 export function ConcernForm({ onSent, submitClass }: { onSent: () => void; submitClass?: string }) {
   const auth = useAuth()
-  const events = useAsync(() => request<EventSummary[]>('/events/?past=1'), 'concern-events')
+  const events = useAsync(() => request<CountedPage<EventSummary>>('/events/?past=1&page_size=50'), 'concern-events')
   const [details, setDetails] = useState('')
   const [event, setEvent] = useState('')
   const [date, setDate] = useState('')
@@ -50,7 +50,7 @@ export function ConcernForm({ onSent, submitClass }: { onSent: () => void; submi
 
   const eventOptions = [
     { value: '', label: 'Not about a particular event' },
-    ...(events.status === 'success' ? events.data : []).map((item) => ({ value: item.slug, label: `${item.title}, ${formatDay(item.starts_at)}` })),
+    ...(events.status === 'success' ? events.data.results : []).map((item) => ({ value: item.slug, label: `${item.title}, ${formatDay(item.starts_at)}` })),
   ]
 
   return (

@@ -209,6 +209,7 @@ class Command(BaseCommand):
             }
 
         data["showcase"] = self.showcase(now, guidelines)
+        data["grid"] = self.grid_events(now)
 
         if as_json:
             self.stdout.write(json.dumps(data))
@@ -291,6 +292,38 @@ class Command(BaseCommand):
             "banned_handle": banned.display_name,
             "banned_code": membership.reference_code,
         }
+
+    def grid_events(self, now):
+        """Enough upcoming evenings for the Events grid to need "Load more": every category,
+        most with a picture, some without, and one whose faces have no consent (shown as
+        the category's fallback)."""
+        Event.objects.filter(slug__startswith="e2e-grid-").delete()
+        categories = list(Event.Category.values)
+        slugs = []
+        for n in range(18):
+            starts = timezone.localtime(now + timedelta(days=40 + n)).replace(
+                hour=19, minute=0, second=0, microsecond=0
+            )
+            values = {
+                "slug": f"e2e-grid-{n:02d}",
+                "title": f"Grid evening {n + 1}",
+                "summary": "An evening the Events grid tests count.",
+                "category": categories[n % len(categories)],
+                "starts_at": starts,
+                "ends_at": starts + timedelta(hours=3),
+                "is_published": True,
+                "audience": Event.Audience.MEMBERS if n % 6 == 5 else Event.Audience.PUBLIC,
+            }
+            if n % 3 != 2:
+                picture = sample_image(60 + n)
+                values.update(
+                    hero_image=picture.file,
+                    hero_image_alt=picture.alt,
+                    hero_image_faces_visible=n == 4,
+                )
+            Event.objects.create(**values)
+            slugs.append(values["slug"])
+        return {"slugs": slugs}
 
     def showcase(self, now, guidelines):
         """A lived-in member app for the screenshot tests: photos, comments, likes,

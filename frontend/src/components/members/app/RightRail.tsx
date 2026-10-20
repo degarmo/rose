@@ -36,7 +36,7 @@ export function DateTile({ iso }: { iso: string }) {
  */
 export function RightRail() {
   const { me } = useMembers()
-  const events = useAsync(() => api.events(), 'rail-events')
+  const events = useAsync(() => api.events('', 1, 3), 'rail-events')
   const journal = useAsync(() => api.journal(), 'rail-journal')
 
   return (
@@ -60,7 +60,7 @@ export function RightRail() {
         </h2>
         <ul className="flex flex-col gap-3">
           {events.status === 'success' &&
-            events.data.slice(0, 3).map((event) => {
+            events.data.results.map((event) => {
               const { status, action } = eventAction(event)
               return (
                 <li key={event.id} className="relative flex items-center gap-3">
@@ -79,7 +79,7 @@ export function RightRail() {
                 </li>
               )
             })}
-          {events.status === 'success' && events.data.length === 0 && <li className="text-fg-muted">Nothing on the calendar yet.</li>}
+          {events.status === 'success' && events.data.count === 0 && <li className="text-fg-muted">Nothing on the calendar yet.</li>}
         </ul>
       </section>
 

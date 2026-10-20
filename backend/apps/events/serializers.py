@@ -1,3 +1,4 @@
+from django.utils.html import strip_tags
 from rest_framework import serializers
 
 from apps.core.consent_images import consent_image_payload
@@ -67,7 +68,9 @@ def rsvp_state(user, event, mine=None):
 
 class EventSerializer(serializers.ModelSerializer):
     category_label = serializers.CharField(source="get_category_display", read_only=True)
+    summary = serializers.SerializerMethodField()
     hero_image = serializers.SerializerMethodField()
+    image_fallback = serializers.CharField(source="category", read_only=True)
     rsvp = serializers.SerializerMethodField()
     attendee_count = serializers.SerializerMethodField()
 
@@ -86,12 +89,23 @@ class EventSerializer(serializers.ModelSerializer):
             "timing",
             "location_label",
             "hero_image",
+            "image_fallback",
             "rsvp",
             "attendee_count",
         ]
 
+    def get_summary(self, obj):
+        """Plain text: a card shows it as written, never as markup."""
+        return strip_tags(obj.summary)
+
     def get_hero_image(self, obj):
-        return consent_image_payload(obj, "hero_image", self.context.get("request"))
+        """The picture with its sizes for srcset, or None when there is none or it shows faces
+        without confirmed consent (the card then shows the category's fallback). The title
+        stands in for missing alt text."""
+        image = consent_image_payload(obj, "hero_image", self.context.get("request"))
+        if image is not None and not image["alt"].strip():
+            image["alt"] = obj.title
+        return image
 
     def get_rsvp(self, obj):
         request = self.context.get("request")

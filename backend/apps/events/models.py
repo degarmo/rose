@@ -91,7 +91,12 @@ class EventTag(models.Model):
         return self.name
 
 
-class Event(consented_image("hero_image", upload_to="events")):
+# The Events grid's cards are about 400 px wide on phones and up to 450 px in three
+# columns; 800 and 1200 serve sharp screens and the event page's wide picture.
+HERO_WIDTHS = (400, 800, 1200)
+
+
+class Event(consented_image("hero_image", upload_to="events", variant_widths=HERO_WIDTHS)):
     class Category(models.TextChoices):
         EDUCATION = "education", "Education night"
         SOCIAL = "social", "Social"

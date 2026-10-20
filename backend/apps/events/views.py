@@ -5,10 +5,12 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.core.api import CsrfProtectedAPIView
+from apps.memberships.access import remembered
 
 from .ics import build_ics
 from .models import RSVP, Event
@@ -32,18 +34,33 @@ def my_rsvps_for(request, events):
     return {rsvp.event_id: rsvp for rsvp in rsvps}
 
 
-class EventListMixin:
+class EventPagination(PageNumberPagination):
+    """15 at a time (the Events grid's three columns by five rows); `?page_size=` up to 50."""
+
+    page_size = 15
+    page_size_query_param = "page_size"
+    max_page_size = 50
+
+
+class EventListView(generics.ListAPIView):
+    """Upcoming and happening-now events, soonest first, by default; `?past=1` for past ones,
+    newest first; `?category=` to filter. Paginated: `count`, `next`, `previous`, `results`."""
+
+    pagination_class = EventPagination
+
     def list(self, request, *args, **kwargs):
-        events = list(self.filter_queryset(self.get_queryset()))
+        events = list(self.paginate_queryset(self.filter_queryset(self.get_queryset())))
         context = {**self.get_serializer_context(), "my_rsvps": my_rsvps_for(request, events)}
-        return Response(EventSerializer(events, many=True, context=context).data)
-
-
-class EventListView(EventListMixin, generics.ListAPIView):
-    """Upcoming events by default; `?past=1` for past ones; `?category=` to filter."""
+        with remembered(request.user):
+            data = EventSerializer(events, many=True, context=context).data
+        return self.get_paginated_response(data)
 
     def get_queryset(self):
-        events = Event.objects.visible_to(self.request.user).with_going_total()
+        events = (
+            Event.objects.visible_to(self.request.user)
+            .with_going_total()
+            .prefetch_related("access_tags")
+        )
         category = self.request.query_params.get("category")
         if category:
             if category not in Event.Category.values:
@@ -51,13 +68,19 @@ class EventListView(EventListMixin, generics.ListAPIView):
             events = events.filter(category=category)
         now = timezone.now()
         if self.request.query_params.get("past") == "1":
-            return events.past(now).order_by("-starts_at")[:50]
+            return events.past(now).order_by("-starts_at", "title")
         # Aggregate annotations drop Meta.ordering, so order explicitly.
         return events.not_past(now).order_by("starts_at", "title")
 
 
-class EventCalendarView(EventListMixin, generics.ListAPIView):
+class EventCalendarView(generics.ListAPIView):
     """Events overlapping `start`..`end` (YYYY-MM-DD, at most 62 days), past ones left out."""
+
+    def list(self, request, *args, **kwargs):
+        events = list(self.filter_queryset(self.get_queryset()))
+        context = {**self.get_serializer_context(), "my_rsvps": my_rsvps_for(request, events)}
+        with remembered(request.user):
+            return Response(EventSerializer(events, many=True, context=context).data)
 
     def get_queryset(self):
         try:
@@ -69,7 +92,11 @@ class EventCalendarView(EventListMixin, generics.ListAPIView):
             raise ValidationError({"detail": f"Use a range of up to {MAX_CALENDAR_DAYS} days."})
         range_start = timezone.make_aware(datetime.combine(start, time.min))
         range_end = timezone.make_aware(datetime.combine(end + timedelta(days=1), time.min))
-        events = Event.objects.visible_to(self.request.user).with_going_total()
+        events = (
+            Event.objects.visible_to(self.request.user)
+            .with_going_total()
+            .prefetch_related("access_tags")
+        )
         category = self.request.query_params.get("category")
         if category:
             events = events.filter(category=category)

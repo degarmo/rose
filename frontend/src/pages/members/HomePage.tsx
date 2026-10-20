@@ -31,10 +31,10 @@ function greeting(now = new Date()) {
 
 /** The next evenings, each with your RSVP status. */
 function ComingUp() {
-  const events = useAsync(() => api.events(), 'home-events')
+  const events = useAsync(() => api.events('', 1, 5), 'home-events')
   if (events.status === 'loading') return <Skeleton lines={4} />
   if (events.status === 'error') return <LoadError title="Events did not load" onRetry={events.retry} />
-  if (events.data.length === 0) {
+  if (events.data.count === 0) {
     return (
       <EmptyNote
         icon={CalendarDays}
@@ -52,7 +52,7 @@ function ComingUp() {
   return (
     <>
       <ul>
-        {events.data.slice(0, 5).map((event) => {
+        {events.data.results.map((event) => {
           const { status, action } = eventAction(event)
           return (
             <li key={event.id} className="relative flex min-h-16 items-center gap-3 border-b border-border py-2 last:border-b-0">

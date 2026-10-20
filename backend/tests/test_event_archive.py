@@ -300,10 +300,10 @@ def test_only_admins_delete_from_the_archive_after_confirming(events, make_user,
 
 
 def test_the_public_list_and_calendar_leave_past_events_out(api_client, events):
-    slugs = [e["slug"] for e in api_client.get("/api/events/").json()]
+    slugs = [e["slug"] for e in api_client.get("/api/events/").json()["results"]]
     assert events["next"].slug in slugs and events["now"].slug in slugs
     assert events["old"].slug not in slugs
-    past = [e["slug"] for e in api_client.get("/api/events/?past=1").json()]
+    past = [e["slug"] for e in api_client.get("/api/events/?past=1").json()["results"]]
     assert past == [events["old"].slug, events["older"].slug]
     today = timezone.localdate()
     calendar = api_client.get(

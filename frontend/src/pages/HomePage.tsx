@@ -19,10 +19,10 @@ const UPCOMING_COUNT = 3
 const CARD_GRID = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6'
 
 function UpcomingEvents() {
-  const state = useAsync(() => api.events(), 'home-events')
+  const state = useAsync(() => api.events('', 1, UPCOMING_COUNT), 'home-events')
   if (state.status === 'loading') return <SkeletonCards count={UPCOMING_COUNT} />
   if (state.status === 'error') return <ErrorState title="Events did not load" onRetry={state.retry} />
-  const upcoming = state.data.slice(0, UPCOMING_COUNT)
+  const upcoming = state.data.results
   if (upcoming.length === 0) {
     return <EmptyState title="The calendar is being planned" message="New evenings are added every week." />
   }

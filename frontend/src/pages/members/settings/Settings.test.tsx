@@ -226,7 +226,7 @@ function renderSettings(path: string, { user = verifiedUser as Account, inFeed =
 beforeEach(() => {
   for (const group of [account, membership, safety, feed, membersApi]) Object.values(group).forEach((fn) => fn.mockReset())
   account.myRSVPs.mockResolvedValue([])
-  account.events.mockResolvedValue([])
+  account.events.mockResolvedValue({ count: 0, next: null, previous: null, results: [] })
   account.preferences.mockResolvedValue(preferences)
   account.updatePreferences.mockImplementation(async (changes: Partial<Preferences>) => ({ ...preferences, ...changes }))
   account.dataExport.mockResolvedValue({ export: null })
@@ -656,7 +656,11 @@ describe('Home', () => {
       membership: active,
       entitlements: ['members_events'],
     })
-    account.events.mockResolvedValue([
+    account.events.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
       {
         id: 1,
         slug: 'thu',
@@ -670,10 +674,12 @@ describe('Home', () => {
         timing: 'upcoming',
         location_label: '',
         hero_image: null,
+        image_fallback: 'social',
         rsvp: { state: 'going' },
         attendee_count: null,
       },
-    ])
+      ],
+    })
     feed.path.mockResolvedValue(pathAt('join'))
     renderSettings('/members/home', {
       user: { ...verifiedUser, has_membership: true, member_app: 'join' },

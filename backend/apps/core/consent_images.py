@@ -86,12 +86,20 @@ class ConsentImageMixin(models.Model):
 
 
 @cache
-def consented_image(field, upload_to, required=False, storage=None, alt_required=True):
+def consented_image(
+    field,
+    upload_to,
+    required=False,
+    storage=None,
+    alt_required=True,
+    variant_widths=PUBLIC_VARIANT_WIDTHS,
+):
     """Build (once) the abstract model that adds `field` and its consent fields.
 
     `storage` is a callable returning a Storage (use private storage for anything
     members upload). `alt_required=False` keeps alt text encouraged but optional,
-    which is how member uploads work.
+    which is how member uploads work. `variant_widths` are the narrower copies made of
+    a public image for srcset.
     """
     image_kwargs = {
         "upload_to": RandomizedUploadTo(upload_to),
@@ -100,7 +108,7 @@ def consented_image(field, upload_to, required=False, storage=None, alt_required
     }
     public = storage is None
     if public:
-        image_kwargs["variant_widths"] = PUBLIC_VARIANT_WIDTHS
+        image_kwargs["variant_widths"] = variant_widths
     else:
         image_kwargs["storage"] = storage
     image_field = SanitizedImageField(**image_kwargs)

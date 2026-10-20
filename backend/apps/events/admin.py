@@ -117,6 +117,19 @@ EVENT_READONLY = (
 )
 
 
+MISSING_ALT = (
+    "This event's picture has no alt text. Describe what it shows (Image tab), so people "
+    "using screen readers know; until then the site uses the event's title."
+)
+
+
+def warn_missing_alt(model_admin, request, object_id):
+    """Pictures saved before alt text was required may still lack it."""
+    event = Event.objects.filter(pk=object_id).only("hero_image", "hero_image_alt").first()
+    if event is not None and event.hero_image and not event.hero_image_alt.strip():
+        model_admin.message_user(request, MISSING_ALT, messages.WARNING)
+
+
 def _is_main_list(request):
     match = request.resolver_match
     return bool(match and match.url_name == "events_event_changelist")
@@ -199,6 +212,8 @@ class EventAdmin(ModelAdmin):
         if event is not None and event.is_past:
             url = reverse("admin:events_pastevent_change", args=(event.pk,))
             return redirect(f"{url}?{request.GET.urlencode()}" if request.GET else url)
+        if request.method == "GET":
+            warn_missing_alt(self, request, object_id)
         return super().change_view(request, object_id, form_url, extra_context)
 
     @admin.display(description="Going", ordering="going_total")
@@ -462,6 +477,11 @@ class PastEventAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return roles.has_role(request.user, roles.ADMIN)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        if request.method == "GET":
+            warn_missing_alt(self, request, object_id)
+        return super().change_view(request, object_id, form_url, extra_context)
 
     def has_edit_anyway_permission(self, request, object_id=None):
         return request.user.has_perm("events.change_event") and not self._editing(request)
