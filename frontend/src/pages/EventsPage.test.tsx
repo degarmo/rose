@@ -7,7 +7,7 @@ import type { CountedPage, EventCategory, EventSummary } from '@/lib/api'
 import { renderWithProviders } from '@/test/render'
 import { EventsPage, PAGE_SIZE } from './EventsPage'
 
-const apiMock = vi.hoisted(() => ({ events: vi.fn(), eventCalendar: vi.fn(), pageContent: vi.fn() }))
+const apiMock = vi.hoisted(() => ({ events: vi.fn(), eventCalendar: vi.fn(), featuredEvent: vi.fn() }))
 
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>()
@@ -71,6 +71,7 @@ function cards() {
 beforeEach(() => {
   apiMock.events.mockReset()
   apiMock.eventCalendar.mockReset()
+  apiMock.featuredEvent.mockReset().mockResolvedValue({ event: null })
 })
 
 describe('the Events grid', () => {
@@ -137,6 +138,36 @@ describe('the Events grid', () => {
     renderEvents()
     expect(await screen.findByText('Nothing scheduled yet')).toBeInTheDocument()
     expect(screen.queryByText(/Showing/)).not.toBeInTheDocument()
+  })
+})
+
+describe('the featured event', () => {
+  const star = makeEvent(99, { title: 'Winter ball', category: 'special', category_label: 'Special', summary: 'One night a year.' })
+
+  it('shows at the top, above the filters and the grid, with a way in', async () => {
+    serve(20)
+    apiMock.featuredEvent.mockImplementation(async (category: EventCategory | '') => ({ event: !category || category === 'special' ? star : null }))
+    renderEvents()
+    const banner = await screen.findByRole('article', { name: 'Winter ball' })
+    expect(within(banner).getByText('Featured')).toBeInTheDocument()
+    expect(within(banner).getByText('One night a year.')).toHaveClass('line-clamp-3')
+    expect(within(banner).getByRole('link', { name: 'View event: Winter ball' })).toHaveAttribute('href', '/events/evening-99')
+    const filters = screen.getByRole('group', { name: 'Category' })
+    expect(banner.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // The grid's 15 come from the list, which leaves the featured event out (the server's job).
+    expect(await screen.findByText('Showing 1–15 of 20')).toBeInTheDocument()
+    expect(screen.getAllByRole('article', { name: 'Winter ball' })).toHaveLength(1)
+  })
+
+  it('goes when a category leaves it out', async () => {
+    serve(20)
+    apiMock.featuredEvent.mockImplementation(async (category: EventCategory | '') => ({ event: !category || category === 'special' ? star : null }))
+    renderEvents()
+    expect(await screen.findByRole('article', { name: 'Winter ball' })).toBeInTheDocument()
+    await userEvent.click(within(screen.getByRole('group', { name: 'Category' })).getByRole('button', { name: 'Workshops' }))
+    expect(apiMock.featuredEvent).toHaveBeenLastCalledWith('workshop')
+    await screen.findByText('Showing 1–15 of 20')
+    expect(screen.queryByRole('article', { name: 'Winter ball' })).not.toBeInTheDocument()
   })
 })
 

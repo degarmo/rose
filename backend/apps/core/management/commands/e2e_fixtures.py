@@ -313,6 +313,8 @@ class Command(BaseCommand):
                 "ends_at": starts + timedelta(hours=3),
                 "is_published": True,
                 "audience": Event.Audience.MEMBERS if n % 6 == 5 else Event.Audience.PUBLIC,
+                # The banner at the top of /events and Home.
+                "is_featured": n == 1,
             }
             if n % 3 != 2:
                 picture = sample_image(60 + n)
@@ -323,7 +325,7 @@ class Command(BaseCommand):
                 )
             Event.objects.create(**values)
             slugs.append(values["slug"])
-        return {"slugs": slugs}
+        return {"slugs": slugs, "featured": "Grid evening 2"}
 
     def showcase(self, now, guidelines):
         """A lived-in member app for the screenshot tests: photos, comments, likes,

@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path("", views.EventListView.as_view(), name="event-list"),
     path("calendar/", views.EventCalendarView.as_view(), name="event-calendar"),
+    path("featured/", views.FeaturedEventView.as_view(), name="event-featured"),
     path("rsvp/cancel/", views.CancelByTokenView.as_view(), name="rsvp-cancel-token"),
     path("<slug:slug>/", views.EventDetailView.as_view(), name="event-detail"),
     path("<slug:slug>/rsvp/", views.EventRSVPView.as_view(), name="event-rsvp"),

@@ -13,7 +13,7 @@ MAX_PARTY_SIZE = 2
 # An event with no end time is over this long after it starts.
 DEFAULT_LENGTH = timedelta(hours=6)
 # Slugs that would collide with fixed routes under /events/.
-RESERVED_SLUGS = frozenset({"calendar", "rsvp", "cancel"})
+RESERVED_SLUGS = frozenset({"calendar", "rsvp", "cancel", "featured"})
 
 
 class Timing(models.TextChoices):
@@ -62,6 +62,10 @@ class EventQuerySet(models.QuerySet):
 
     def past(self, now=None):
         return self.filter(_ended(now or timezone.now()))
+
+    def featured(self, now=None):
+        """The featured event, while it is not over: featuring ends by itself."""
+        return self.filter(is_featured=True).not_past(now)
 
     def overlapping(self, start, end):
         """Events running at some point between `start` and `end`."""
@@ -127,6 +131,11 @@ class Event(consented_image("hero_image", upload_to="events", variant_widths=HER
     location_label = models.CharField(max_length=120, blank=True)
     is_published = models.BooleanField(default=False)
     audience = models.CharField(max_length=10, choices=Audience.choices, default=Audience.PUBLIC)
+    is_featured = models.BooleanField(
+        "Feature at the top of the Events page",
+        default=False,
+        help_text="One event at a time; it stops being featured once it is over.",
+    )
 
     capacity = models.PositiveIntegerField(
         null=True, blank=True, help_text="Total people, counting guests. Blank means unlimited."
@@ -182,6 +191,13 @@ class Event(consented_image("hero_image", upload_to="events", variant_widths=HER
 
     class Meta:
         ordering = ["starts_at", "title"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["is_featured"],
+                condition=Q(is_featured=True),
+                name="one_featured_event",
+            )
+        ]
 
     def __str__(self):
         local = timezone.localtime(self.starts_at)
@@ -191,7 +207,16 @@ class Event(consented_image("hero_image", upload_to="events", variant_widths=HER
         self.body = sanitize_rich_text(self.body)
         if self.is_private_hold:
             self.is_published = False
+            self.is_featured = False
+        if self.is_featured:
+            # One at a time: featuring this one takes it from any other (the admin asks first).
+            Event.objects.filter(is_featured=True).exclude(pk=self.pk).update(is_featured=False)
         super().save(*args, **kwargs)
+
+    def validate_constraints(self, exclude=None):
+        # save() takes the feature from the event holding it, so "one featured event" never
+        # blocks a form; the database still guarantees it.
+        super().validate_constraints(exclude={*(exclude or ()), "is_featured"})
 
     def clean(self):
         errors = {}

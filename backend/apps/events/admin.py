@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.decorators import action, display
+from unfold.widgets import UnfoldBooleanWidget
 
 from apps.core.admin_display import chip, image_preview
 from apps.core.admin_widgets import RichTextWidget
@@ -95,8 +96,9 @@ EVENT_FIELDSETS = (
         "Publishing",
         {
             "classes": ["tab"],
-            "fields": ("is_published", "is_private_hold"),
-            "description": "Unpublished events are drafts; nobody outside the admin sees them.",
+            "fields": ("is_published", "is_featured", "take_feature", "is_private_hold"),
+            "description": "Unpublished events are drafts; nobody outside the admin sees them. "
+            "One event at a time can be featured at the top of the Events page and Home.",
         },
     ),
     (
@@ -115,6 +117,39 @@ EVENT_READONLY = (
     "rsvps_purged_at",
     "is_private_hold",
 )
+
+
+class EventAdminForm(forms.ModelForm):
+    """Featuring an event takes the feature from the one featured now, so it asks first,
+    naming that event."""
+
+    take_feature = forms.BooleanField(
+        required=False,
+        label="Yes, take the feature from the event featured now",
+        widget=UnfoldBooleanWidget,
+    )
+
+    class Meta:
+        model = Event
+        # The admin adds the rest of the fieldsets' fields.
+        fields = ("is_featured",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current = Event.objects.featured().exclude(pk=self.instance.pk).first()
+        self.fields["take_feature"].help_text = (
+            f"Featured now: {self.current}." if self.current else "No other event is featured now."
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("is_featured") and self.current and not cleaned.get("take_feature"):
+            self.add_error(
+                "is_featured",
+                f"{self.current} is featured now. Featuring this event takes the feature from "
+                "it: tick “Yes, take the feature from the event featured now” to confirm.",
+            )
+        return cleaned
 
 
 MISSING_ALT = (
@@ -140,6 +175,7 @@ class EventAdmin(ModelAdmin):
     """Events still to come or happening now, soonest first. Once over, an event moves to
     Past events (PastEventAdmin) on its own, and back if its dates move ahead."""
 
+    form = EventAdminForm
     hero_image_preview = image_preview("hero_image")
     list_display = (
         "title",
@@ -147,6 +183,7 @@ class EventAdmin(ModelAdmin):
         "category",
         "audience_chip",
         "state",
+        "featured",
         "going",
         "door_list_link",
     )
@@ -193,6 +230,10 @@ class EventAdmin(ModelAdmin):
         if not obj.is_published:
             return "Draft"
         return obj.timing.label
+
+    @display(description="Featured", boolean=True, ordering="is_featured")
+    def featured(self, obj):
+        return obj.is_featured
 
     def get_queryset(self, request):
         events = super().get_queryset(request).with_going_total()
@@ -428,6 +469,7 @@ class PastEventAdmin(ModelAdmin):
     anyway", which is logged; editing the dates into the future moves an event back to the
     main list. Only admins may delete."""
 
+    form = EventAdminForm
     hero_image_preview = image_preview("hero_image")
     list_display = ("title", "date", "category", "going", "checked_in", "published")
     list_display_links = ("title",)

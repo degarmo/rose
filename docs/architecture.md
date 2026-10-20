@@ -75,6 +75,7 @@ security and restores are in `docs/ops/`.
 | GET | `/api/account/sessions/` | Where the caller is signed in: a browser-and-system label, when, last seen, and which is this device. |
 | GET, POST | `/api/account/export/`, `export/download/` | Every account: ask for a zip of its data (the account's settings, RSVPs, memberships and payments, and anything shared in the feed), emailed as a single-use link; download with that token. |
 | GET | `/api/events/` | Upcoming and happening-now visible events, soonest first; `?category=`, `?past=1`. Paginated: `count`, `next`, `previous`, `results`; 15 a page, `?page=`, `?page_size=` up to 50. Each has its picture's sizes for srcset (or none, when withheld) and `image_fallback`. |
+| GET | `/api/events/featured/` | The featured event while it is not over, or `{"event": null}`; `?category=` gives null when it leaves the featured event out. The list above leaves the featured event out. |
 | GET | `/api/events/calendar/?start=&end=` | Events overlapping a date range (max 62 days). |
 | GET | `/api/events/<slug>/` | Detail with the caller's RSVP state (on members-only events, also the caller's own plan party limit and events left that month). |
 | POST, DELETE | `/api/events/<slug>/rsvp/` | RSVP or update; cancel. |

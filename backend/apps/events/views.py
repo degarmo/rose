@@ -42,9 +42,37 @@ class EventPagination(PageNumberPagination):
     max_page_size = 50
 
 
+def _upcoming_list(request):
+    """Upcoming and happening-now events this person may see, soonest first, `?category=`
+    applied."""
+    events = (
+        Event.objects.visible_to(request.user).with_going_total().prefetch_related("access_tags")
+    )
+    category = request.query_params.get("category")
+    if category:
+        if category not in Event.Category.values:
+            raise ValidationError({"category": "Unknown category."})
+        events = events.filter(category=category)
+    return events
+
+
+class FeaturedEventView(generics.GenericAPIView):
+    """The featured event, while it is not over, or null: the banner at the top of the Events
+    page and Home. A `?category=` that leaves it out gives null, so the banner goes."""
+
+    def get(self, request):
+        event = _upcoming_list(request).featured().first()
+        if event is None:
+            return Response({"event": None})
+        context = {**self.get_serializer_context(), "my_rsvps": my_rsvps_for(request, [event])}
+        with remembered(request.user):
+            return Response({"event": EventSerializer(event, context=context).data})
+
+
 class EventListView(generics.ListAPIView):
     """Upcoming and happening-now events, soonest first, by default; `?past=1` for past ones,
-    newest first; `?category=` to filter. Paginated: `count`, `next`, `previous`, `results`."""
+    newest first; `?category=` to filter. Paginated: `count`, `next`, `previous`, `results`.
+    The featured event is left out: its banner shows it (FeaturedEventView)."""
 
     pagination_class = EventPagination
 
@@ -56,21 +84,13 @@ class EventListView(generics.ListAPIView):
         return self.get_paginated_response(data)
 
     def get_queryset(self):
-        events = (
-            Event.objects.visible_to(self.request.user)
-            .with_going_total()
-            .prefetch_related("access_tags")
-        )
-        category = self.request.query_params.get("category")
-        if category:
-            if category not in Event.Category.values:
-                raise ValidationError({"category": "Unknown category."})
-            events = events.filter(category=category)
+        events = _upcoming_list(self.request)
         now = timezone.now()
         if self.request.query_params.get("past") == "1":
             return events.past(now).order_by("-starts_at", "title")
+        featured = Event.objects.featured(now).values("pk")
         # Aggregate annotations drop Meta.ordering, so order explicitly.
-        return events.not_past(now).order_by("starts_at", "title")
+        return events.not_past(now).exclude(pk__in=featured).order_by("starts_at", "title")
 
 
 class EventCalendarView(generics.ListAPIView):

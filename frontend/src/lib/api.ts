@@ -570,6 +570,9 @@ export const api = {
     request<CountedPage<EventSummary>>(
       `/events/${query({ category, page: page > 1 ? String(page) : undefined, page_size: pageSize ? String(pageSize) : undefined })}`,
     ),
+  /** The featured event while it is not over, or null; a category that leaves it out gives null. */
+  featuredEvent: (category: EventCategory | '' = '') =>
+    request<{ event: EventSummary | null }>(`/events/featured/${query({ category })}`),
   eventCalendar: (start: string, end: string, category: EventCategory | '' = '') =>
     request<EventSummary[]>(`/events/calendar/${query({ start, end, category })}`),
   event: (slug: string) => request<EventDetail>(`/events/${encodeURIComponent(slug)}/`),

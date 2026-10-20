@@ -156,3 +156,79 @@ def test_the_list_costs_the_same_however_many_events(
     assert queries_for(client, 2, make_event, audience=audience) == queries_for(
         client, 12, make_event, audience=audience
     )
+
+
+# The featured event
+
+
+def test_only_one_event_is_featured_at_a_time(make_event):
+    from django.db import IntegrityError, transaction
+
+    first = make_event(slug="first", is_featured=True)
+    second = make_event(slug="second", is_featured=True)
+    first.refresh_from_db()
+    assert not first.is_featured and second.is_featured
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Event.objects.filter(pk=first.pk).update(is_featured=True)
+
+
+def test_the_admin_names_the_event_losing_the_feature_and_asks_first(make_event):
+    from apps.events.admin import EventAdminForm
+
+    current = make_event(slug="current", title="Friday Social", is_featured=True)
+    other = make_event(slug="other", title="Saturday Social")
+    form = EventAdminForm(data={"is_featured": "on"}, instance=other)
+    assert form.fields["take_feature"].help_text.startswith("Featured now: Friday Social")
+    assert not form.is_valid()
+    assert "Friday Social" in form.errors["is_featured"][0]
+    confirmed = EventAdminForm(data={"is_featured": "on", "take_feature": "on"}, instance=other)
+    assert confirmed.is_valid(), confirmed.errors
+    confirmed.save()
+    current.refresh_from_db()
+    assert not current.is_featured and Event.objects.get(pk=other.pk).is_featured
+
+
+def test_featuring_ends_by_itself_once_the_event_is_over(api_client, make_event):
+    now = timezone.now()
+    event = make_event(slug="soon", starts_at=now + timedelta(days=1), is_featured=True)
+    assert api_client.get(f"{LIST}featured/").json()["event"]["slug"] == "soon"
+    event.starts_at = now - timedelta(days=2)
+    event.ends_at = event.starts_at + timedelta(hours=3)
+    event.save()
+    assert list(Event.objects.featured()) == []
+    assert api_client.get(f"{LIST}featured/").json() == {"event": None}
+    # An expired feature needs no confirmation to replace.
+    from apps.events.admin import EventAdminForm
+
+    other = make_event(slug="next")
+    assert EventAdminForm(data={"is_featured": "on"}, instance=other).is_valid()
+
+
+def test_the_featured_event_is_not_repeated_in_the_grid(api_client, many):
+    featured = many[3]
+    featured.is_featured = True
+    featured.save()
+    page = api_client.get(LIST).json()
+    assert page["count"] == 19 and len(page["results"]) == 15
+    assert featured.slug not in [item["slug"] for item in page["results"]]
+    assert api_client.get(f"{LIST}featured/").json()["event"]["slug"] == featured.slug
+
+
+def test_a_category_that_leaves_the_featured_event_out_hides_it(api_client, make_event):
+    make_event(slug="star", category="social", is_featured=True)
+    make_event(slug="class", category="education")
+    assert (
+        api_client.get(f"{LIST}featured/", {"category": "social"}).json()["event"]["slug"] == "star"
+    )
+    assert api_client.get(f"{LIST}featured/", {"category": "education"}).json() == {"event": None}
+    assert [
+        e["slug"] for e in api_client.get(LIST, {"category": "education"}).json()["results"]
+    ] == ["class"]
+
+
+def test_copies_never_take_the_feature(make_event):
+    from apps.events.recurrence import duplicate
+
+    event = make_event(is_featured=True)
+    copy = duplicate(event, event.starts_at + timedelta(days=7))
+    assert not copy.is_featured and Event.objects.get(pk=event.pk).is_featured

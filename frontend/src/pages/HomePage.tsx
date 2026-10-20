@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { Copy } from '@/components/content/Copy'
 import { EventCard } from '@/components/content/EventCard'
+import { FeaturedEvent } from '@/components/content/FeaturedEventBanner'
 import { JournalStrip } from '@/components/content/JournalStrip'
 import { OpportunityCard } from '@/components/content/OpportunityCard'
 import { ErrorState, SkeletonCards, EmptyState } from '@/components/content/States'
@@ -144,6 +145,7 @@ export function HomePage() {
 
       <Section tone="surface" aria-labelledby="week">
         <HomeHeading copy={copy} prefix="week" id="week" action={{ to: '/events', label: 'All events' }} />
+        <FeaturedEvent className="mb-6 lg:mb-8" />
         <UpcomingEvents />
       </Section>
 

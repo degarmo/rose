@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { EventGridCard } from '@/components/content/EventGridCard'
+import { FeaturedEvent } from '@/components/content/FeaturedEventBanner'
 import { MonthCalendar } from '@/components/content/MonthCalendar'
 import { PageHero } from '@/components/content/PageHero'
 import { EmptyState, ErrorState, SkeletonCards } from '@/components/content/States'
@@ -237,6 +238,8 @@ export function EventsPage() {
           />
         }
       >
+        {/* Above the filters; the grid leaves it out, and a category without it hides it. */}
+        <FeaturedEvent category={category} className="mt-6 lg:mt-8" />
         <FilterChips
           label="Category"
           options={CATEGORY_CHIPS}

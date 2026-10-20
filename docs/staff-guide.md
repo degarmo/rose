@@ -84,6 +84,12 @@ The site will not publish an image showing faces without confirmed consent.
 actions box that appears above the list, press **Run**, pick how many weeks, and confirm. Copies keep the same time of day.
 Copies that already exist are skipped.
 
+**Featured event**: tick **Feature at the top of the Events page** (Publishing tab) on one
+event to show it as a large banner at the top of the Events page and in Home's "Coming up".
+Only one event is featured at a time: if another one is, the page names it and asks you to
+tick **Yes, take the feature from the event featured now**. The feature ends by itself when
+the event is over.
+
 **Past events**: **Events** lists only what is still to come or happening now, soonest
 first, with a badge for each (Upcoming, Happening now, Draft). Once an event is over it moves
 to **Events > Past events** by itself; nothing needs doing, and if you move an event's dates

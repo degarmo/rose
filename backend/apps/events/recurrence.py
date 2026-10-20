@@ -19,6 +19,7 @@ NOT_COPIED = {
     "slug",
     *SHIFTED_FIELDS,
     "is_private_hold",
+    "is_featured",
     "final_going_count",
     "final_checked_in_count",
     "rsvps_purged_at",

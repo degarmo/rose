@@ -20,10 +20,10 @@ const FALLBACKS: Record<EventCategory, { icon: LucideIcon; wash: string }> = {
   special: { icon: Sparkles, wash: 'from-wash-rose-2 to-wash-warm-1' },
 }
 
-export function EventImageFallback({ category }: { category: EventCategory }) {
+export function EventImageFallback({ category, className = 'aspect-[4/3]' }: { category: EventCategory; className?: string }) {
   const { icon: Icon, wash } = FALLBACKS[category]
   return (
-    <div data-fallback={category} className={cn('relative flex aspect-[4/3] items-center justify-center bg-linear-to-br', wash)}>
+    <div data-fallback={category} className={cn('relative flex items-center justify-center bg-linear-to-br', wash, className)}>
       <span className="flex size-16 items-center justify-center rounded-full bg-canvas/70">
         <Icon aria-hidden="true" className="size-7 text-link" strokeWidth={1.5} />
       </span>
