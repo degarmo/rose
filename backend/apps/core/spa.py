@@ -7,6 +7,7 @@ The fallback never answers for the API, the admin, media or anything that
 looks like a file, which get a real 404 instead.
 """
 
+import re
 from functools import lru_cache
 
 from django.conf import settings
@@ -14,7 +15,12 @@ from django.http import Http404, HttpResponse
 from django.utils.html import escape
 from django.views.decorators.http import require_safe
 
+from .branding import site_name
+
 SITE_IMAGES_META = '<meta name="rose-site-images" content="{}" />'
+# The club's name, read by the app before it makes any request (the age gate shows it).
+SITE_NAME_META = '<meta name="rose-site-name" content="{}" />'
+TITLE = re.compile(r"<title>[^<]*</title>")
 # The storage buckets serve every image, so their connections start with the page.
 PRECONNECT = '<link rel="preconnect" href="{}" />'
 
@@ -33,7 +39,9 @@ def index_html():
     if not path.is_file():
         raise Http404("The site has not been built. Run `npm run build` in frontend/.")
     html = _index_template(path, path.stat().st_mtime)
-    tags = [SITE_IMAGES_META.format(escape(settings.SITE_IMAGES_URL))]
+    name = escape(site_name())
+    html = TITLE.sub(f"<title>{name}</title>", html, count=1)
+    tags = [SITE_IMAGES_META.format(escape(settings.SITE_IMAGES_URL)), SITE_NAME_META.format(name)]
     tags += [PRECONNECT.format(escape(origin)) for origin in settings.MEDIA_ORIGINS]
     head = "".join(f"    {tag}\n" for tag in tags)
     return html.replace("</head>", f"{head}  </head>", 1)

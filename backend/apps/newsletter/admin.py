@@ -1,5 +1,4 @@
 from django import forms
-from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponseRedirect
@@ -13,6 +12,7 @@ from unfold.widgets import UnfoldAdminSelectWidget
 
 from apps.core.admin_display import chip
 from apps.core.admin_widgets import RichTextWidget
+from apps.core.branding import sender_name
 from apps.core.models import AuditLog, audit
 from apps.core.text import sanitize_rich_text
 
@@ -121,7 +121,7 @@ class NewsletterAdmin(ModelAdmin):
         extra_context = {
             **(extra_context or {}),
             "recipient_count": sum(1 for _ in services.recipients()),
-            "sender_name": settings.EMAIL_SENDER_NAME,
+            "sender_name": sender_name(),
         }
         return super().change_view(request, object_id, form_url, extra_context)
 

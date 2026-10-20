@@ -6,6 +6,8 @@ from datetime import timedelta
 from django.conf import settings
 from rest_framework import serializers
 
+from apps.core.branding import merchant_name
+
 from .access import events_remaining, is_age_verified
 from .models import Membership, MembershipAgreement, Payment, Tier
 
@@ -152,7 +154,7 @@ def receipt_payload(payment):
     """Neutral by design: the merchant name, an amount and 'Membership'. Nothing else."""
     return {
         "title": "Receipt",
-        "merchant": settings.MERCHANT_DISPLAY_NAME,
+        "merchant": merchant_name(),
         "description": "Membership",
         "reference": f"{payment.membership.reference_code}-{payment.pk}",
         "date": payment.created_at,

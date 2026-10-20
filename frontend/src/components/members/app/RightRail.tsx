@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { api } from '@/lib/api'
+import { config } from '@/lib/config'
 import { dateParts } from '@/lib/format'
 import { postedShort } from '@/lib/membersApi'
 import { leaveNow, quickExitUrl } from '@/lib/quickExit'
@@ -137,7 +138,7 @@ export function RightRail() {
           </li>
         </ul>
       </nav>
-      <p className="text-[0.6875rem] text-fg-muted">© {YEAR} Rose</p>
+      <p className="text-[0.6875rem] text-fg-muted">© {YEAR} {config.siteName}</p>
     </aside>
   )
 }

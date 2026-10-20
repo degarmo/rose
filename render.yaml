@@ -33,10 +33,6 @@ projects:
                 value: manual
               - key: EMAIL_PROVIDER
                 value: postmark
-              - key: EMAIL_SENDER_NAME
-                value: Rose
-              - key: MERCHANT_DISPLAY_NAME
-                value: Rose
               - key: BACKUP_ENABLED
                 value: "true"
               - key: FEED_ENABLED
@@ -44,6 +40,11 @@ projects:
           - name: rose-staging-secrets
             envVars:
               - key: DJANGO_SECRET_KEY
+                sync: false
+              # The club's name on the site, in email, on receipts and in calendar files.
+              # Entered in the dashboard so it is never written into the repository.
+              # EMAIL_SENDER_NAME, MERCHANT_DISPLAY_NAME and OTP_ISSUER follow it unless set.
+              - key: SITE_NAME
                 sync: false
               - key: DJANGO_ALLOWED_HOSTS
                 sync: false
@@ -155,10 +156,6 @@ projects:
                 value: manual
               - key: EMAIL_PROVIDER
                 value: postmark
-              - key: EMAIL_SENDER_NAME
-                value: Rose
-              - key: MERCHANT_DISPLAY_NAME
-                value: Rose
               - key: BACKUP_ENABLED
                 value: "true"
               - key: FEED_ENABLED
@@ -174,6 +171,11 @@ projects:
           - name: rose-production-secrets
             envVars:
               - key: DJANGO_SECRET_KEY
+                sync: false
+              # The club's name on the site, in email, on receipts and in calendar files.
+              # Entered in the dashboard so it is never written into the repository.
+              # EMAIL_SENDER_NAME, MERCHANT_DISPLAY_NAME and OTP_ISSUER follow it unless set.
+              - key: SITE_NAME
                 sync: false
               - key: DJANGO_ALLOWED_HOSTS
                 sync: false

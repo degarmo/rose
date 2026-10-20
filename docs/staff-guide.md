@@ -325,3 +325,10 @@ addresses, and every download is recorded.
 
 If you think something has leaked, tell the incident lead straight away. Do not
 try to clean it up yourself.
+
+## The club's name
+
+The name shown on the website, in the admin, as the sender of every email, on receipts,
+in calendar files and in the authenticator app comes from **Site settings** > **Site name**.
+Leave it blank to use the name set when the site was installed. A change shows within a few
+minutes everywhere.

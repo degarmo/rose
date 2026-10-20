@@ -36,6 +36,7 @@ from apps.accounts import lockout, two_step
 from apps.accounts.models import User
 from apps.accounts.sessions import start_staff_session
 
+from .branding import otp_issuer
 from .models import AuditLog, audit
 from .ratelimit import is_over_limit
 
@@ -175,9 +176,9 @@ def otp_verify(request, site):
 
 def _otpauth_url(device, user):
     secret = base64.b32encode(device.bin_key).decode().rstrip("=")
-    issuer = quote(settings.OTP_TOTP_ISSUER)
+    issuer = quote(otp_issuer())
     # The authenticator shows the display name, never the email address.
-    label = quote(f"{settings.OTP_TOTP_ISSUER}:{user.display_name}")
+    label = quote(f"{otp_issuer()}:{user.display_name}")
     return (
         f"otpauth://totp/{label}?secret={secret}&issuer={issuer}"
         f"&digits={device.digits}&period={device.step}",

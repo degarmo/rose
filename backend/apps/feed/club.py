@@ -1,4 +1,4 @@
-"""Club content inside the member app: journal posts shown as the "Rose" account in
+"""Club content inside the member app: journal posts shown as the club's own account in
 the home feed, and the stories tray (upcoming events, journal posts, announcements).
 
 All of it is staff-made and already public or member-visible elsewhere; nothing here
@@ -14,6 +14,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.core.branding import site_name
 from apps.core.consent_images import consent_image_payload
 from apps.events.models import Event
 from apps.journal.models import Post as JournalPost
@@ -23,12 +24,16 @@ from .models import Announcement, FeedLike, SavedPost, StorySeen
 from .serializers import FeedPostSerializer, posted
 from .visibility import feed_posts
 
-CLUB_HANDLE = "Rose"
 HOME_PAGE_SIZE = 10
 JOURNAL_STORY_DAYS = 14
 STORY_LIMIT = 6
 STORY_KEYS_MAX = 50
 STORY_KEY_MAX_LENGTH = 80
+
+
+def club_handle():
+    """The club's account in the feed carries the site's name (apps.core.branding)."""
+    return site_name()
 
 
 # The home feed
@@ -47,7 +52,7 @@ def club_post_payload(post, request):
         "kind": "club",
         "id": f"club-{post.slug}",
         "slug": post.slug,
-        "author": {"handle": CLUB_HANDLE, "avatar": None},
+        "author": {"handle": club_handle(), "avatar": None},
         "caption_html": data["caption_html"],
         "posted": posted(post.published_at),
         "images": [

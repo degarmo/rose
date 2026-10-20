@@ -101,7 +101,7 @@ rejected with 400 and nothing is stored. Unknown or offline provider keys are 40
 | Setting | Default | Notes |
 | --- | --- | --- |
 | `PAYMENT_PROVIDERS` | `manual,sandbox` with DEBUG on, `manual` with DEBUG off | Comma-separated keys. `manual` is required. `sandbox` refuses to start with DEBUG off. |
-| `MERCHANT_DISPLAY_NAME` | `Rose` | The merchant name on receipts. Set the processor's billing descriptor to match. |
+| `MERCHANT_DISPLAY_NAME` | the site's name (`SITE_NAME`) | The merchant name on receipts. Set the processor's billing descriptor to match. |
 | `MEMBERSHIP_GRACE_DAYS` | `7` | Days of continued access after a period ends. |
 | `MEMBERSHIP_PENDING_EXPIRY_DAYS` | `30` | How long an unpaid reference code stays open. |
 | `MEMBERSHIP_REMINDER_DAYS` | `(14, 3)` | In code. Renewal reminders for active memberships that do not renew automatically. |

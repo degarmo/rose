@@ -47,13 +47,14 @@ env = environ.Env(
     FEED_MAX_COMMENTS_PER_HOUR=(int, 60),
     MEMBERSHIP_GRACE_DAYS=(int, 7),
     MEMBERSHIP_PENDING_EXPIRY_DAYS=(int, 30),
-    MERCHANT_DISPLAY_NAME=(str, "Rose"),
+    SITE_NAME=(str, "Rose"),
+    MERCHANT_DISPLAY_NAME=(str, ""),
     RENTAL_RETENTION_DAYS=(int, 90),
     VOLUNTEER_RETENTION_DAYS=(int, 365),
     NEWSLETTER_SUPPRESS_AFTER_DAYS=(int, 30),
     CELERY_TASK_ALWAYS_EAGER=(bool, False),
     EMAIL_PROVIDER=(str, "console"),
-    EMAIL_SENDER_NAME=(str, "Rose"),
+    EMAIL_SENDER_NAME=(str, ""),
     STORAGE_BACKEND=(str, "local"),
     S3_SIGNED_URL_SECONDS=(int, 60),
     PASSWORD_BREACH_CHECK=(bool, False),
@@ -64,6 +65,11 @@ env = environ.Env(
     SITE_INDEXABLE=(bool, None),
 )
 environ.Env.read_env(BASE_DIR / ".env")
+
+# The club's name on the site, in the admin, in email, on receipts and calendar files.
+# Kept out of the repository: set it in the environment (default "Rose"), or override
+# it in Admin > Site settings (apps.core.branding).
+SITE_NAME = env("SITE_NAME").strip() or "Rose"
 
 DJANGO_ENV = env("DJANGO_ENV")
 DEPLOYED_ENVS = ("staging", "production")
@@ -339,9 +345,10 @@ ANYMAIL = {
     if value != ""
 }
 EMAIL_TIMEOUT = 15
+# Blank means the site's name (apps.core.branding.sender_name).
 EMAIL_SENDER_NAME = env("EMAIL_SENDER_NAME")
 EMAIL_SENDER_ADDRESS = env("EMAIL_SENDER_ADDRESS", default="no-reply@localhost")
-DEFAULT_FROM_EMAIL = f"{EMAIL_SENDER_NAME} <{EMAIL_SENDER_ADDRESS}>"
+DEFAULT_FROM_EMAIL = f"{EMAIL_SENDER_NAME or SITE_NAME} <{EMAIL_SENDER_ADDRESS}>"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # Django's error emails include request data, so they are never sent.
 ADMINS = []
@@ -359,7 +366,8 @@ LOGIN_LOCKOUT_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 15 * 60
 
 # Staff two-factor (TOTP plus single-use backup codes) for the whole admin.
-OTP_TOTP_ISSUER = env("OTP_ISSUER", default="Rose")
+# Blank means the site's name (apps.core.branding.otp_issuer).
+OTP_TOTP_ISSUER = env("OTP_ISSUER", default="")
 OTP_BACKUP_CODE_COUNT = 10
 # The device admin never shows an authenticator's secret key, QR code or backup codes.
 OTP_ADMIN_HIDE_SENSITIVE_DATA = True
@@ -410,6 +418,7 @@ MEMBERSHIP_GRACE_DAYS = env("MEMBERSHIP_GRACE_DAYS")
 MEMBERSHIP_PENDING_EXPIRY_DAYS = env("MEMBERSHIP_PENDING_EXPIRY_DAYS")
 MEMBERSHIP_REMINDER_DAYS = (14, 3)
 # Shown on receipts and set as the billing descriptor with any processor. Keep it neutral.
+# Blank means the site's name (apps.core.branding.merchant_name).
 MERCHANT_DISPLAY_NAME = env("MERCHANT_DISPLAY_NAME")
 PAYMENT_WEBHOOK_RATE_LIMIT = "120/m"
 

@@ -73,6 +73,9 @@ has an owner; replace `[owner]` with a name before starting.
       Owner: [owner]
 - [ ] **Payment processor decision**: in person only for launch, or which online
       processor (docs/payments.md lists what adding one involves). Owner: [owner]
+- [ ] **The club's name** set as `SITE_NAME` in each environment's secrets (or in Site
+      settings): it appears on the site, in the admin, as the email sender, on receipts and
+      bank statements, in calendar files and in the authenticator app. Owner: [owner]
 - [ ] **Merchant name** for receipts and bank statements (neutral). Owner: [owner]
 - [ ] **Donation acknowledgement wording reviewed by the club's accountant**, entered in
       Admin > Acknowledgement wording, with the legal name and EIN in Site settings.

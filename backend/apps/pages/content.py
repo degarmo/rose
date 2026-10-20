@@ -10,7 +10,9 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import PageContent, Redirect, normalise_path
+from apps.core.branding import forget_site_name
+
+from .models import PageContent, Redirect, SiteSettings, normalise_path
 
 PAGE_KEY = "page-content:v1:{}"
 REDIRECTS_KEY = "redirects:v1"
@@ -88,3 +90,8 @@ def _forget_page(sender, instance, **kwargs):
 @receiver([post_save, post_delete], sender=Redirect)
 def _forget_redirects(sender, instance, **kwargs):
     cache.delete(REDIRECTS_KEY)
+
+
+@receiver(post_save, sender=SiteSettings)
+def _forget_site_name(sender, instance, **kwargs):
+    forget_site_name()

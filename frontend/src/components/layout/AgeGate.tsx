@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { config } from '@/lib/config'
 import { Button } from '../ui'
 
 interface AgeGateProps {
@@ -15,7 +16,7 @@ export function AgeGate({ onConfirm, onDecline }: AgeGateProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
-    document.title = 'Rose'
+    document.title = config.siteName
     headingRef.current?.focus()
   }, [])
 
@@ -28,7 +29,7 @@ export function AgeGate({ onConfirm, onDecline }: AgeGateProps) {
         aria-describedby="age-gate-copy"
         className="flex w-full max-w-[520px] flex-col items-center gap-[18px] rounded-panel border border-border bg-canvas px-7 pb-8 pt-10 text-center sm:gap-5 sm:px-14 sm:pb-12 sm:pt-14"
       >
-        <p className="font-display text-[2rem] leading-none text-wordmark sm:text-[2.25rem]">Rose</p>
+        <p className="font-display text-[2rem] leading-none text-wordmark sm:text-[2.25rem]">{config.siteName}</p>
         <h1
           id="age-gate-title"
           ref={headingRef}

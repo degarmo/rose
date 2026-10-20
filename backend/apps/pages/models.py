@@ -11,6 +11,12 @@ from apps.core.text import sanitize_rich_text
 class SiteSettings(models.Model):
     """Singleton holding the editable site-wide details. Always pk=1."""
 
+    site_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="The club's name everywhere: the site, the admin, email senders, receipts, "
+        "calendar files and the authenticator app. Blank uses the SITE_NAME setting.",
+    )
     tagline = models.CharField(max_length=200)
     hours_text = models.TextField(help_text="Shown on Plan Your Visit. Line breaks are kept.")
     address_text = models.TextField(help_text="Shown in the footer and on Contact.")
