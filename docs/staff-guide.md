@@ -269,6 +269,41 @@ several. Most of this work now happens in the member app's staff section, below.
 - People who report never learn the outcome, and authors never learn who
   reported them. Do not tell anyone either.
 
+## Members in the admin
+
+**Members** in the admin lists every account: display name, tier, membership status, ID
+check, whether they are in the member feed, and badges for **Suspended until …**, **Banned**
+or **Deactivated**. Filter on any of those; search by display name (admins also by email,
+the only ones who see email addresses).
+
+Tick up to 50 people, choose an action and press **Run**; or open one person and use the
+**Moderation** and **Account** buttons at the top of their page. Each action opens a page
+showing who it is for and asking what it needs: always a reason, and for moderation the rule
+broken. Afterwards a message says who it was done for, who was skipped and why.
+
+- **Moderators:** send a warning, suspend from the feed or from events (7 days, 30 days or
+  until a date), lift suspensions, remove all their feed content.
+- **Staff** also: send a password reset email, log out everywhere.
+- **Admins** also: ban and unban (with a new code from your authenticator app), give or take
+  back the staff feed grant, mark an email verified, deactivate and reactivate, export the
+  ticked people as CSV (emails only if you tick "Include email addresses"; logged), and
+  **Erase account** (type ERASE and a new code; it cannot be undone).
+
+Staff and superuser accounts are never suspended, banned, deactivated or erased from here,
+and nobody can act on their own account; change a team member in **Team and roles** first.
+There is no delete: **Erase account** deletes everything the person made, including their
+photos, and keeps the moderation record as "Erased member". There is no action for ID checks:
+those happen in person at the door desk.
+
+Everything is logged with your name, the time and the reason, and the member gets the usual
+notice and an email that only says "An update about your account". Everything except erasure
+can be undone: **Lift suspensions**, **Unban**, **Reactivate**, revoking the grant, or
+reversing a warning or a removal from the member's page in the staff section.
+
+A person's page has a **Moderation history** tab (their warnings, suspensions, bans and
+appeals, and reports about them, with who sent each hidden: an admin can press **Reveal**,
+which is logged) and a **Membership** tab linking to their membership record.
+
 ## The staff section (in the member app)
 
 Moderators, staff and admins work in the member app, under **Staff** in the sidebar (on a

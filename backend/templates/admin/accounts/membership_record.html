@@ -1,0 +1,20 @@
+{% if memberships %}
+<div class="rose-table-wrap">
+  <table class="rose-table">
+    <thead><tr><th scope="col">Membership</th><th scope="col">Tier</th><th scope="col">Status</th><th scope="col">Period ends</th></tr></thead>
+    <tbody>
+      {% for membership in memberships %}
+      <tr>
+        <th scope="row"><a class="rose-link" href="{% url 'admin:memberships_membership_change' membership.pk %}">{{ membership.reference_code }}</a></th>
+        <td>{{ membership.tier.name }}</td>
+        <td>{{ membership.get_status_display }}</td>
+        <td>{{ membership.current_period_end|date:"M j, Y"|default:"-" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="rose-help">Read only here. Payments and changes are on the membership record and at the door desk.</p>
+{% else %}
+<p class="rose-subtle">No membership.</p>
+{% endif %}

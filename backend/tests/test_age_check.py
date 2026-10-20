@@ -31,7 +31,7 @@ from apps.memberships.models import IdCheck, Membership, Tier
 from apps.memberships.providers.service import activate_or_extend
 from apps.safety import roles
 
-from .conftest import csrf_client_for, staff_login, verify_age
+from .conftest import csrf_client_for, fresh_code, next_window, staff_login, verify_age
 from .test_feed_access import METHODS, concrete, feed_routes
 
 pytestmark = pytest.mark.django_db
@@ -220,8 +220,13 @@ def test_staff_grant_shows_as_awaiting_until_checked(admin_client, make_user):
     switch(True)
     user = make_user(display_name="granted_one")
     admin_client.post(
-        reverse("admin:accounts_profile_changelist"),
-        {"action": "grant_feed_access", "_selected_action": [user.profile.pk]},
+        reverse("admin:accounts_user_changelist"),
+        {
+            "action": "bulk_grant_feed",
+            "_selected_action": [user.pk],
+            "apply": "1",
+            "reason": "Volunteer",
+        },
     )
     user.refresh_from_db()
     assert user.profile.feed_access_granted
@@ -548,27 +553,6 @@ def test_tier_feed_flag_still_needs_the_check(make_user, make_tier, make_members
 
 
 # The club's switch
-
-
-def fresh_code(user):
-    """The current code from this person's authenticator (staff_login made the device)."""
-    import time
-
-    from django_otp.oath import TOTP
-    from django_otp.plugins.otp_totp.models import TOTPDevice
-
-    device = TOTPDevice.objects.get(user=user, confirmed=True)
-    totp = TOTP(device.bin_key, device.step, device.t0, device.digits, device.drift)
-    totp.time = time.time()
-    return f"{totp.token():0{device.digits}d}"
-
-
-def next_window(user):
-    """As if the next 30-second code window had come: the last code used no longer blocks
-    the current one (django-otp refuses a code it has already accepted)."""
-    from django_otp.plugins.otp_totp.models import TOTPDevice
-
-    TOTPDevice.objects.filter(user=user).update(last_t=-1)
 
 
 def staff_api(user):

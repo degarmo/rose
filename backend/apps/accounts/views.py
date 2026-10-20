@@ -11,18 +11,13 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.contact.models import anonymize_messages_from
 from apps.core.api import CsrfProtectedAPIView, too_many_requests
 from apps.core.ratelimit import is_over_limit
-from apps.events.services import release_places_held_by
-from apps.feed.services import erase_feed_data
-from apps.memberships.account import close_for_deleted_account
-from apps.rentals.services import forget_account as forget_rental_contact
 from apps.safety.models import BlockedEmail
 from apps.safety.owner import prepare_owner
-from apps.volunteers.models import forget_account as forget_volunteer
 
 from . import lockout, tasks, two_step
+from .erasure import erase_account
 from .models import User
 from .serializers import (
     AccountSerializer,
@@ -301,19 +296,8 @@ class DeleteAccountView(CsrfProtectedAPIView):
         user = request.user
         serializer = DeleteAccountSerializer(data=request.data, context={"user": user})
         serializer.is_valid(raise_exception=True)
-        email = user.email
-        with transaction.atomic():
-            release_places_held_by(user)
-            # The same routine as "Leave and erase", so member files are removed too.
-            erase_feed_data(user)
-            # Stops online renewals; payment records stay, detached from the person.
-            close_for_deleted_account(user)
-            anonymize_messages_from(email)
-            # Volunteer offers go; rental inquiries keep only type, date and status.
-            forget_volunteer(user)
-            forget_rental_contact(user)
-            # Cascades to the profile and every RSVP.
-            user.delete()
+        # The same routine as staff's "Erase account", so member files are removed too.
+        email = erase_account(user)
         logout(request)
         after_commit(tasks.send_account_deleted_email, email)
         return Response(session_payload(request))

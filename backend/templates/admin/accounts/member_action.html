@@ -1,0 +1,53 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}{{ spec.label }} | Rose{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="rose-stack rose-narrow">
+  <header class="rose-page-head">
+    <h1 class="rose-title">{{ spec.label }}</h1>
+    <p class="rose-subtle">{{ users|length }} member{{ users|length|pluralize }}. It goes in the log with your name, the time and the reason{% if spec.key == "erase" %}, and it cannot be undone{% else %}, and it can be reversed{% endif %}.</p>
+  </header>
+
+  <section class="rose-card" aria-labelledby="action-who">
+    <h2 id="action-who" class="rose-section-title">Who</h2>
+    <ul class="rose-names">{% for user in users %}<li class="rose-chip">{{ user.display_name }}</li>{% endfor %}</ul>
+    {% if skipped %}<p class="rose-help">Skipped: {{ skipped|join:", " }}. Your own account, and staff and superuser accounts for this action, are never changed here.</p>{% endif %}
+  </section>
+
+  <form method="post" action="{% if single %}{{ request.path }}{% else %}{% url 'admin:accounts_user_changelist' %}{% endif %}" class="rose-card rose-form" aria-label="{{ spec.label }}">{% csrf_token %}
+    {% if not single %}<input type="hidden" name="action" value="{{ action_name }}">{% for pk in selected %}<input type="hidden" name="{{ checkbox_name }}" value="{{ pk }}">{% endfor %}{% endif %}
+    <input type="hidden" name="apply" value="1">
+    {% for error in form.non_field_errors %}<p class="rose-alert" role="alert">{{ error }}</p>{% endfor %}
+    {% for field in form %}
+      {% if field.name == "length" %}
+      <fieldset class="rose-field rose-fieldset">
+        <legend class="rose-label">{{ field.label }}</legend>
+        {% for radio in field %}<label class="rose-check">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}
+        {% for error in field.errors %}<p class="rose-field-error">{{ error }}</p>{% endfor %}
+      </fieldset>
+      {% elif field.name == "block_email" or field.name == "include_email" %}
+      <div class="rose-field">
+        <label class="rose-check">{{ field }} {{ field.label }}</label>
+        {% if field.help_text %}<p class="rose-help">{{ field.help_text }}</p>{% endif %}
+      </div>
+      {% else %}
+      <div class="rose-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="rose-help">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="rose-field-error">{{ error }}</p>{% endfor %}
+      </div>
+      {% endif %}
+    {% empty %}
+      <p>Nothing else is needed.</p>
+    {% endfor %}
+    {% if rules %}<datalist id="rose-rules">{% for rule in rules %}<option value="{{ rule }}">{% endfor %}</datalist>{% endif %}
+    <div class="rose-buttons">
+      <button type="submit" class="{% if spec.danger %}rose-button-danger{% else %}rose-button{% endif %}">{{ spec.label }}</button>
+      <a class="rose-button-secondary" href="{{ back }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

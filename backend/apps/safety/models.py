@@ -12,6 +12,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.core.models import ERASED_MEMBER
+
 
 class ReportNote(models.Model):
     """An internal note on a report. Staff only; never shown to the reporter or the member."""
@@ -34,12 +36,17 @@ class MemberAction(models.Model):
     class Kind(models.TextChoices):
         WARNING = "warning", "Warning"
         REMOVE_CONTENT = "remove_content", "Remove content"
+        REMOVE_ALL_CONTENT = "remove_all_content", "Remove all feed content"
         FEED_SUSPENSION = "feed_suspension", "Feed suspension"
         EVENT_SUSPENSION = "event_suspension", "Event suspension"
         BAN = "ban", "Ban"
 
+    # Kept when the member's account is erased: the record then shows "Erased member".
     member = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="moderation_actions"
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="moderation_actions",
     )
     kind = models.CharField(max_length=20, choices=Kind.choices)
     rule = models.CharField(max_length=200, help_text="The rule this relates to.")
@@ -55,6 +62,9 @@ class MemberAction(models.Model):
         "feed.FeedComment", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     previous_status = models.CharField(max_length=20, blank=True)
+    # Remove all feed content: {"posts": {pk: status}, "comments": {pk: status}}, the
+    # status each item had, to restore on reversal.
+    removed_items = models.JSONField(default=dict, blank=True)
     # Suspensions: when they end (None for an event suspension with no end date).
     ends_at = models.DateTimeField(null=True, blank=True)
     block_email = models.BooleanField(default=False)
@@ -73,6 +83,10 @@ class MemberAction(models.Model):
 
     def __str__(self):
         return f"{self.get_kind_display()} #{self.pk}"
+
+    @property
+    def member_label(self):
+        return self.member.display_name if self.member_id else ERASED_MEMBER
 
     @property
     def is_reversed(self):

@@ -2,6 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+ERASED_MEMBER = "Erased member"
+
 
 class ImmutableQuerySet(models.QuerySet):
     def update(self, **kwargs):
@@ -63,6 +65,16 @@ class AuditLog(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError("Audit entries cannot be deleted.")
+
+    @classmethod
+    def forget_person(cls, user):
+        """The one change the log allows, when an account is erased: its display name gives
+        way to "Erased member" wherever an entry names it. What happened, when, who else
+        acted and why stay exactly as written."""
+        entries = models.QuerySet(cls)  # the plain queryset: this change is deliberate
+        entries.filter(target_user=user, target_ref=user.display_name).update(target_ref="")
+        entries.filter(target_user=user).update(target_label=ERASED_MEMBER)
+        entries.filter(actor=user).update(actor_label=ERASED_MEMBER)
 
 
 def audit(

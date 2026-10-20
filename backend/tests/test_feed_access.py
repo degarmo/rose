@@ -165,18 +165,19 @@ def test_account_feed_endpoints_hidden_without_entitlement(signed_in, make_user)
 def test_admin_records_who_granted_access(admin_client, admin_user, make_user):
     user = make_user()
     profile = user.profile
-    admin_client.post(
-        "/admin/accounts/profile/",
-        {"action": "grant_feed_access", "_selected_action": [profile.pk]},
-    )
+
+    def act(key):
+        admin_client.post(
+            "/admin/accounts/user/",
+            {"action": key, "_selected_action": [user.pk], "apply": "1", "reason": "Volunteer"},
+        )
+
+    act("bulk_grant_feed")
     profile.refresh_from_db()
     assert profile.feed_access_granted
     assert profile.feed_access_granted_by == admin_user
     assert profile.feed_access_granted_at is not None
-    admin_client.post(
-        "/admin/accounts/profile/",
-        {"action": "revoke_feed_access", "_selected_action": [profile.pk]},
-    )
+    act("bulk_revoke_feed")
     profile.refresh_from_db()
     assert not profile.feed_access_granted and profile.feed_access_granted_by is None
 

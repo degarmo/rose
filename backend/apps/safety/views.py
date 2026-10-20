@@ -29,7 +29,6 @@ from apps.feed.access import feed_access_label
 from apps.feed.models import FeedImage, Report
 from apps.feed.views import deliver_image
 from apps.memberships.access import age_gate_passes, is_age_verified
-from apps.pages.content import page_entries
 
 from . import roles, services
 from .api import StaffAPIView
@@ -77,7 +76,7 @@ def action_payload(action, for_member=False):
     if not for_member:
         data["created_by"] = _person(action.created_by)
         data["reversed_by"] = _person(action.reversed_by)
-        data["member"] = _person(action.member)
+        data["member"] = {"display_name": action.member_label}
         data["report_id"] = action.report_id
     return data
 
@@ -298,18 +297,7 @@ class RulesView(StaffAPIView):
     """Suggestions for an action's rule: the house rules' titles and the guidelines."""
 
     def get(self, request):
-        entries = page_entries("rules")
-        titles = [
-            entries[key]["value"]
-            for key in sorted(entries, key=_rule_order)
-            if key.startswith("rules.") and key.endswith(".title") and entries[key]["value"]
-        ]
-        return Response(titles + ["Community guidelines", "Membership agreement"])
-
-
-def _rule_order(key):
-    parts = key.split(".")
-    return int(parts[1]) if len(parts) > 2 and parts[1].isdigit() else 0
+        return Response(services.rule_suggestions())
 
 
 def _member(handle):

@@ -11,6 +11,8 @@ from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
 
+from apps.core.models import ERASED_MEMBER
+
 from .models import Appeal, MemberAction
 
 
@@ -33,13 +35,13 @@ def _staff_link(path, label):
 class MemberActionAdmin(RecordAdmin):
     """The moderation log: every decision about a member, newest first."""
 
-    list_display = ("member", "decision", "rule", "created_at", "state", "created_by")
+    list_display = ("member_name", "decision", "rule", "created_at", "state", "created_by")
     list_filter = ("kind", ("reversed_at", admin.EmptyFieldListFilter), "created_at")
     search_fields = ("member__display_name", "rule")
     date_hierarchy = "created_at"
     list_select_related = ("member", "created_by")
     fields = (
-        "member",
+        "member_name",
         "kind",
         "rule",
         "reason",
@@ -58,6 +60,7 @@ class MemberActionAdmin(RecordAdmin):
         label={
             "Warning": "warning",
             "Remove content": "warning",
+            "Remove all feed content": "warning",
             "Feed suspension": "danger",
             "Event suspension": "danger",
             "Ban": "danger",
@@ -74,8 +77,14 @@ class MemberActionAdmin(RecordAdmin):
             return "Reversed"
         return "In force" if obj.is_in_force() else "Ended"
 
+    @display(description="Member", ordering="member__display_name")
+    def member_name(self, obj):
+        return obj.member_label
+
     @display(description="Staff section")
     def open_in_staff(self, obj):
+        if obj.member is None:
+            return ERASED_MEMBER
         return _staff_link(f"/members/staff/members/{obj.member.display_name}", "Open the member")
 
 
@@ -110,7 +119,7 @@ class AppealAdmin(RecordAdmin):
 
     @display(description="Member")
     def member(self, obj):
-        return obj.action.member
+        return obj.action.member_label
 
     @display(description="Decision appealed")
     def decision(self, obj):

@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Who sent report {{ report.pk }} | Rose{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="rose-stack rose-narrow">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Who sent report {{ report.pk }}</h1>
+    <p class="rose-subtle">A report about {{ member.display_name }}, {{ report.created_at|date:"M j, Y" }}: {{ report.get_reason_display }}.</p>
+  </header>
+  {% if revealed %}
+  <section class="rose-card" aria-labelledby="revealed">
+    <h2 id="revealed" class="rose-section-title">Sent by</h2>
+    <p>{% if revealed.display_name %}{{ revealed.display_name }}{% elif revealed.contact_email %}{{ revealed.contact_email }} (from the website){% else %}Nobody left a name or address.{% endif %}</p>
+    <p class="rose-help">This was logged with your name and the time. Never tell the member who reported them.</p>
+  </section>
+  {% else %}
+  <form method="post" class="rose-card rose-form" aria-label="Reveal who sent the report">{% csrf_token %}
+    <p>Members are promised their reports stay private. Reveal who sent this one only when you need to, for example to keep someone safe. It is logged with your name and the time.</p>
+    <div class="rose-buttons"><button type="submit" class="rose-button-danger">Reveal</button></div>
+  </form>
+  {% endif %}
+  <p><a class="rose-link" href="{{ back }}">Back to {{ member.display_name }}</a></p>
+</div>
+{% endblock %}

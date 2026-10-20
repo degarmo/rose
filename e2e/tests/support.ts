@@ -24,6 +24,8 @@ export interface Fixtures {
       moderation: { reporter: string; author: string; author_handle: string; post: string; banned_handle: string; banned_code: string }
       /** A paid member already in the feed with no ID check on file (it waits for one). */
       age_check: { email: string; handle: string; code: string }
+      /** Three members in the feed with running memberships, for the admin's Members actions. */
+      user_actions: Array<{ email: string; handle: string; code: string }>
     }
   >
   team: Record<'moderator' | 'admin', { email: string; totp_secret: string }>
@@ -133,7 +135,7 @@ export async function seriousA11yViolations(page: Page) {
 
 /** A code that has not been used yet: the server refuses a code twice in its 30 seconds.
  * The last code per key is kept in a file, because each project runs in its own worker. */
-async function freshCode(secret: string): Promise<string> {
+export async function freshCode(secret: string): Promise<string> {
   const used = (existsSync(LAST_CODE_FILE) ? JSON.parse(readFileSync(LAST_CODE_FILE, 'utf8') || '{}') : {}) as Record<string, string>
   let code = totp(secret)
   while (code === used[secret]) {

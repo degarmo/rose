@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.two_step import fresh_code
 from apps.core.models import AuditLog, audit
 
 from .access import AGE_CHECK_CACHE_KEY, FEED, entitlements, is_age_verified
@@ -153,19 +154,6 @@ def can_change_setting(user):
     return roles.has_role(user, roles.ADMIN)
 
 
-def _fresh_code(user, code):
-    """A code from the person's own authenticator app, never used before (django-otp keeps
-    the last one it accepted, and throttles wrong guesses)."""
-    from django_otp.plugins.otp_totp.models import TOTPDevice
-
-    code = (code or "").strip().replace(" ", "")
-    if not code.isdigit():
-        return False
-    return any(
-        device.verify_token(code) for device in TOTPDevice.objects.filter(user=user, confirmed=True)
-    )
-
-
 def _on_off(value):
     return "On" if value else "Off"
 
@@ -183,7 +171,7 @@ def set_age_check_required(actor, required, reason, code):
     reason = (reason or "").strip()
     if not reason:
         raise AgeCheckError("Give a reason for the change.")
-    if not _fresh_code(actor, code):
+    if not fresh_code(actor, code):
         raise AgeCheckError("That code did not work. Use a new code from your authenticator app.")
     site = SiteSettings.objects.select_for_update().get(pk=SiteSettings.load().pk)
     old = site.require_age_verification_for_feed

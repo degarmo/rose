@@ -97,7 +97,7 @@ def test_account_deletion_runs_the_same_erase(busy_member, monkeypatch):
         calls.append(user.pk)
         return original(user)
 
-    monkeypatch.setattr("apps.accounts.views.erase_feed_data", spy)
+    monkeypatch.setattr("apps.accounts.erasure.erase_feed_data", spy)
     response = client.post("/api/account/delete/", {"password": PASSWORD}, format="json")
     assert response.status_code == 200
     assert calls == [member.pk]

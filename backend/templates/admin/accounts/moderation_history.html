@@ -1,0 +1,52 @@
+<div class="rose-stack">
+  <section aria-labelledby="history-actions">
+    <h3 id="history-actions" class="rose-section-title">Decisions</h3>
+    {% if actions %}
+    <div class="rose-table-wrap">
+      <table class="rose-table">
+        <thead><tr><th scope="col">Decision</th><th scope="col">Rule</th><th scope="col">Reason</th><th scope="col">When</th><th scope="col">State</th><th scope="col">Appeal</th></tr></thead>
+        <tbody>
+          {% for action in actions %}
+          <tr>
+            <th scope="row">{{ action.get_kind_display }}<span class="rose-subtle">by {{ action.created_by|default:"system" }}</span></th>
+            <td>{{ action.rule }}</td>
+            <td>{{ action.reason }}</td>
+            <td>{{ action.created_at|date:"M j, Y" }}{% if action.ends_at %}<span class="rose-subtle">until {{ action.ends_at|date:"M j, Y" }}</span>{% endif %}</td>
+            <td>{% if action.reversed_at %}<span class="rose-chip">Reversed</span><span class="rose-subtle">{{ action.reversal_reason }}</span>{% elif action.is_in_force %}<span class="rose-chip rose-chip-alert">In force</span>{% else %}<span class="rose-chip">Ended</span>{% endif %}</td>
+            <td>{% with appeal=action.appeal %}{% if appeal %}{{ appeal.get_status_display }}{% else %}-{% endif %}{% endwith %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="rose-help">To reverse one decision, or decide an appeal, <a class="rose-link" href="{{ staff_page }}">open the member in the staff section</a>.</p>
+    {% else %}
+    <p class="rose-subtle">No warnings, suspensions, bans or removals.</p>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="history-reports">
+    <h3 id="history-reports" class="rose-section-title">Reports about them</h3>
+    {% if reports %}
+    <div class="rose-table-wrap">
+      <table class="rose-table">
+        <thead><tr><th scope="col">Report</th><th scope="col">About</th><th scope="col">Reason</th><th scope="col">Status</th><th scope="col">Sent by</th></tr></thead>
+        <tbody>
+          {% for report in reports %}
+          <tr>
+            <th scope="row">{{ report.pk }}<span class="rose-subtle">{{ report.created_at|date:"M j, Y" }}</span></th>
+            <td>{{ report.get_target_type_display }}</td>
+            <td>{{ report.get_reason_display }}</td>
+            <td>{{ report.get_status_display }}</td>
+            <td>Hidden{% if can_reveal %} · <a class="rose-link" href="{% url 'admin:accounts_user_reveal_reporter' member.pk report.pk %}">Reveal</a>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="rose-help">Who sent a report stays hidden. {% if can_reveal %}Revealing it is logged.{% else %}Only an admin can reveal it, and that is logged.{% endif %}</p>
+    {% else %}
+    <p class="rose-subtle">No reports about them.</p>
+    {% endif %}
+  </section>
+</div>

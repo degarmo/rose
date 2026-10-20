@@ -1067,3 +1067,37 @@ a.rose-banner:hover {
     font-size: 13px;
   }
 }
+
+/* The members actions' confirmation page: the names, and errors under a field. */
+.rose-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rose-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.rose-field-error {
+  color: #a31f1f;
+  font-size: 13px;
+  font-weight: 600;
+}
+.dark .rose-field-error {
+  color: #f87171;
+}
+
+/* A member's Moderation history and Membership tabs: the tab already names them, so the
+   tables take the whole width instead of sitting beside a label. */
+.fieldset-moderation-history .field-line > div:first-child,
+.fieldset-membership .field-line > div:first-child {
+  display: none;
+}
+.fieldset-moderation-history .readonly,
+.fieldset-membership .readonly {
+  max-width: none;
+}

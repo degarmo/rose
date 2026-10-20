@@ -59,6 +59,18 @@ def verify(user, token):
     return None
 
 
+def fresh_code(user, code):
+    """A code from the person's own authenticator app, never used before (django-otp keeps
+    the last one it accepted, and throttles wrong guesses). For confirming a serious change
+    on top of the session's two-step login; backup codes do not count."""
+    code = clean(code or "")
+    if not code.isdigit():
+        return False
+    return any(
+        device.verify_token(code) for device in TOTPDevice.objects.filter(user=user, confirmed=True)
+    )
+
+
 def remove(user):
     TOTPDevice.objects.filter(user=user).delete()
     StaticDevice.objects.filter(user=user).delete()

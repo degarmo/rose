@@ -28,6 +28,13 @@ def _images(request):
     return can_review_images(request.user)
 
 
+def _members(request):
+    """The team (Moderator and up) works from the Members list."""
+    from apps.accounts.admin import sees_members
+
+    return sees_members(request.user)
+
+
 def _superuser(request):
     return request.user.is_superuser
 
@@ -143,7 +150,7 @@ def _groups():
         {
             "title": "Members",
             "items": [
-                _model("Members", "users-round", "accounts", "user"),
+                _item("Members", "users-round", _changelist("accounts", "user"), _members),
                 _model("Memberships", "id-card", "memberships", "membership"),
                 _model("ID checks", "badge-check", "memberships", "idcheck"),
                 _model("Tiers", "layers", "memberships", "tier"),

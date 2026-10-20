@@ -245,6 +245,8 @@ def take_action(actor, member, data):
             else:
                 data.comment.status = FeedComment.Status.REMOVED
                 data.comment.save(update_fields=["status"])
+        elif data.kind == K.REMOVE_ALL_CONTENT:
+            action.removed_items = _remove_all_content(actor, member, action.reason)
         elif data.kind == K.FEED_SUSPENSION:
             action.ends_at = _ends_at(data, now)
             profile.feed_suspended_until = max(
@@ -282,20 +284,53 @@ def take_action(actor, member, data):
             ref=action.pk,
             reason=f"{action.rule}: {action.reason}",
         )
-        _tell_member(member, "A moderation decision about your account was recorded.")
+        tell_member(member, "A moderation decision about your account was recorded.")
     return action
 
 
-def _tell_member(member, message):
-    """An in-app notice that opens Settings > Notices, and a discreet email pointing there."""
+def _remove_all_content(actor, member, reason):
+    """Take down every post and comment of the member's that is still up. Returns the
+    status each had, so a reversal restores exactly these."""
+    removed = {"posts": {}, "comments": {}}
+    for post in FeedPost.objects.filter(author=member).exclude(status=FeedPost.Status.REMOVED):
+        removed["posts"][str(post.pk)] = post.status
+        post.status = FeedPost.Status.REMOVED
+        post.removed_reason = reason
+        post.removed_by = actor
+        post.save(update_fields=["status", "removed_reason", "removed_by"])
+    comments = FeedComment.objects.filter(author=member).exclude(status=FeedComment.Status.REMOVED)
+    for comment in comments:
+        removed["comments"][str(comment.pk)] = comment.status
+    comments.update(status=FeedComment.Status.REMOVED)
+    return removed
+
+
+def _restore_all_content(action):
+    """Put back what a "remove all feed content" took down, if it is still down."""
+    posts = action.removed_items.get("posts", {})
+    for post in FeedPost.objects.filter(pk__in=posts, status=FeedPost.Status.REMOVED):
+        post.status = posts[str(post.pk)]
+        post.removed_reason = ""
+        post.removed_by = None
+        post.save(update_fields=["status", "removed_reason", "removed_by"])
+    comments = action.removed_items.get("comments", {})
+    for comment in FeedComment.objects.filter(pk__in=comments, status=FeedComment.Status.REMOVED):
+        comment.status = comments[str(comment.pk)]
+        comment.save(update_fields=["status"])
+
+
+def tell_member(member, message):
+    """An in-app notice that opens Settings > Notices, and a discreet email pointing there:
+    "An update about your account", with the details only in the app."""
     details = "The details are in Settings, under Notices."
     notify(member, Notification.Kind.NOTICE, f"{message} {details}")
     address = member.email
     _on_commit(lambda: emails.account_update(address))
 
 
-def reverse_action(actor, action, reason):
-    """Undo an action. Only the log stays as it was."""
+def reverse_action(actor, action, reason, tell=True):
+    """Undo an action. Only the log stays as it was. `tell=False` leaves the notice to the
+    caller, which reverses several at once and tells the member once."""
     K = MemberAction.Kind
     if not reason.strip():
         raise SafetyError("reason", "Give a reason for reversing it.")
@@ -303,9 +338,13 @@ def reverse_action(actor, action, reason):
         raise SafetyError("reversed", "This action has already been reversed.")
     now = timezone.now()
     member = action.member
+    if member is None:
+        raise SafetyError("member", "This member's account was erased.")
     profile = member.profile
     with transaction.atomic():
-        if action.kind == K.REMOVE_CONTENT:
+        if action.kind == K.REMOVE_ALL_CONTENT:
+            _restore_all_content(action)
+        elif action.kind == K.REMOVE_CONTENT:
             target = action.post or action.comment
             if target is not None and target.status in (
                 FeedPost.Status.REMOVED,
@@ -346,8 +385,43 @@ def reverse_action(actor, action, reason):
             ref=action.pk,
             reason=action.reversal_reason,
         )
-        _tell_member(member, "A moderation decision about your account was reversed.")
+        if tell:
+            tell_member(member, "A moderation decision about your account was reversed.")
     return action
+
+
+SUSPENSIONS = (MemberAction.Kind.FEED_SUSPENSION, MemberAction.Kind.EVENT_SUSPENSION)
+
+
+def _reverse_all(actor, member, kinds, reason, nothing):
+    """Reverse every action of these kinds still in force, telling the member once."""
+    if not reason.strip():
+        raise SafetyError("reason", "Give a reason.")
+    in_force = [
+        action
+        for action in MemberAction.objects.filter(
+            member=member, kind__in=kinds, reversed_at__isnull=True
+        )
+        if action.is_in_force()
+    ]
+    if not in_force:
+        raise SafetyError("none", nothing)
+    with transaction.atomic():
+        for action in in_force:
+            reverse_action(actor, action, reason, tell=False)
+        tell_member(member, "A moderation decision about your account was reversed.")
+    return in_force
+
+
+def lift_suspensions(actor, member, reason):
+    """End the member's feed and event suspensions now."""
+    return _reverse_all(actor, member, SUSPENSIONS, reason, "No suspension is in force.")
+
+
+def unban(actor, member, reason):
+    """Reverse the member's bans: the feed and the door open again, and a blocked email
+    address may register again."""
+    return _reverse_all(actor, member, (MemberAction.Kind.BAN,), reason, "Not banned.")
 
 
 # Appeals
@@ -396,6 +470,8 @@ def may_decide(actor, appeal):
 def decide_appeal(actor, appeal, decision, note):
     if appeal.status != Appeal.Status.OPEN:
         raise SafetyError("decided", "This appeal has already been decided.")
+    if appeal.action.member_id is None:
+        raise SafetyError("member", "This member's account was erased.")
     if not may_decide(actor, appeal):
         raise SafetyError(
             "reviewer", "Someone other than the moderator who acted must review this appeal.", 403
@@ -410,7 +486,7 @@ def decide_appeal(actor, appeal, decision, note):
             appeal.status = Appeal.Status.REVERSED
         else:
             appeal.status = Appeal.Status.UPHELD
-            _tell_member(appeal.action.member, "Your appeal has been reviewed.")
+            tell_member(appeal.action.member, "Your appeal has been reviewed.")
         appeal.decided_by = actor
         appeal.decided_at = timezone.now()
         appeal.decision_note = note.strip()
@@ -425,6 +501,27 @@ def decide_appeal(actor, appeal, decision, note):
             reason=appeal.decision_note,
         )
     return appeal
+
+
+# Rules
+
+
+def rule_suggestions():
+    """What an action's rule can name: the house rules' titles and the guidelines."""
+    from apps.pages.content import page_entries
+
+    entries = page_entries("rules")
+    titles = [
+        entries[key]["value"]
+        for key in sorted(entries, key=_rule_order)
+        if key.startswith("rules.") and key.endswith(".title") and entries[key]["value"]
+    ]
+    return titles + ["Community guidelines", "Membership agreement"]
+
+
+def _rule_order(key):
+    parts = key.split(".")
+    return int(parts[1]) if len(parts) > 2 and parts[1].isdigit() else 0
 
 
 # Team

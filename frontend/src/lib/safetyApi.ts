@@ -55,7 +55,8 @@ export interface ReportSummary {
   from_website: boolean
 }
 
-export type ActionKind = 'warning' | 'remove_content' | 'feed_suspension' | 'event_suspension' | 'ban'
+/** `remove_all_content` is taken from the admin's Members page; it shows here once taken. */
+export type ActionKind = 'warning' | 'remove_content' | 'remove_all_content' | 'feed_suspension' | 'event_suspension' | 'ban'
 
 export interface AppealState {
   id: number

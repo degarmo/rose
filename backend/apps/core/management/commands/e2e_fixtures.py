@@ -205,6 +205,7 @@ class Command(BaseCommand):
                 "events": events,
                 "moderation": self.moderation_subjects(viewport, guidelines, now),
                 "age_check": self.unchecked_member(viewport, guidelines, now),
+                "user_actions": self.action_subjects(viewport, guidelines, now),
             }
 
         data["showcase"] = self.showcase(now, guidelines)
@@ -229,6 +230,30 @@ class Command(BaseCommand):
         profile.save(update_fields=["joined_feed_at", "updated_at"])
         profile.set_feed_participation(True)
         return {"email": user.email, "handle": user.display_name, "code": membership.reference_code}
+
+    def action_subjects(self, viewport, guidelines, now):
+        """Three members in the feed, each with a running membership, for the admin's
+        Members actions: suspended together, lifted together, then one banned."""
+        subjects = []
+        for n in range(1, 4):
+            user = reset_user(
+                f"e2e.{viewport}.subject{n}@example.org", f"e2e_{viewport}_subject{n}"
+            )
+            membership = Membership.objects.create(
+                user=user, tier=Tier.objects.get(slug="rose"), status=Membership.Status.ACTIVE
+            )
+            membership.start_new_period(now)
+            membership.save()
+            IdCheck.objects.create(user=user, membership=membership)
+            feed_services.join_feed(user, guidelines.version)
+            subjects.append(
+                {
+                    "email": user.email,
+                    "handle": user.display_name,
+                    "code": membership.reference_code,
+                }
+            )
+        return subjects
 
     def moderation_subjects(self, viewport, guidelines, now):
         """A member who reports, a member with a post to report, and one with a membership

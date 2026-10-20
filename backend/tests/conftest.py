@@ -304,6 +304,27 @@ def staff_login(client, user):
     return client
 
 
+def fresh_code(user):
+    """The current code from this person's authenticator (staff_login made the device)."""
+    import time
+
+    from django_otp.oath import TOTP
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    device = TOTPDevice.objects.get(user=user, confirmed=True)
+    totp = TOTP(device.bin_key, device.step, device.t0, device.digits, device.drift)
+    totp.time = time.time()
+    return f"{totp.token():0{device.digits}d}"
+
+
+def next_window(user):
+    """As if the next 30-second code window had come: the last code used no longer blocks
+    the current one (django-otp refuses a code it has already accepted)."""
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    TOTPDevice.objects.filter(user=user).update(last_t=-1)
+
+
 @pytest.fixture
 def admin_client(admin_user):
     """pytest-django's admin_client (its own Client), plus a verified second step."""

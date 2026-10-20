@@ -77,12 +77,27 @@ def send_password_changed_email(user_id):
 
 
 @shared_task
-def send_account_deleted_email(email):
-    body = (
-        "Your account has been closed and your details removed, as you asked.\n\n"
-        "Thank you for being part of the community.\n"
-    )
+def send_account_deleted_email(email, by_staff=False):
+    if by_staff:
+        body = "Your account has been closed and your details removed by our team.\n"
+    else:
+        body = (
+            "Your account has been closed and your details removed, as you asked.\n\n"
+            "Thank you for being part of the community.\n"
+        )
     send_neutral_mail(DELETED_SUBJECT, body, to=[email])
+
+
+@shared_task
+def erase_account(user_id):
+    """Staff's "Erase account": the same routine as the member's own Delete account."""
+    from .erasure import erase_account as erase
+
+    user = User.objects.filter(pk=user_id).first()
+    if user is None:
+        return
+    email = erase(user)
+    send_account_deleted_email(email, by_staff=True)
 
 
 @shared_task
