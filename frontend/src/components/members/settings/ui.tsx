@@ -241,14 +241,18 @@ export function FeedOnlyNote({ icon, title, children }: { icon: LucideIcon; titl
       icon={icon}
       title={title}
       action={
-        app === 'paused' ? undefined : (
+        app === 'paused' || app === 'verify' ? undefined : (
           <Link to={app === 'join' ? '/members/join-feed' : '/membership'} className={appButtonClasses(app === 'join' ? 'primary' : 'secondary')}>
             {app === 'join' ? 'Join the member feed' : 'See plans with the feed'}
           </Link>
         )
       }
     >
-      {app === 'paused' ? 'Your feed access is paused. These come back when it reopens.' : children}
+      {app === 'paused'
+        ? 'Your feed access is paused. These come back when it reopens.'
+        : app === 'verify'
+          ? 'These come with the member feed, which opens after your ID check at your next visit.'
+          : children}
     </EmptyNote>
   )
 }

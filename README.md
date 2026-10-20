@@ -200,7 +200,9 @@ Admin > Feed > Announcements. Its design is in `docs/design-system.md` under "Me
   watch active become grace and then expired.
 - **Importing existing members**: `python manage.py import_members members.csv` checks the
   file (columns `email,display_name,tier_slug,period_end,id_checked`) and writes nothing.
-  Add `--commit` to import. Any problem row stops the whole import. Each person gets a neutral
+  Add `--commit` to import. Any problem row stops the whole import. Rows with `id_checked=no`
+  import as waiting for an ID check at the door desk: not active, nothing included, and no
+  member feed until the check (the dry run counts both kinds). Each person gets a neutral
   "Your account is ready" email. Email addresses are only printed with DEBUG on.
 
 ## Guests, rentals, volunteers, giving and the email list

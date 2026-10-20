@@ -26,7 +26,7 @@ def _when(moment):
     return moment.isoformat() if moment else None
 
 
-def card_payload(row):
+def card_payload(row, staff):
     m = row["membership"]
     tier = m.tier
     flags = row["flags"]
@@ -51,6 +51,8 @@ def card_payload(row):
         "paid_awaiting_id_check": m.paid_awaiting_id_check,
         "period_end": _when(m.current_period_end),
         "events_remaining": row["events_remaining"],
+        "team_account": row["team_account"],
+        "is_you": m.user_id == staff.pk,
         "do_not_admit": flags["do_not_admit"],
         "events_suspended_until": _when(flags["events_suspended_until"]),
         "default_amount": row["default_amount"],
@@ -71,6 +73,21 @@ def card_payload(row):
     }
 
 
+def person_payload(row, staff):
+    user = row["person"]
+    flags = row["flags"]
+    return {
+        "id": user.pk,
+        "display_name": user.display_name,
+        "team_account": row["team_account"],
+        "feed_granted": row["feed_granted"],
+        "is_you": user.pk == staff.pk,
+        "id_checked": row["id_checked"],
+        "do_not_admit": flags["do_not_admit"],
+        "actions": row["actions"],
+    }
+
+
 class DoorDeskView(APIView):
     authentication_classes = [SessionWithoutCsrf]
     write_limit = "ACCOUNT_WRITE_RATE_LIMIT"
@@ -85,15 +102,33 @@ class DoorDeskView(APIView):
 
     def get(self, request):
         query = request.query_params.get("q", "")
-        rows = [desk.card(m) for m in desk.find_memberships(query)]
+        needs_id = request.query_params.get("needs_id") == "1"
+        if needs_id:
+            memberships, people = desk.needing_id_check()
+        else:
+            memberships, people = desk.find_memberships(query), desk.find_people(query)
+        rows = [desk.card(m) for m in memberships]
+        persons = [desk.person_card(user) for user in people]
         guest = any(row["is_guest_pass"] for row in rows)
+        mine = any(user.pk == request.user.pk for user in people) or any(
+            row["membership"].user_id == request.user.pk for row in rows
+        )
         return Response(
             {
                 "query": query,
-                "results": [card_payload(row) for row in rows],
+                "needs_id": needs_id,
+                "results": [card_payload(row, request.user) for row in rows],
+                "people": [person_payload(row, request.user) for row in persons],
+                # Only for checking your own ID: everyone else on the team, as witnesses.
+                "witnesses": [
+                    {"id": user.pk, "display_name": user.display_name}
+                    for user in desk.witnesses_for(request.user)
+                ]
+                if mine
+                else [],
                 "tonight_events": [
                     {"id": event.pk, "title": event.title, "starts_at": _when(event.starts_at)}
-                    for event in (desk.tonight_events() if rows else [])
+                    for event in (desk.tonight_events() if rows and not needs_id else [])
                 ],
                 "donation_methods": [
                     {"value": value, "label": label} for value, label in desk.DONATION_METHODS

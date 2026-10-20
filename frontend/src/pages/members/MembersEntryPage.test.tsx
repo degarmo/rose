@@ -74,6 +74,9 @@ describe('getting into the app', () => {
     expect(landingAfterLogin(owner, '/events/x', '/events/x')).toBe('/events/x')
     expect(memberAppPath({ member_app: 'open' })).toBe('/members/feed')
     expect(memberAppPath({ member_app: 'join' })).toBe('/members/join-feed')
+    // Waiting for the age check: Home, where the verify card is.
+    expect(memberAppPath({ member_app: 'verify' })).toBe('/members/home')
+    expect(landingAfterLogin({ member_app: 'verify', staff: null }, null, '/members/home')).toBe('/members/home')
     expect(memberAppPath({ member_app: null })).toBe('/members/home')
   })
 })

@@ -21,6 +21,7 @@
       <button type="submit" class="rose-button">Search</button>
       <button type="button" class="rose-button-secondary" id="desk-scan">Scan QR</button>
     </div>
+    <p class="rose-desk-filter">{% if needs_id %}<span class="rose-chip rose-chip-alert">Showing: needs ID check</span> <a class="rose-link" href="?">Show all</a>{% else %}<a class="rose-link" href="?needs_id=1">Needs ID check</a>{% endif %}</p>
     <div class="rose-desk-camera" id="desk-camera" hidden>
       <video id="desk-video" playsinline muted></video>
       <p id="desk-camera-status" class="rose-subtle">Point the camera at the member's code.</p>
@@ -28,12 +29,12 @@
     </div>
   </form>
 
-  {% if searched and not results %}<p class="rose-card rose-subtle">Nothing found for “{{ query }}”.</p>{% endif %}
+  {% if searched and not results and not people %}<p class="rose-card rose-subtle">{% if needs_id %}Nobody is waiting for an ID check.{% else %}Nothing found for “{{ query }}”.{% endif %}</p>{% endif %}
 
   <details class="rose-card rose-disclosure">
     <summary>Record a donation</summary>
     <form method="post" class="rose-form">{% csrf_token %}
-      <input type="hidden" name="q" value="{{ query }}">
+      <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}
       <div class="rose-form-row">
         <div class="rose-field"><label for="donation-method">Method</label><select id="donation-method" name="method">{% for value, label in donation_methods %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
         <div class="rose-field"><label for="donation-amount">Amount</label><input id="donation-amount" name="amount" inputmode="decimal" required></div>
@@ -76,7 +77,7 @@
     <p class="rose-desk-signature">Signature name: <strong>{{ r.signature_name }}</strong> <span class="rose-subtle">(this view was logged)</span></p>
     {% else %}
     <form method="post">{% csrf_token %}
-      <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+      <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
       <button name="action" value="show_signature" class="rose-button-secondary">Show signature name</button>
     </form>
     {% endif %}
@@ -84,7 +85,7 @@
     <div class="rose-desk-actions">
       {% if "guest_visit" in r.actions %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Guest visit</h3>
         {% include "admin/memberships/desk_payment_fields.html" %}
         <button name="action" value="guest_visit" class="rose-button">Record payment, in for tonight</button>
@@ -101,7 +102,7 @@
 
       {% if "activate_paid" in r.actions %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Check ID and activate</h3>
         {% if not r.id_checked %}<label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
         <button name="action" value="activate_paid" class="rose-button">Activate</button>
@@ -110,7 +111,7 @@
 
       {% if "activate" in r.actions %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Record payment and activate</h3>
         {% include "admin/memberships/desk_payment_fields.html" %}
         <button name="action" value="activate" class="rose-button">Record payment and activate</button>
@@ -119,7 +120,7 @@
 
       {% if "walk_in" in r.actions and tonight_events %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Check in tonight</h3>
         <div class="rose-form-row">
           <div class="rose-field"><label for="event-{{ m.pk }}">Event</label><select id="event-{{ m.pk }}" name="event">{% for event in tonight_events %}<option value="{{ event.pk }}">{{ event.title }} ({{ event.starts_at|time:"g:i A" }})</option>{% endfor %}</select></div>
@@ -131,16 +132,16 @@
 
       {% if "renew" in r.actions %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Renew</h3>
-        {% include "admin/memberships/desk_payment_fields.html" with no_id=True %}
+        {% include "admin/memberships/desk_payment_fields.html" %}
         <button name="action" value="renew" class="rose-button">Renew</button>
       </form>
       {% endif %}
 
       {% if "comp" in r.actions %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Complimentary membership</h3>
         <div class="rose-field"><label for="comp-{{ m.pk }}">Reason</label><input id="comp-{{ m.pk }}" name="reason" maxlength="300" required></div>
         {% if not r.id_checked %}<label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
@@ -150,7 +151,7 @@
 
       {% if "suspend" in r.actions %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Suspend</h3>
         <div class="rose-field"><label for="suspend-{{ m.pk }}">Reason</label><input id="suspend-{{ m.pk }}" name="reason" maxlength="300" required></div>
         <button name="action" value="suspend" class="rose-button-danger">Suspend</button>
@@ -159,11 +160,35 @@
 
       {% if "reinstate" in r.actions %}
       <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
-        <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="membership" value="{{ m.pk }}">
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
         <h3>Reinstate</h3>
         <div class="rose-field"><label for="reinstate-{{ m.pk }}">Reason</label><input id="reinstate-{{ m.pk }}" name="reason" maxlength="300" required></div>
+        {% if not r.id_checked %}<label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>{% endif %}
         <button name="action" value="reinstate" class="rose-button">Reinstate</button>
       </form>
+      {% endif %}
+
+      {% if "verify" in r.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
+        <h3>ID check only</h3>
+        <p class="rose-help">Opens the member feed if their plan includes it. Nothing else changes.</p>
+        {% if m.user_id == request.user.pk %}{% include "admin/memberships/desk_witness_field.html" with key=m.pk %}{% endif %}
+        <label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>
+        <button name="action" value="verify" class="rose-button">Record ID check</button>
+      </form>
+      {% endif %}
+
+      {% if "revoke" in r.actions %}
+      <details class="rose-desk-form rose-disclosure">
+        <summary>Revoke the ID check</summary>
+        <form method="post" class="rose-form">{% csrf_token %}
+          <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="membership" value="{{ m.pk }}">
+          <p class="rose-help">The member feed closes at once. The reason goes in the log.</p>
+          <div class="rose-field"><label for="revoke-{{ m.pk }}">Reason</label><input id="revoke-{{ m.pk }}" name="reason" maxlength="300" required></div>
+          <button name="action" value="revoke" class="rose-button-danger">Revoke</button>
+        </form>
+      </details>
       {% endif %}
     </div>
 
@@ -176,7 +201,7 @@
         <strong>${{ p.amount_display }}</strong>
         {% if p.status == "succeeded" and p.method != "comp" %}
         <form method="post" class="rose-desk-refund">{% csrf_token %}
-          <input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="payment" value="{{ p.pk }}">
+          <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="payment" value="{{ p.pk }}">
           <input class="rose-input" name="amount" inputmode="decimal" placeholder="Amount" aria-label="Refund amount" required>
           <button name="action" value="refund" class="rose-button-secondary">Refund</button>
         </form>
@@ -185,6 +210,44 @@
       {% endfor %}
     </ul>
     {% endif %}
+  </section>
+  {% endwith %}
+  {% endfor %}
+
+  {% for p in people %}
+  {% with u=p.person %}
+  <section class="rose-card rose-desk-card{% if p.flags.do_not_admit %} rose-desk-barred{% endif %}" aria-labelledby="person-{{ u.pk }}">
+    {% if p.flags.do_not_admit %}<p class="rose-alert" role="alert">Do not admit</p>{% endif %}
+    <header class="rose-desk-head">
+      <div>
+        <p class="rose-desk-code">No membership</p>
+        <h2 id="person-{{ u.pk }}" class="rose-desk-name">{{ u.display_name }}</h2>
+      </div>
+      <div class="rose-desk-chips">
+        {% if p.team_account %}<span class="rose-chip">Team</span>{% endif %}
+        {% if p.feed_granted %}<span class="rose-chip">{% if p.id_checked %}Feed granted{% else %}Granted, awaiting ID check{% endif %}</span>{% endif %}
+        {% if p.id_checked %}<span class="rose-chip rose-chip-open">ID verified</span>{% else %}<span class="rose-chip rose-chip-alert">ID check needed</span>{% endif %}
+      </div>
+    </header>
+    <div class="rose-desk-actions">
+      {% if "verify" in p.actions %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="person" value="{{ u.pk }}">
+        <h3>Record ID check</h3>
+        {% if u.pk == request.user.pk %}{% include "admin/memberships/desk_witness_field.html" with key=u.pk %}{% endif %}
+        <label class="rose-check"><input type="checkbox" name="id_checked" required> Photo ID checked, 18+</label>
+        <button name="action" value="verify" class="rose-button">Record ID check</button>
+      </form>
+      {% else %}
+      <form method="post" class="rose-form rose-desk-form">{% csrf_token %}
+        <input type="hidden" name="q" value="{{ query }}">{% if needs_id %}<input type="hidden" name="needs_id" value="1">{% endif %}<input type="hidden" name="person" value="{{ u.pk }}">
+        <h3>Revoke the ID check</h3>
+        <p class="rose-help">The member feed closes at once. The reason goes in the log.</p>
+        <div class="rose-field"><label for="revoke-person-{{ u.pk }}">Reason</label><input id="revoke-person-{{ u.pk }}" name="reason" maxlength="300" required></div>
+        <button name="action" value="revoke" class="rose-button-danger">Revoke</button>
+      </form>
+      {% endif %}
+    </div>
   </section>
   {% endwith %}
   {% endfor %}

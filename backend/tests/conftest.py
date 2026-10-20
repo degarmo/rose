@@ -146,9 +146,17 @@ def private_root(settings, tmp_path):
     return root
 
 
+def verify_age(user, checked_by=None):
+    """Record the in-person age check the member feed needs (apps.memberships.access)."""
+    from apps.memberships.models import IdCheck
+
+    return IdCheck.objects.create(user=user, checked_by=checked_by)
+
+
 @pytest.fixture
 def make_member(make_user, private_root):
-    """A verified, entitled member who has joined the feed and accepted the guidelines."""
+    """A verified, entitled, age-checked member who has joined the feed and accepted the
+    guidelines."""
     from apps.feed import services
     from apps.feed.models import Guidelines
 
@@ -156,6 +164,7 @@ def make_member(make_user, private_root):
         user = make_user(**kwargs)
         user.profile.feed_access_granted = True
         user.profile.save()
+        verify_age(user)
         services.join_feed(user, Guidelines.current().version)
         user.refresh_from_db()
         return user
@@ -247,7 +256,7 @@ def make_membership(make_tier, make_user):
         if id_check is None:
             id_check = status != "pending_payment"
         if id_check:
-            IdCheck.objects.create(membership=membership)
+            IdCheck.objects.create(user=membership.user, membership=membership)
         return membership
 
     return make

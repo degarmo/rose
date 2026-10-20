@@ -41,6 +41,11 @@ function Reported({ report }: { report: ReportDetail }) {
               ))}
             </div>
           )}
+          {!!content.images_withheld && (
+            <p className="rounded-app bg-wait px-4 py-3 text-sm font-semibold text-wait-fg">
+              {content.images_withheld === 1 ? '1 picture is' : `${content.images_withheld} pictures are`} hidden until your own ID check is recorded at the door desk, with another team member as witness.
+            </p>
+          )}
           <p className="whitespace-pre-line">{content.caption || 'No caption.'}</p>
           <p className="text-sm text-fg-muted">Post status: {content.status?.replaceAll('_', ' ')}</p>
         </>

@@ -278,7 +278,7 @@ def _build(user, tier, kind, staff, now):
         return m
 
     m.save()
-    IdCheck.objects.create(membership=m, checked_by=staff)
+    IdCheck.objects.create(user=m.user, membership=m, checked_by=staff)
 
     if kind == "active":
         for months_ago in (2, 1, 0):

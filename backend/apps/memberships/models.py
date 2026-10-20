@@ -1,7 +1,7 @@
 """Paid membership. Payment records and membership status are sensitive.
 
 Never stored here: card data, ID numbers, dates of birth or ID images. An
-IdCheck records only that staff saw a valid photo ID showing 18+.
+IdCheck records only that staff saw a valid photo ID showing 18+, and who did.
 """
 
 import secrets
@@ -388,24 +388,49 @@ class Payment(models.Model):
 
 
 class IdCheck(models.Model):
-    """Only that a valid photo ID showing 18+ was seen, by whom and when. Nothing else."""
+    """Only that a valid photo ID showing 18+ was seen, by whom and when. Nothing else.
 
-    membership = models.ForeignKey(Membership, on_delete=models.CASCADE, related_name="id_checks")
+    It belongs to the person: one check opens the member feed (apps.memberships.access.
+    is_age_verified) and carries over to every later membership. `membership` is where it
+    was recorded, if anywhere; a team member's own check has none and needs a witness.
+    A check is never renewed. It can be revoked, with a reason, which closes the feed at
+    once; a revoked check stays as the record of what happened.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="id_checks"
+    )
+    membership = models.ForeignKey(
+        Membership, null=True, blank=True, on_delete=models.SET_NULL, related_name="id_checks"
+    )
     checked_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
     )
+    witnessed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="A second team member, for a check on a team account.",
+    )
     checked_at = models.DateTimeField(auto_now_add=True)
     verified_18_plus = models.BooleanField(default=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    revoke_reason = models.CharField(max_length=300, blank=True)
 
     class Meta:
         ordering = ["-checked_at"]
 
     def __str__(self):
-        return f"ID check for {self.membership.reference_code}"
+        return f"ID check {self.pk}"
 
-
-def has_id_check(user):
-    return IdCheck.objects.filter(membership__user=user, verified_18_plus=True).exists()
+    @classmethod
+    def valid(cls):
+        return cls.objects.filter(verified_18_plus=True, revoked_at__isnull=True)
 
 
 class WebhookEvent(models.Model):

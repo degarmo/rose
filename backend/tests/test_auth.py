@@ -165,6 +165,7 @@ def test_login_success_starts_session(csrf_client, make_user):
         "feed_access": False,
         "feed_controls": False,
         "member_app": None,
+        "age_check": {"verified": False, "needed": False, "notice": False},
         "staff": None,
         "calendar_details": False,
         "unread_notices": 0,

@@ -49,5 +49,6 @@ export function MembersEntryPage() {
   const user = auth.user
   if (user?.member_app === 'open') return <Navigate to="/members/feed" replace />
   if (user?.member_app === 'join') return <Navigate to="/members/join-feed" replace />
+  if (user?.member_app === 'verify') return <Navigate to="/members/home" replace />
   return <SiteFrame>{user ? <Explanation paused={user.member_app === 'paused'} /> : <NotFoundPage />}</SiteFrame>
 }

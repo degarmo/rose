@@ -1,13 +1,15 @@
 """Who may see and use the member feed. Every feed view and page calls these.
 
 The entitlement comes from apps.memberships.access.entitlements(): a tier that
-grants feed access, or the staff grant for comped members and volunteers.
+grants feed access, the staff grant for comped members and volunteers, a staff
+account or a superuser. Whichever it is, nobody gets in without an in-person age
+check (is_age_verified): no exceptions for the team.
 """
 
 from django.http import Http404
 from django.utils import timezone
 
-from apps.memberships.access import FEED, entitlements
+from apps.memberships.access import FEED, entitlements, is_age_verified
 
 GUIDELINES = "guidelines"
 COOLDOWN = "cooldown"
@@ -25,14 +27,26 @@ def has_feed_entitlement(user):
     return FEED in entitlements(user)
 
 
-def can_join_feed(user, now=None):
-    """Everything except having opted in: the bar for the join flow."""
+def _entitled_and_in_good_standing(user, now=None):
     profile = _profile(user)
     if profile is None or not user.email_verified:
         return False
     if profile.is_feed_banned or profile.is_feed_suspended(now):
         return False
     return has_feed_entitlement(user)
+
+
+def can_join_feed(user, now=None):
+    """Everything except having opted in: the bar for the join flow."""
+    return _entitled_and_in_good_standing(user, now) and is_age_verified(user)
+
+
+def awaiting_age_check(user, now=None):
+    """Entitled to the feed and in good standing, but nobody has checked their ID yet.
+
+    They see the verify card and may accept the guidelines in advance; the feed itself
+    stays a 404 until staff record the check."""
+    return _entitled_and_in_good_standing(user, now) and not is_age_verified(user)
 
 
 def can_view_feed(user, now=None):
@@ -75,3 +89,13 @@ def require_feed(user):
     """404, never 403, so the feed's existence is not confirmed."""
     if not can_view_feed(user):
         raise Http404
+
+
+def feed_access_label(user):
+    """How staff see someone's feed access: where it stands, never why. None without one."""
+    if not has_feed_entitlement(user):
+        return None
+    granted = user.profile.feed_access_granted
+    if not is_age_verified(user):
+        return "Granted, awaiting ID check" if granted else "Awaiting ID check"
+    return "Granted" if granted else "Included"

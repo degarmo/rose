@@ -6,8 +6,8 @@ from datetime import timedelta
 from django.conf import settings
 from rest_framework import serializers
 
-from .access import events_remaining
-from .models import Membership, MembershipAgreement, Payment, Tier, has_id_check
+from .access import events_remaining, is_age_verified
+from .models import Membership, MembershipAgreement, Payment, Tier
 
 
 class TierSerializer(serializers.ModelSerializer):
@@ -121,7 +121,7 @@ class MyMembershipSerializer(serializers.ModelSerializer):
         return obj.source == Membership.Source.PROVIDER and bool(obj.provider_subscription_ref)
 
     def get_id_checked(self, obj):
-        return has_id_check(obj.user)
+        return is_age_verified(obj.user)
 
     def get_last_payment_failed(self, obj):
         latest = obj.payments.exclude(status=Payment.Status.REFUNDED).first()

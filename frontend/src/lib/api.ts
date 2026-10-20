@@ -286,6 +286,14 @@ function query(params: Record<string, string | undefined>): string {
   return result ? `?${result}` : ''
 }
 
+export interface AgeCheck {
+  verified: boolean
+  /** Not checked yet, and the check would unlock something: show the verify card. */
+  needed: boolean
+  /** They had the member feed before it asked for an ID check. */
+  notice: boolean
+}
+
 export interface Account {
   display_name: string
   email: string
@@ -298,8 +306,13 @@ export interface Account {
   feed_access: boolean
   /** Settings has feed controls for them (entitled, or with feed history). */
   feed_controls: boolean
-  /** "open": the app opens now; "join": after joining; "paused": a suspension or ban; null: not theirs. */
-  member_app: 'open' | 'join' | 'paused' | null
+  /**
+   * "open": the app opens now; "join": after joining; "verify": entitled, but waiting for the
+   * in-person age check; "paused": a suspension or ban; null: not theirs.
+   */
+  member_app: 'open' | 'join' | 'verify' | 'paused' | null
+  /** The in-person age check the member feed needs. `needed` shows the verify card. */
+  age_check: AgeCheck
   /** Team members only: their role and whether this session passed the staff two-step login. */
   staff: StaffSession | null
   /** Calendar files name the event and place (off: the generic "Rose - Evening"). */

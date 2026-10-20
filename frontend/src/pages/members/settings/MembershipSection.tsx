@@ -5,6 +5,7 @@ import { useAuth } from '@/components/layout/authContext'
 import { ConfirmDialog } from '@/components/members/ConfirmDialog'
 import { AppButton } from '@/components/members/app/primitives'
 import { appButtonClasses } from '@/components/members/app/ui'
+import { AgeCheckCard } from '@/components/members/settings/AgeCheckCard'
 import { MembershipCard, NoMembership } from '@/components/members/settings/MembershipCard'
 import { Card, EmptyNote, LoadError, Skeleton, StatusChip, SwitchRow } from '@/components/members/settings/ui'
 import { UpcomingPlans } from '@/components/members/settings/UpcomingPlans'
@@ -119,6 +120,7 @@ function MembershipDetails({ payload, onChange }: { payload: MembershipPayload; 
 
       <MembershipCard
         membership={membership}
+        showCode={!auth.user?.age_check.needed}
         footer={
           <div className="flex flex-wrap gap-2 border-t border-border pt-4">
             <Link to="/membership" className={appButtonClasses('primary')}>
@@ -216,6 +218,7 @@ export function MembershipSection() {
         </div>
       )}
       {state.status === 'error' && !override && <LoadError title="Your membership did not load" onRetry={state.retry} />}
+      {payload && <AgeCheckCard membership={payload.membership} />}
       {payload && <MembershipDetails payload={payload} onChange={setOverride} />}
       <Card title="Upcoming plans">
         <UpcomingPlans />

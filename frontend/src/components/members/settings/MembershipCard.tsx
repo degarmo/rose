@@ -93,9 +93,10 @@ export function NoMembership() {
 
 /**
  * Your membership at a glance (Home and Settings): tier, status, when it renews or expires,
- * events left this month and, while it is open, the door code with its QR.
+ * events left this month and, while it is open, the door code with its QR (unless the age
+ * check card beside it already shows it: `showCode`).
  */
-export function MembershipCard({ membership, footer }: { membership: MyMembership; footer?: ReactNode }) {
+export function MembershipCard({ membership, footer, showCode = true }: { membership: MyMembership; footer?: ReactNode; showCode?: boolean }) {
   const running = membership.status === 'active' || membership.status === 'grace'
   const period = periodLine(membership)
   return (
@@ -114,7 +115,7 @@ export function MembershipCard({ membership, footer }: { membership: MyMembershi
           {running && <Line icon={Ticket}>{eventsLeftLabel(membership)}</Line>}
         </div>
       )}
-      {isOpen(membership) && <DoorCode code={membership.reference_code} />}
+      {showCode && isOpen(membership) && <DoorCode code={membership.reference_code} />}
       {footer}
     </article>
   )

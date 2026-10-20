@@ -86,6 +86,8 @@ class Command(BaseCommand):
             "     an authenticator app (scan the code, then keep the ten backup codes safe).\n"
             "  3. After that, Staff in the account menu leads to the dashboard, reports, the\n"
             "     door desk, the member app and the Django admin.\n"
+            "  4. The member feed opens once your own ID check is recorded at the door desk,\n"
+            "     with a second team member as witness, as it is for everyone.\n"
             "  For local development only, DEV_SKIP_STAFF_2FA=true (with DEBUG on) skips\n"
             "  step 2; staging and production refuse to start with it set.\n"
         )

@@ -48,7 +48,7 @@ security and restores are in `docs/ops/`.
 | `apps/donations` | `Donation` (append-only), `DonationCheckout` (a started online gift), `Acknowledgement`, `AcknowledgementTemplate`; `services.py` (online checkout through the payment layer, provider events, gifts at the door, acknowledgements), printable acknowledgement page, retention task. |
 | `apps/safety` | The team and moderation casework. `roles.py` (Moderator, Staff and Admin as groups; superusers are admins), `models.py` (`ReportNote`, `MemberAction`, `Appeal`, `BlockedEmail`), `services.py` (concerns, the report workflow, actions and their reversal, appeals, roles; every step logged), `metrics.py` (aggregates only, small numbers withheld), `api.py` (`StaffAPIView`: role and two-step check before anything else, 404 otherwise), the staff API, the member's notices and appeals, the concern form. |
 | `apps/newsletter` | The email list: `Subscriber`, `Suppression`, `Newsletter`; `services.py` (double opt-in, one-click leaving, batched sending with no tracking), the inbox preview, sending and suppression tasks. |
-| `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, MembershipUsage, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access; the tier rules: included events, events left this month, party limit), `usage.py` (the monthly event count and its purge), `join.py`, `desk.py` (door desk actions), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
+| `apps/memberships` | Paid membership. `models.py` (Tier, MembershipAgreement, AgreementSignature, Membership, MembershipUsage, Payment, IdCheck, WebhookEvent), `access.py` (`active_membership`, `entitlements`: the one source of paid access; the tier rules: included events, events left this month, party limit), `usage.py` (the monthly event count and its purge), `join.py`, `desk.py` (door desk actions), `age.py` (recording and revoking the in-person age check, with a witness for team accounts), `account.py` (member's own cancel and auto-renew), `lifecycle.py` (daily transitions and reminders), `providers/` (payment layer, see `docs/payments.md`), `admin.py` (Door desk, Membership summary, logged CSV export), `import_members` and `membership_clock` commands. |
 | `tests/` | pytest suite, including the attendee-identity sweep over every API route and a two-thread race for the last place. |
 
 ### API
@@ -124,7 +124,7 @@ security and restores are in `docs/ops/`.
 ```mermaid
 flowchart TD
     R[Request to /api/members/...] --> A{can_view_feed?}
-    A -- "no: anonymous, unverified, not entitled,\nopted out, suspended or banned" --> N[404, same as an unknown URL]
+    A -- "no: anonymous, unverified, not entitled, no age check,\nopted out, suspended or banned" --> N[404, same as an unknown URL]
     A -- yes --> C{Unsafe method?}
     C -- yes --> X{CSRF token valid?}
     X -- no --> F[403]
@@ -137,7 +137,9 @@ flowchart TD
 
     E{has_feed_entitlement} --> G[Profile.feed_access_granted by staff]
     E --> H[Active or grace membership whose tier grants the feed]
+    E --> K[A staff account or a superuser]
     A --- E
+    A --- AV{is_age_verified: a valid IdCheck, for everyone, the team included}
 ```
 
 ### Data model
@@ -242,6 +244,7 @@ flowchart LR
     M --> TR[tier rules on members-only events: included events, events per month, guests]
     TR --> R
     E --> F[feed.access.has_feed_entitlement: needs feed]
+    F --> AV[feed.access.can_join_feed: also needs is_age_verified]
     E --> O[education serializer: members_only needs members_education, else body and call to action withheld]
 ```
 
@@ -370,7 +373,8 @@ or exported what (decision 199).
 | feed | Watermarked copies | 7 days | `feed.tasks.purge_old_watermarks`. |
 | feed | Exports | 24 hours, single use | `feed.tasks.purge_expired_exports`. |
 | accounts | Where you are signed in (`AccountSession`) | Until logout, sign out everywhere, a password change, or the session lifetime | `accounts.tasks.purge_stale_sessions` daily. A hash of the session key and a "Safari on iPhone" label; never the IP address or the full browser string. |
-| memberships | Memberships, payments, ID checks | Kept (financial records) | Detached from the person when the account is deleted; the signature goes with the account. |
+| memberships | Memberships and payments | Kept (financial records) | Detached from the person when the account is deleted; the signature goes with the account. |
+| memberships | ID checks | Until the account is deleted | Belong to the person; a revoked check is kept, with its reason, as the record. |
 | memberships | Unpaid reference codes | `MEMBERSHIP_PENDING_EXPIRY_DAYS` (30) | Lifecycle expires them. |
 | safety | Member actions, appeals, notes | Kept | Moderation records; reversible, with every step in the audit log. |
 | safety | A website concern's email | Until the report is closed | Cleared when it is resolved or dismissed, after the neutral update. |
@@ -506,7 +510,9 @@ Check every change against this list.
 
 - [ ] **No card data, ID numbers, dates of birth or ID images, ever.** Card details stay with
       the processor's hosted checkout. `IdCheck` records only that staff saw a valid photo ID
-      showing 18+, who checked and when.
+      showing 18+, who checked (and who witnessed, for a team account), when, and whether it
+      was revoked and why. No upload path for IDs or selfies exists (decision 455);
+      `tests/test_age_check.py` checks the model's fields and the URL routes.
 - [ ] **Membership status and payments are self-only.** `/api/membership/me/` and receipts
       return only the caller's own; other people get `null` or 404. No endpoint lists members.
       `tests/test_membership_privacy.py` crawls every API route as the owner, someone else and

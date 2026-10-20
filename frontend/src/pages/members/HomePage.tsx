@@ -6,6 +6,7 @@ import { Wordmark } from '@/components/members/app/primitives'
 import { eventAction, timeOnly } from '@/components/members/app/events'
 import { DateTile } from '@/components/members/app/RightRail'
 import { appButtonClasses, ICON } from '@/components/members/app/ui'
+import { AgeCheckCard } from '@/components/members/settings/AgeCheckCard'
 import { MembershipCard, NoMembership } from '@/components/members/settings/MembershipCard'
 import { Card, EmptyNote, LoadError, Skeleton, StatusChip, VerifyEmailBanner } from '@/components/members/settings/ui'
 import { api } from '@/lib/api'
@@ -120,7 +121,11 @@ function FeedUnlock() {
   return (
     <Card title="The member community" icon={Lock}>
       <p className="text-fg-muted">
-        {app === 'paused' ? 'Your feed access is paused. It reopens when the pause ends.' : 'It stays off until you turn it on. Unlocking it adds:'}
+        {app === 'paused'
+          ? 'Your feed access is paused. It reopens when the pause ends.'
+          : app === 'verify'
+            ? 'It is yours once staff have checked your ID at your next visit. It then adds:'
+            : 'It stays off until you turn it on. Unlocking it adds:'}
       </p>
       <ul className="mt-3 flex flex-col gap-2.5">
         {FEED_ADDS.map(({ icon: Icon, text }) => (
@@ -130,7 +135,7 @@ function FeedUnlock() {
           </li>
         ))}
       </ul>
-      {app !== 'paused' && (
+      {app !== 'paused' && app !== 'verify' && (
         <Link to={app === 'join' ? '/members/join-feed' : '/membership'} className={appButtonClasses('primary', 'mt-4')}>
           {app === 'join' ? 'Join the member feed' : 'See plans with the feed'}
         </Link>
@@ -176,10 +181,12 @@ export function HomePage() {
               </div>
             )}
             {membership.status === 'error' && <LoadError title="Your membership did not load" onRetry={membership.retry} />}
+            {membership.status === 'success' && <AgeCheckCard membership={current} />}
             {membership.status === 'success' &&
               (current ? (
                 <MembershipCard
                   membership={current}
+                  showCode={!user.age_check.needed}
                   footer={
                     <Link to="/members/settings/membership" className={appButtonClasses('secondary', 'self-start')}>
                       Manage membership

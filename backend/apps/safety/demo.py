@@ -7,6 +7,7 @@ from apps.accounts.models import User
 from apps.events.models import Event
 from apps.feed import services as feed_services
 from apps.feed.models import Guidelines, Report
+from apps.memberships.age import seed_check
 
 from . import roles, services
 from .models import MemberAction
@@ -30,6 +31,7 @@ def seed_team(password):
         user.save()
         user.mark_email_verified()
         roles.set_role(user, role)
+        seed_check(user)
         if guidelines is not None and not user.profile.participates_in_feed:
             feed_services.join_feed(user, guidelines.version)
         accounts.append((f"team: {roles.LABELS[role]}", email))

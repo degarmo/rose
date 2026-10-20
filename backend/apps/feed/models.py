@@ -266,6 +266,7 @@ class Notification(models.Model):
         MODERATION = "moderation", "Moderation outcome"
         NOTICE = "notice", "Notice about your account"
         GUIDELINES = "guidelines", "Guidelines updated"
+        AGE_VERIFIED = "age_verified", "Age check recorded"
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="feed_notifications"

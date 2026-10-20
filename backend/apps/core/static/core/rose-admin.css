@@ -724,6 +724,13 @@
 .rose-desk-search-row .rose-button-secondary {
   min-height: 52px;
 }
+.rose-desk-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  min-height: 32px;
+}
 .rose-desk-camera video {
   width: 100%;
   max-width: 420px;

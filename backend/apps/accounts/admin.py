@@ -34,12 +34,29 @@ PROFILE_READONLY = (
 )
 
 
+FEED_ACCESS_LABELS = {
+    "Granted": "success",
+    "Included": "success",
+    "Granted, awaiting ID check": "warning",
+    "Awaiting ID check": "warning",
+}
+
+
+def feed_access_status(obj):
+    """A staff grant gives nothing until the person's own ID check is recorded."""
+    from apps.feed.access import feed_access_label
+
+    user = getattr(obj, "user", obj)
+    return feed_access_label(user) or "-"
+
+
 class ProfileInline(StackedInline):
     model = Profile
     fk_name = "user"
     can_delete = False
     fields = (
         "feed_access_granted",
+        "feed_access",
         "feed_access_granted_by",
         "feed_access_granted_at",
         "participates_in_feed",
@@ -47,7 +64,11 @@ class ProfileInline(StackedInline):
         "feed_status_changed_at",
         "visibility",
     )
-    readonly_fields = PROFILE_READONLY
+    readonly_fields = (*PROFILE_READONLY, "feed_access")
+
+    @display(description="Feed access", label=FEED_ACCESS_LABELS)
+    def feed_access(self, obj):
+        return feed_access_status(obj)
 
 
 @admin.register(User)
@@ -168,7 +189,7 @@ class StaticDeviceAdmin(BaseStaticDeviceAdmin, ModelAdmin):
 class ProfileAdmin(ModelAdmin):
     list_display = (
         "user",
-        "feed_access_granted",
+        "feed_access",
         "participates_in_feed",
         "feed_suspended_until",
         "banned",
@@ -181,6 +202,7 @@ class ProfileAdmin(ModelAdmin):
     fields = (
         "user",
         "feed_access_granted",
+        "feed_access",
         "feed_access_granted_by",
         "feed_access_granted_at",
         "participates_in_feed",
@@ -196,10 +218,14 @@ class ProfileAdmin(ModelAdmin):
         "visibility",
         "updated_at",
     )
-    readonly_fields = (*PROFILE_READONLY, "user", "updated_at")
+    readonly_fields = (*PROFILE_READONLY, "user", "updated_at", "feed_access")
 
     def has_add_permission(self, request):
         return False
+
+    @display(description="Feed access", label=FEED_ACCESS_LABELS)
+    def feed_access(self, obj):
+        return feed_access_status(obj)
 
     @display(boolean=True, description="Banned")
     def banned(self, obj):

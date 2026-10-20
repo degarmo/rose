@@ -78,9 +78,14 @@ class Command(BaseCommand):
 
         rows, errors = self.validate(raw)
         new_accounts = sum(1 for r in rows if r.user is None)
+        checked = sum(1 for r in rows if r.id_checked)
         self.stdout.write(
             f"{len(raw)} rows: {new_accounts} new accounts, "
             f"{len(rows) - new_accounts} existing accounts, {len(errors)} problems."
+        )
+        self.stdout.write(
+            f"ID checked: {checked} (active as before). Not ID checked: {len(rows) - checked} "
+            "(waiting for an ID check at the door desk: not active, nothing included)."
         )
         for message in errors:
             self.stdout.write(self.style.WARNING(f"  {message}"))
@@ -164,12 +169,13 @@ class Command(BaseCommand):
             elif row.id_checked:
                 membership.status = Membership.Status.ACTIVE
             else:
-                # Paid up, but no ID seen yet: the door desk activates after the check.
+                # Paid up, but no ID seen yet (pending ID check): nothing is included until
+                # the door desk records the check and activates it.
                 membership.status = Membership.Status.PENDING_PAYMENT
                 membership.paid_awaiting_id_check = True
             membership.save()
-            if row.id_checked:
-                IdCheck.objects.create(membership=membership, checked_by=system)
+            if row.id_checked and not IdCheck.valid().filter(user=user).exists():
+                IdCheck.objects.create(user=user, membership=membership, checked_by=system)
             audit(
                 AuditLog.Category.DOOR_DESK,
                 "import",

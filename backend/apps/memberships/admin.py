@@ -1,6 +1,7 @@
 import csv
 from collections import defaultdict
 from datetime import timedelta
+from urllib.parse import urlencode
 
 from django import forms
 from django.contrib import admin, messages
@@ -286,14 +287,29 @@ class PaymentAdmin(ReadOnlyAdmin):
 
 @admin.register(IdCheck)
 class IdCheckAdmin(ReadOnlyAdmin):
-    """Only that a valid photo ID showing 18+ was seen, by whom and when. Nothing else."""
+    """Only that a valid photo ID showing 18+ was seen, by whom and when. Nothing else.
+    Recorded and revoked at the door desk, so every change is logged."""
 
-    list_display = ("membership", "checked_by", "checked_at", "verified_18_plus")
-    list_filter = ("checked_at",)
-    search_fields = ("membership__reference_code", "membership__user__display_name")
-    list_select_related = ("membership", "checked_by")
-    fields = list_display
+    list_display = ("user", "check_state", "checked_by", "witnessed_by", "checked_at")
+    list_filter = ("checked_at", ("revoked_at", admin.EmptyFieldListFilter))
+    search_fields = ("user__display_name", "membership__reference_code")
+    list_select_related = ("user", "checked_by", "witnessed_by")
+    fields = (
+        "user",
+        "membership",
+        "checked_by",
+        "witnessed_by",
+        "checked_at",
+        "verified_18_plus",
+        "revoked_at",
+        "revoked_by",
+        "revoke_reason",
+    )
     readonly_fields = fields
+
+    @display(description="State", label={"Valid": "success", "Revoked": "danger"})
+    def check_state(self, obj):
+        return "Revoked" if obj.revoked_at else "Valid"
 
 
 @admin.register(WebhookEvent)
@@ -397,21 +413,35 @@ class MembershipAdmin(ModelAdmin):
             else:
                 if outcome is not None:
                     self.message_user(request, outcome.message)
-                query = request.POST.get("q", "")
-                return HttpResponseRedirect(f"{request.path}?q={query}")
+                query = urlencode(
+                    {"q": request.POST.get("q", ""), "needs_id": request.POST.get("needs_id", "")}
+                )
+                return HttpResponseRedirect(f"{request.path}?{query}")
         query = request.GET.get("q", "") or request.POST.get("q", "")
+        needs_id = (request.GET.get("needs_id") or request.POST.get("needs_id")) == "1"
+        if needs_id:
+            memberships, people = desk.needing_id_check()
+        else:
+            memberships, people = desk.find_memberships(query), desk.find_people(query)
         results = []
-        for membership in desk.find_memberships(query):
+        for membership in memberships:
             row = desk.card(membership)
             row["signature_name"] = revealed.get(membership.pk)
             results.append(row)
+        persons = [desk.person_card(user) for user in people]
+        mine = any(p["person"].pk == request.user.pk for p in persons) or any(
+            r["membership"].user_id == request.user.pk for r in results
+        )
         context = {
             **self.admin_site.each_context(request),
             "title": "Door desk",
             "opts": self.model._meta,
             "query": query,
+            "needs_id": needs_id,
             "results": results,
-            "searched": bool(query.strip()),
+            "people": persons,
+            "witnesses": desk.witnesses_for(request.user) if mine else [],
+            "searched": bool(query.strip()) or needs_id,
             # "Convert to member": the guest scans this and joins on their own phone,
             # signed in to their own account, so their signature stays theirs.
             "join_url": site_link("/join"),
@@ -419,7 +449,7 @@ class MembershipAdmin(ModelAdmin):
             if any(r["is_guest_pass"] for r in results)
             else None,
             "donation_methods": desk.DONATION_METHODS,
-            "tonight_events": list(desk.tonight_events()) if results else [],
+            "tonight_events": list(desk.tonight_events()) if results and not needs_id else [],
             "staff_door_url": site_link("/members/staff/door"),
         }
         # The camera policy for this page is set by PrivacyHeadersMiddleware.

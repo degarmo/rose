@@ -12,6 +12,7 @@ import { me } from '@/test/members'
 import { makeMembership } from '@/test/membership'
 import { verifiedUser } from '@/test/render'
 import { HomePage } from '../HomePage'
+import { JoinFeedPage } from '../JoinFeedPage'
 import { SettingsPage } from './SettingsPage'
 
 const account = vi.hoisted(() => ({
@@ -41,6 +42,7 @@ const safety = vi.hoisted(() => ({
 }))
 const feed = vi.hoisted(() => ({
   get: vi.fn(),
+  acceptGuidelines: vi.fn(),
   stepAway: vi.fn(),
   erase: vi.fn(),
 }))
@@ -133,6 +135,7 @@ function feedAccountFor(overrides: Partial<FeedAccount>): FeedAccount {
   return {
     participating: true,
     can_join: true,
+    awaiting_age_check: false,
     can_view: true,
     banned: false,
     suspended_until: null,
@@ -172,6 +175,7 @@ function renderSettings(path: string, { user = verifiedUser as Account, inFeed =
   const routes = (
     <Routes>
       <Route path="/members/home" element={<HomePage />} />
+      <Route path="/members/join-feed" element={<JoinFeedPage />} />
       <Route path="/members/settings" element={<SettingsPage />} />
       <Route path="/members/settings/:section" element={<SettingsPage />} />
       <Route path="*" element={<p>Elsewhere</p>} />
@@ -649,5 +653,68 @@ describe('Home', () => {
     expect(await screen.findByText('Going')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Join the member feed' })).toHaveAttribute('href', '/members/join-feed')
     expect(screen.getByRole('link', { name: 'Manage membership' })).toHaveAttribute('href', '/members/settings/membership')
+  })
+})
+
+describe('the age check', () => {
+  const waiting = { ...verifiedUser, has_membership: true, member_app: 'verify' as const, age_check: { verified: false, needed: true, notice: false } }
+  const paidWaiting = makeMembership({ reference_code: 'R7K-42Q', paid_awaiting_id_check: true, status_label: 'Waiting for ID check', id_checked: false })
+
+  it('shows the verify card on Home: what to bring, the door code once, and that nothing is stored', async () => {
+    membership.me.mockResolvedValue({ membership: paidWaiting, entitlements: [] })
+    renderSettings('/members/home', { user: waiting })
+    const card = await screen.findByRole('region', { name: 'Verify your age at your next visit.' })
+    expect(within(card).getByText(/A valid photo ID showing you are 18 or older/)).toBeInTheDocument()
+    expect(within(card).getByText(/We never copy or store your ID/)).toBeInTheDocument()
+    expect(await within(card).findByAltText('QR code for R7K-42Q')).toBeInTheDocument()
+    expect(screen.getAllByText('R7K-42Q')).toHaveLength(1)
+    expect(within(card).getByRole('link', { name: 'Read the community guidelines now' })).toHaveAttribute('href', '/members/join-feed')
+    expect(screen.queryByRole('link', { name: 'Join the member feed' })).not.toBeInTheDocument()
+    expect(screen.getByText(/once staff have checked your ID at your next visit/)).toBeInTheDocument()
+  })
+
+  it('tells people who had the feed why it closed, and asks for the display name without a membership', async () => {
+    membership.me.mockResolvedValue({ membership: null, entitlements: [] })
+    renderSettings('/members/home', { user: { ...waiting, has_membership: false, age_check: { verified: false, needed: true, notice: true } } })
+    const card = await screen.findByRole('region', { name: 'Verify your age at your next visit.' })
+    expect(within(card).getByText(/now needs a quick check in person, for everyone/)).toBeInTheDocument()
+    expect(within(card).getByText('night_owl')).toBeInTheDocument()
+    expect(within(card).queryByAltText(/QR code/)).not.toBeInTheDocument()
+  })
+
+  it('shows the verify card in Settings, under Membership', async () => {
+    membership.me.mockResolvedValue({ membership: paidWaiting, entitlements: [] })
+    renderSettings('/members/settings/membership', { user: waiting })
+    expect(await screen.findByRole('region', { name: 'Verify your age at your next visit.' })).toBeInTheDocument()
+  })
+
+  it('shows no verify card once the check is on file', async () => {
+    membership.me.mockResolvedValue({ membership: active, entitlements: ['feed'] })
+    renderSettings('/members/home', { user: { ...verifiedUser, member_app: 'join' } })
+    expect(await screen.findByText('Monthly includes')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Verify your age at your next visit.' })).not.toBeInTheDocument()
+  })
+
+  it('explains the check before the guidelines, and lets them accept the guidelines in advance', async () => {
+    const account = feedAccountFor({ participating: false, can_join: false, can_view: false, awaiting_age_check: true, accepted_current_guidelines: false })
+    feed.get.mockResolvedValue(account)
+    feed.acceptGuidelines.mockResolvedValue({ ...account, accepted_current_guidelines: true })
+    renderSettings('/members/join-feed', { user: waiting })
+    expect(await screen.findByText('First, an age check in person')).toBeInTheDocument()
+    expect(screen.getByText('Step 1 of 3 · About')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Read the guidelines' }))
+    await userEvent.click(screen.getByLabelText('I agree to the community guidelines'))
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(feed.acceptGuidelines).toHaveBeenCalledWith(account.guidelines!.version))
+    expect(await screen.findByRole('heading', { name: 'You are ready.' })).toBeInTheDocument()
+    expect(screen.getByText('Step 3 of 3 · Age check')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to Home' })).toHaveAttribute('href', '/members/home')
+  })
+
+  it('goes straight to the profile once checked, when the guidelines were accepted in advance', async () => {
+    feed.get.mockResolvedValue(feedAccountFor({ participating: false, can_join: true, can_view: false, awaiting_age_check: false, accepted_current_guidelines: true }))
+    renderSettings('/members/join-feed', { user: { ...verifiedUser, member_app: 'join' } })
+    await userEvent.click(await screen.findByRole('button', { name: 'Set up your profile' }))
+    expect(screen.getByRole('form', { name: 'Set up your feed profile' })).toBeInTheDocument()
   })
 })

@@ -1,6 +1,7 @@
 import pytest
 
 from apps.feed.models import Guidelines, GuidelinesAcceptance, Notification
+from tests.conftest import verify_age
 
 pytestmark = pytest.mark.django_db
 
@@ -62,6 +63,7 @@ def test_join_flow(signed_in, make_user, private_root):
     client, user = signed_in()
     user.profile.feed_access_granted = True
     user.profile.save()
+    verify_age(user)
     version = Guidelines.current().version
     missing = client.post("/api/account/feed/join/", {"bio": "x"}, format="json")
     assert missing.status_code == 400
@@ -76,3 +78,23 @@ def test_join_flow(signed_in, make_user, private_root):
     user.profile.refresh_from_db()
     assert user.profile.bio == "Quiet one" and user.profile.joined_feed_at is not None
     assert client.get("/api/members/feed/").status_code == 200
+
+
+def test_guidelines_can_be_accepted_before_the_age_check_but_joining_waits(signed_in):
+    client, user = signed_in()
+    user.profile.feed_access_granted = True
+    user.profile.save()
+    version = Guidelines.current().version
+    accepted = client.post(
+        "/api/account/feed/guidelines/", {"guidelines_version": version}, format="json"
+    )
+    assert accepted.status_code == 200
+    assert accepted.json()["accepted_current_guidelines"] is True
+    assert accepted.json()["awaiting_age_check"] is True
+    joined = client.post("/api/account/feed/join/", {"guidelines_version": version}, format="json")
+    assert joined.status_code == 404
+    user.profile.refresh_from_db()
+    assert not user.profile.participates_in_feed
+    verify_age(user)
+    joined = client.post("/api/account/feed/join/", {"guidelines_version": version}, format="json")
+    assert joined.status_code == 200 and joined.json()["can_view"] is True

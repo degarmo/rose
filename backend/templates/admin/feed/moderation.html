@@ -9,6 +9,7 @@
     <h1 class="rose-title">Reports</h1>
     <p class="rose-subtle">Every action here is logged and cannot be edited or deleted. Members only ever see the outcome for their own content, never who reported it.</p>
   </header>
+  {% if not age_checked %}<p class="rose-card rose-subtle" role="note">Pictures are hidden until your own ID check is recorded at the door desk, with another team member as witness. The member feed's rule holds for the team too.</p>{% endif %}
 
   <h2 class="rose-section-title">Reported posts, comments and profiles <span class="rose-chip">{{ report_groups|length }}</span></h2>
   {% for group in report_groups %}
@@ -18,7 +19,7 @@
         <h3>{{ group.target_type|capfirst }} {% if group.target_type == "profile" %}{{ group.target.display_name }}{% else %}by {{ group.target.author.display_name }}{% endif %}</h3>
         <p class="rose-subtle">{{ group.reporter_count }} reporter{{ group.reporter_count|pluralize }} · {{ group.reasons|join:", " }}</p>
       </div>
-      {% if group.hidden %}<span class="rose-chip rose-chip-wait">Hidden until reviewed</span>{% endif %}
+      <div class="rose-desk-chips">{% if group.under_18 %}<span class="rose-chip rose-chip-alert">Possibly under 18</span>{% endif %}{% if group.hidden %}<span class="rose-chip rose-chip-wait">Hidden until reviewed</span>{% endif %}</div>
     </header>
     {% if group.images %}<div class="rose-thumbs">{% for url in group.images %}<img src="{{ url }}" alt="" loading="lazy">{% endfor %}</div>{% endif %}
     {% if group.target_type == "post" %}<p>{{ group.target.caption|linebreaksbr }}</p>{% endif %}
@@ -38,7 +39,7 @@
       <div><h3>Post by {{ post.author.display_name }}</h3><p class="rose-subtle">{{ post.created_at|date:"M j, H:i" }}</p></div>
       {% if post.is_sensitive %}<span class="rose-chip rose-chip-wait">Marked sensitive</span>{% endif %}
     </header>
-    {% if post.images.all %}<div class="rose-thumbs">{% for image in post.images.all %}{% if image.image %}<img src="{% url 'admin:feed_moderation_image' image.public_id %}" alt="{{ image.image_alt }}" loading="lazy">{% endif %}{% endfor %}</div>{% endif %}
+    {% if post.images.all and age_checked %}<div class="rose-thumbs">{% for image in post.images.all %}{% if image.image %}<img src="{% url 'admin:feed_moderation_image' image.public_id %}" alt="{{ image.image_alt }}" loading="lazy">{% endif %}{% endfor %}</div>{% endif %}
     <p>{{ post.caption|linebreaksbr }}</p>
     {% include "admin/feed/moderation_form.html" with target_type="post" ref=post.public_id %}
   </section>

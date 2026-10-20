@@ -38,7 +38,7 @@ sit behind Cloudflare's CDN.
 | `S3_PRIVATE_BUCKET` | for example `site-private` (must differ from the public one) |
 | `S3_PUBLIC_BASE_URL` | `https://media.<your-domain>` (the public bucket's custom domain) |
 | `S3_ADDRESSING_STYLE` | leave unset (`virtual`); MinIO uses `path` |
-| `S3_SIGNED_URL_SECONDS` | leave at `60` |
+| `S3_SIGNED_URL_SECONDS` | leave at `60`; settings refuse anything above 60, so a revoked ID check or a ban also stops URLs already handed out within a minute |
 
 The production safety checks refuse to start if any of these is missing, if the
 two buckets are the same, or if an endpoint is plain `http` or a local emulator.

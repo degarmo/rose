@@ -67,3 +67,29 @@ def send_import_invite(membership, new_account):
         "If you were not expecting this, you can ignore this email.\n"
     )
     send_neutral_mail(INVITE_SUBJECT, body, to=[membership.user.email])
+
+
+ALL_SET_SUBJECT = "You're all set"
+
+
+def send_age_verified(user):
+    """After staff record an ID check. Neutral: it never says what was checked or why."""
+    body = (
+        f"Hello {user.display_name},\n\n"
+        "You're all set. Thanks for stopping by the front desk.\n\n"
+        "Anything on your account that was waiting for that visit is open now: "
+        f"{site_link('/members/home')}\n"
+    )
+    send_neutral_mail(ALL_SET_SUBJECT, body, to=[user.email])
+
+
+def send_age_check_notice(user):
+    """Once, to people who had the member app before it asked for an in-person check."""
+    body = (
+        f"Hello {user.display_name},\n\n"
+        "A quick note: part of your account now needs a short check in person at your next "
+        "visit. Please bring a valid photo ID showing you are 18 or older. Staff only note "
+        "that they saw it; nothing is copied or kept.\n\n"
+        f"The details are on your account: {site_link('/members/home')}\n"
+    )
+    send_neutral_mail(NOTE_SUBJECT, body, to=[user.email])

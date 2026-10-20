@@ -8,8 +8,9 @@ from django.utils import timezone
 from apps.core.models import AuditLog, audit
 
 from . import usage
-from .access import events_remaining, month_of, party_limit, tier_includes_event
-from .models import IdCheck, Membership, Payment, has_id_check
+from .access import events_remaining, is_age_verified, month_of, party_limit, tier_includes_event
+from .age import AgeCheckError, is_team_account, record_id_check, revoke_id_checks
+from .models import Membership, Payment
 from .providers import registry
 
 
@@ -43,11 +44,15 @@ def _lock(membership):
 
 
 def _ensure_id(staff, membership, id_checked):
-    if has_id_check(membership.user):
+    """A membership is only switched on with a valid ID check on file, or one recorded now."""
+    if is_age_verified(membership.user):
         return
     if not id_checked:
-        raise DeskError("Check a photo ID showing 18+ before the first activation.")
-    IdCheck.objects.create(membership=membership, checked_by=staff, verified_18_plus=True)
+        raise DeskError("Check a photo ID showing 18+ before switching this membership on.")
+    try:
+        record_id_check(staff, membership.user, membership)
+    except AgeCheckError as exc:
+        raise DeskError(str(exc)) from exc
 
 
 def door_flags(user):
@@ -175,7 +180,7 @@ def activate_paid_online(staff, membership, id_checked=False):
 
 
 @transaction.atomic
-def renew(staff, membership, method, amount_cents, note=""):
+def renew(staff, membership, method, amount_cents, note="", id_checked=False):
     """Extend from the later of today or the current period end."""
     membership = _lock(membership)
     _refuse_barred(membership)
@@ -190,6 +195,7 @@ def renew(staff, membership, method, amount_cents, note=""):
         raise DeskError("Only an active, grace or expired membership can be renewed here.")
     if membership.status == Membership.Status.EXPIRED:
         _ensure_no_other_open(membership)
+    _ensure_id(staff, membership, id_checked)
     Payment.objects.create(
         membership=membership,
         amount_cents=amount_cents,
@@ -259,12 +265,13 @@ def suspend(staff, membership, reason):
 
 
 @transaction.atomic
-def reinstate(staff, membership, reason):
+def reinstate(staff, membership, reason, id_checked=False):
     if not reason.strip():
         raise DeskError("Give a reason for reinstating.")
     membership = _lock(membership)
     if membership.status != Membership.Status.SUSPENDED:
         raise DeskError("Only a suspended membership can be reinstated.")
+    _ensure_id(staff, membership, id_checked)
     # The daily lifecycle moves it on to grace or expired if the period has passed.
     membership.status = Membership.Status.ACTIVE
     membership.save()
@@ -384,6 +391,15 @@ ACTIONS = (
     "reinstate",
     "walk_in",
     "show_signature",
+    "verify",
+    "revoke",
+)
+# Statuses where the person is, or is about to be, a member at the door.
+CURRENT = (
+    Membership.Status.PENDING_PAYMENT,
+    Membership.Status.ACTIVE,
+    Membership.Status.GRACE,
+    Membership.Status.SUSPENDED,
 )
 
 
@@ -401,6 +417,65 @@ def find_memberships(query):
         Membership.objects.filter(Q(reference_code=code) | Q(user__display_name__icontains=query))
         .select_related("tier", "user")
         .order_by("-updated_at")[:10]
+    )
+
+
+def _accounts_without_membership():
+    """People the desk may need to check who have no membership at all: the team, and
+    people the staff granted the feed to."""
+    from django.db.models import Q
+
+    from apps.accounts.models import User
+
+    return User.objects.filter(is_active=True, memberships__isnull=True).filter(
+        Q(is_staff=True) | Q(is_superuser=True) | Q(profile__feed_access_granted=True)
+    )
+
+
+def find_people(query):
+    """Accounts without a membership, by part of the display name (they have no code)."""
+    query = query.strip()
+    if len(query) < 2:
+        return []
+    return list(
+        _accounts_without_membership()
+        .filter(display_name__icontains=query)
+        .select_related("profile")
+        .order_by("display_name")[:10]
+    )
+
+
+def needing_id_check(limit=25):
+    """The "Needs ID check" list: current memberships and accounts with no valid check."""
+    from .models import IdCheck
+
+    verified = IdCheck.valid().values("user_id")
+    memberships = (
+        Membership.objects.filter(status__in=CURRENT, user__isnull=False, user__is_active=True)
+        .exclude(user__in=verified)
+        .select_related("tier", "user")
+        .order_by("-updated_at")[:limit]
+    )
+    people = (
+        _accounts_without_membership()
+        .exclude(pk__in=verified)
+        .select_related("profile")
+        .order_by("display_name")[:limit]
+    )
+    return list(memberships), list(people)
+
+
+def witnesses_for(staff):
+    """Who can witness a team member's own ID check: everyone else on the team."""
+    from django.db.models import Q
+
+    from apps.accounts.models import User
+
+    return list(
+        User.objects.filter(is_active=True)
+        .filter(Q(is_staff=True) | Q(is_superuser=True))
+        .exclude(pk=staff.pk)
+        .order_by("display_name")
     )
 
 
@@ -437,15 +512,34 @@ def card(membership):
             actions.append("suspend")
         if status == S.SUSPENDED:
             actions.append("reinstate")
+    verified = is_age_verified(membership.user)
+    if membership.user is not None:
+        actions.append("revoke" if verified else "verify")
     return {
         "membership": membership,
         "events_remaining": None if guest else events_remaining(membership),
         "flags": door_flags(membership.user),
         "is_guest_pass": guest,
-        "id_checked": has_id_check(membership.user) if membership.user else False,
+        "id_checked": verified,
+        "team_account": bool(membership.user and is_team_account(membership.user)),
         "payments": list(membership.payments.all()[:5]),
         "default_amount": f"{membership.tier.price_cents / 100:.2f}",
         "actions": actions,
+    }
+
+
+def person_card(user):
+    """What the door sees about an account with no membership: a team member, or someone
+    the staff granted the feed to. The only thing to do here is the ID check."""
+    verified = is_age_verified(user)
+    profile = getattr(user, "profile", None)
+    return {
+        "person": user,
+        "flags": door_flags(user),
+        "id_checked": verified,
+        "team_account": is_team_account(user),
+        "feed_granted": bool(profile and profile.feed_access_granted),
+        "actions": ["revoke" if verified else "verify"],
     }
 
 
@@ -466,6 +560,33 @@ def _amount(data):
     if amount is None:
         raise DeskError("Enter an amount.")
     return amount
+
+
+def _person(pk):
+    from apps.accounts.models import User
+
+    user = User.objects.filter(pk=pk, is_active=True).select_related("profile").first()
+    if user is None:
+        raise DeskError("That account was not found.")
+    return user
+
+
+def _age_action(staff, action, data, user, membership):
+    """Record an ID check on its own, or revoke one. Both are logged in apps.memberships.age."""
+    name = user.display_name if user else "This account"
+    try:
+        if action == "verify":
+            if not _checked(data):
+                raise DeskError("Tick the box once you have seen a photo ID showing 18+.")
+            witness = None
+            if data.get("witness"):
+                witness = _person(data.get("witness"))
+            record_id_check(staff, user, membership, witness)
+            return Outcome(f"{name}: ID check recorded.")
+        revoke_id_checks(staff, user, data.get("reason", ""), membership)
+        return Outcome(f"{name}: ID check revoked.")
+    except AgeCheckError as exc:
+        raise DeskError(str(exc)) from exc
 
 
 def perform(staff, data):
@@ -497,11 +618,15 @@ def perform(staff, data):
             raise DeskError("That payment was not found.")
         refund(staff, payment, _amount(data), data.get("note", ""))
         return Outcome("Refund recorded.")
+    if action in ("verify", "revoke") and data.get("person"):
+        return _age_action(staff, action, data, _person(data.get("person")), None)
     membership = (
         Membership.objects.select_related("tier", "user").filter(pk=data.get("membership")).first()
     )
     if membership is None:
         raise DeskError("That membership was not found.")
+    if action in ("verify", "revoke"):
+        return _age_action(staff, action, data, membership.user, membership)
     code = membership.reference_code
     if action == "activate":
         record_payment_and_activate(
@@ -527,7 +652,14 @@ def perform(staff, data):
         activate_paid_online(staff, membership, _checked(data))
         return Outcome(f"{code} is active.")
     if action == "renew":
-        renew(staff, membership, data.get("method"), _amount(data), data.get("note", ""))
+        renew(
+            staff,
+            membership,
+            data.get("method"),
+            _amount(data),
+            data.get("note", ""),
+            _checked(data),
+        )
         return Outcome(f"{code} renewed.")
     if action == "comp":
         comp(staff, membership, data.get("reason", ""), _checked(data))
@@ -536,7 +668,7 @@ def perform(staff, data):
         suspend(staff, membership, data.get("reason", ""))
         return Outcome(f"{code} is suspended.")
     if action == "reinstate":
-        reinstate(staff, membership, data.get("reason", ""))
+        reinstate(staff, membership, data.get("reason", ""), _checked(data))
         return Outcome(f"{code} is reinstated.")
     if action == "walk_in":
         event = tonight_events().filter(pk=data.get("event")).first()

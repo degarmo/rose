@@ -120,6 +120,8 @@ export interface ReportContent {
   status?: string
   is_sensitive?: boolean
   images?: string[]
+  /** Pictures held back because the viewer's own ID check is not on file. */
+  images_withheld?: number
   body?: string
   post_caption?: string
   bio?: string
@@ -159,6 +161,10 @@ export interface StaffMember {
   display_name: string
   membership: { tier: string; status: string } | null
   flags: { feed_suspended_until: string | null; events_suspended_until: string | null; banned: boolean }
+  /** Whether staff have recorded this person's in-person age check. */
+  age_verified: boolean
+  /** Where their feed access stands ("Granted, awaiting ID check"…), or null without any. */
+  feed_access: string | null
   reports_about: number
   actions: MemberActionData[]
 }
@@ -219,6 +225,10 @@ export interface DoorCard {
   period_end: string | null
   /** Members-only events left this month; null is unlimited (or a guest pass). */
   events_remaining: number | null
+  /** A staff or superuser account: their own ID check needs a second team member as witness. */
+  team_account: boolean
+  /** The signed-in staff member's own membership. */
+  is_you: boolean
   do_not_admit: boolean
   events_suspended_until: string | null
   default_amount: string
@@ -226,11 +236,28 @@ export interface DoorCard {
   payments: Array<{ id: number; date: string; status: string; status_label: string; method_label: string; amount: string; refundable: boolean }>
 }
 
-export type DoorAction = 'activate_paid' | 'activate' | 'guest_visit' | 'walk_in' | 'renew' | 'comp' | 'suspend' | 'reinstate'
+export type DoorAction = 'activate_paid' | 'activate' | 'guest_visit' | 'walk_in' | 'renew' | 'comp' | 'suspend' | 'reinstate' | 'verify' | 'revoke'
+
+/** An account with no membership the desk may still need to check: the team, or a staff grant. */
+export interface DoorPerson {
+  id: number
+  display_name: string
+  team_account: boolean
+  feed_granted: boolean
+  is_you: boolean
+  id_checked: boolean
+  do_not_admit: boolean
+  actions: Array<'verify' | 'revoke'>
+}
 
 export interface DoorSearch {
   query: string
+  /** The "Needs ID check" list rather than a search. */
+  needs_id: boolean
   results: DoorCard[]
+  people: DoorPerson[]
+  /** Everyone else on the team, offered only when your own card is among the results. */
+  witnesses: Array<{ id: number; display_name: string }>
   tonight_events: Array<{ id: number; title: string; starts_at: string }>
   donation_methods: Array<{ value: string; label: string }>
   join_url: string | null
@@ -241,6 +268,8 @@ export interface DoorSearch {
 export interface DoorRequest {
   action: DoorAction | 'show_signature' | 'refund' | 'record_donation'
   membership?: number
+  person?: number
+  witness?: number
   payment?: number
   method?: string
   amount?: string
@@ -254,7 +283,7 @@ export interface DoorRequest {
 }
 
 export const doorApi = {
-  search: (q: string) => request<DoorSearch>(`/staff/door/?q=${encodeURIComponent(q)}`),
+  search: (q: string, needsId = false) => request<DoorSearch>(needsId ? '/staff/door/?needs_id=1' : `/staff/door/?q=${encodeURIComponent(q)}`),
   act: (payload: DoorRequest) => post<{ message?: string; signature?: { membership: number; name: string } }>('/staff/door/', payload),
 }
 

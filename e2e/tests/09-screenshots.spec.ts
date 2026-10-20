@@ -152,7 +152,7 @@ test.describe('Member app screenshots', () => {
     await expect(page.getByRole('heading', { name: 'Details' })).toBeVisible()
     await page.getByLabel('Describe photo 1').fill('Gold stripes on red')
     await page.getByRole('textbox', { name: /^Caption/ }).fill('A quiet evening in.')
-    await page.getByLabel(/Everyone identifiable in these photos agreed/).check()
+    await page.getByLabel(/Everyone identifiable in these photos is 18 or older and agreed/).check()
     await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeEnabled()
     await snap(page, 'member-create-3-details', info)
     await page.getByRole('button', { name: 'Share', exact: true }).click()

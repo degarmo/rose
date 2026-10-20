@@ -14,6 +14,7 @@ export const verifiedUser: Account = {
   feed_access: false,
   feed_controls: false,
   member_app: null,
+  age_check: { verified: true, needed: false, notice: false },
   staff: null,
   calendar_details: false,
   unread_notices: 0,

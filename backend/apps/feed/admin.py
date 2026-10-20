@@ -15,6 +15,7 @@ from apps.accounts.models import Profile, User
 from apps.core.admin_display import chip, flag
 from apps.core.models import AuditLog
 from apps.core.private_media import private_media
+from apps.memberships.access import is_age_verified
 
 from . import services
 from .models import (
@@ -185,6 +186,7 @@ class FeedPostAdmin(ModelAdmin):
                 report.post_id or report.comment_id or report.profile_user_id,
             )
             groups[key].append(report)
+        age_checked = is_age_verified(request.user)
         report_groups = []
         for (target_type, _), reports in groups.items():
             target = reports[0].target
@@ -197,10 +199,12 @@ class FeedPostAdmin(ModelAdmin):
                     "reasons": sorted({r.get_reason_display() for r in reports}),
                     "reporter_count": len({r.reporter_id for r in reports}),
                     "hidden": self._is_hidden(target_type, target),
-                    "images": self._images(target_type, target),
+                    "under_18": any(r.reason == Report.Reason.UNDER_18 for r in reports),
+                    "images": self._images(target_type, target) if age_checked else [],
                 }
             )
-        report_groups.sort(key=lambda g: (not g["hidden"], -g["reporter_count"]))
+        # Possibly under 18 first, then whatever is hidden, then the most reported.
+        report_groups.sort(key=lambda g: (not g["under_18"], not g["hidden"], -g["reporter_count"]))
 
         pending = (
             FeedPost.objects.filter(status=FeedPost.Status.PENDING, is_processing=False)
@@ -214,6 +218,7 @@ class FeedPostAdmin(ModelAdmin):
             "opts": self.model._meta,
             "pending": pending,
             "report_groups": report_groups,
+            "age_checked": age_checked,
             "actions_log": AuditLog.objects.filter(category=AuditLog.Category.MODERATION)[:50],
             "action_labels": dict(ModerationActionType.choices),
         }
@@ -238,15 +243,21 @@ class FeedPostAdmin(ModelAdmin):
             return [reverse("admin:feed_moderation_avatar", args=[target.profile.avatar_key])]
         return []
 
-    def image_view(self, request, public_id):
+    def _require_age_check(self, request):
+        """Member pictures, here too, only for staff whose own age has been checked."""
         self._require(request)
+        if not is_age_verified(request.user):
+            raise Http404
+
+    def image_view(self, request, public_id):
+        self._require_age_check(request)
         image = FeedImage.objects.filter(public_id=public_id).exclude(image="").first()
         if image is None:
             raise Http404
         return private_media().deliver(request, image.image.name)
 
     def avatar_view(self, request, key):
-        self._require(request)
+        self._require_age_check(request)
         profile = Profile.objects.filter(avatar_key=key).exclude(avatar="").first()
         if profile is None or not key:
             raise Http404

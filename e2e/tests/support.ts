@@ -22,6 +22,8 @@ export interface Fixtures {
       events: Record<string, string>
       /** A member with a post to report, and a member with a membership to ban. */
       moderation: { reporter: string; author: string; author_handle: string; post: string; banned_handle: string; banned_code: string }
+      /** A paid member already in the feed with no ID check on file (it waits for one). */
+      age_check: { email: string; handle: string; code: string }
     }
   >
   team: Record<'moderator' | 'admin', { email: string; totp_secret: string }>

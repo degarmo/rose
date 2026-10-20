@@ -19,6 +19,7 @@ from apps.donations.models import Donation
 from apps.events.models import RSVP, Event
 from apps.feed import services as feed_services
 from apps.feed.models import FeedComment, FeedPost, Guidelines, Report
+from apps.memberships.age import seed_check
 from apps.memberships.models import IdCheck, Membership, Payment, Tier
 from apps.newsletter.models import Subscriber
 
@@ -81,7 +82,7 @@ def _membership(rng, user, tier, now, index):
         started = now - timedelta(days=rng.randint(3, 360))
     membership = Membership(user=user, tier=tier, created_at=started - timedelta(days=2))
     membership.save()
-    IdCheck.objects.create(membership=membership)
+    IdCheck.objects.create(user=membership.user, membership=membership)
     if tier.is_free:
         membership.start_new_period(started)
         if tier.interval == Tier.Interval.ONCE and membership.current_period_end < now:
@@ -192,6 +193,7 @@ def _feed(rng, people, now):
     for user in posters:
         user.profile.feed_access_granted = True
         user.profile.save(update_fields=["feed_access_granted", "updated_at"])
+        seed_check(user)
         feed_services.join_feed(user, guidelines.version, hide_from_directory=False)
     posts = []
     for months_ago in range(12):

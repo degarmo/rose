@@ -7,6 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.memberships.age import seed_check
 from apps.pages.management.commands.demo_media import sample_image
 
 from . import services
@@ -63,6 +64,7 @@ def _member(email, display_name, participating=True):
     profile = user.profile
     profile.feed_access_granted = True
     profile.feed_access_granted_at = profile.feed_access_granted_at or timezone.now()
+    seed_check(user)
     profile.joined_feed_at = profile.joined_feed_at or timezone.now() - timedelta(days=60)
     profile.hide_from_directory = display_name.endswith(("hour", "reader"))
     profile.bio = "Here for the classes, staying for the people."
@@ -119,6 +121,7 @@ def seed_feed(demo_verified):
     profile.feed_access_granted = True
     profile.feed_access_granted_at = profile.feed_access_granted_at or timezone.now()
     profile.save()
+    seed_check(demo_verified)
 
     posts = []
     for index in range(30):

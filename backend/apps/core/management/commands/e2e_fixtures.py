@@ -24,9 +24,10 @@ from apps.accounts.models import User
 from apps.donations.models import AcknowledgementTemplate
 from apps.events.models import Event
 from apps.feed import services as feed_services
-from apps.feed.models import Announcement, FeedImage, FeedPost, Guidelines
+from apps.feed.models import Announcement, FeedImage, FeedPost, Guidelines, GuidelinesAcceptance
 from apps.journal.models import Post as JournalPost
 from apps.journal.models import PostImage as JournalImage
+from apps.memberships.age import seed_check
 from apps.memberships.demo import upsert_tiers
 from apps.memberships.models import IdCheck, Membership, MembershipAgreement, Tier
 from apps.pages.demo_activity import seed_activity
@@ -134,6 +135,8 @@ class Command(BaseCommand):
             email="e2e.owner@example.org", display_name="e2e_owner", password=PASSWORD
         )
         TOTPDevice.objects.create(user=owner, name="e2e", key=OWNER_KEY, confirmed=True)
+        # The owner's own ID check, as the team would record it at the door.
+        seed_check(owner)
         data["owner"] = {
             "email": owner.email,
             "totp_secret": base64.b32encode(bytes.fromhex(OWNER_KEY)).decode(),
@@ -142,6 +145,7 @@ class Command(BaseCommand):
         for role, key in TEAM_KEYS.items():
             member = reset_user(f"e2e.{role}@example.org", f"e2e_{role}")
             roles.set_role(member, role)
+            seed_check(member)
             feed_services.join_feed(member, guidelines.version)
             TOTPDevice.objects.create(user=member, name="e2e", key=key, confirmed=True)
             data["team"][role] = {
@@ -154,12 +158,14 @@ class Command(BaseCommand):
                 user = reset_user(f"e2e.{viewport}.{role}@example.org", f"e2e_{viewport}_{role}")
                 user.profile.feed_access_granted = True
                 user.profile.save()
+                seed_check(user)
                 feed_services.join_feed(user, guidelines.version)
                 people[role] = user.email
             # May join the feed (a staff grant) but has not: the app opens only after joining.
             joiner = reset_user(f"e2e.{viewport}.joiner@example.org", f"e2e_{viewport}_joiner")
             joiner.profile.feed_access_granted = True
             joiner.profile.save()
+            seed_check(joiner)
             people["joiner"] = joiner.email
             events = {}
             starts = now + timedelta(days=5)
@@ -198,6 +204,7 @@ class Command(BaseCommand):
                 "feed": people,
                 "events": events,
                 "moderation": self.moderation_subjects(viewport, guidelines, now),
+                "age_check": self.unchecked_member(viewport, guidelines, now),
             }
 
         data["showcase"] = self.showcase(now, guidelines)
@@ -207,6 +214,22 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS("End-to-end test data is ready."))
 
+    def unchecked_member(self, viewport, guidelines, now):
+        """A paid member who joined the feed before it asked for an ID check, and has none:
+        the verify card, a 404 on the feed, then the door desk's check opens it."""
+        user = reset_user(f"e2e.{viewport}.unchecked@example.org", f"e2e_{viewport}_unchecked")
+        membership = Membership.objects.create(
+            user=user, tier=Tier.objects.get(slug="rose"), status=Membership.Status.ACTIVE
+        )
+        membership.start_new_period(now)
+        membership.save()
+        GuidelinesAcceptance.objects.create(user=user, guidelines=guidelines)
+        profile = user.profile
+        profile.joined_feed_at = now
+        profile.save(update_fields=["joined_feed_at", "updated_at"])
+        profile.set_feed_participation(True)
+        return {"email": user.email, "handle": user.display_name, "code": membership.reference_code}
+
     def moderation_subjects(self, viewport, guidelines, now):
         """A member who reports, a member with a post to report, and one with a membership
         to ban. The reporter is the flow's own, so other tests leaving the feed cannot
@@ -214,10 +237,12 @@ class Command(BaseCommand):
         reporter = reset_user(f"e2e.{viewport}.reporter@example.org", f"e2e_{viewport}_reporter")
         reporter.profile.feed_access_granted = True
         reporter.profile.save()
+        seed_check(reporter)
         feed_services.join_feed(reporter, guidelines.version)
         author = reset_user(f"e2e.{viewport}.author@example.org", f"e2e_{viewport}_author")
         author.profile.feed_access_granted = True
         author.profile.save()
+        seed_check(author)
         feed_services.join_feed(author, guidelines.version)
         post = FeedPost.objects.create(
             author=author,
@@ -232,7 +257,7 @@ class Command(BaseCommand):
         )
         membership.start_new_period(now)
         membership.save()
-        IdCheck.objects.create(membership=membership)
+        IdCheck.objects.create(user=membership.user, membership=membership)
         return {
             "reporter": reporter.email,
             "author": author.email,
@@ -252,6 +277,7 @@ class Command(BaseCommand):
             user.profile.feed_access_granted = True
             user.profile.bio = "Here for the classes, staying for the people."
             user.profile.save()
+            seed_check(user)
             feed_services.join_feed(
                 user, guidelines.version, bio=user.profile.bio, hide_from_directory=False
             )

@@ -241,6 +241,10 @@ S3_PUBLIC_BASE_URL = env("S3_PUBLIC_BASE_URL", default="").rstrip("/")
 S3_BROWSER_ENDPOINT_URL = env("S3_BROWSER_ENDPOINT_URL", default="") or S3_ENDPOINT_URL
 S3_ADDRESSING_STYLE = env("S3_ADDRESSING_STYLE", default="virtual")
 S3_SIGNED_URL_SECONDS = env("S3_SIGNED_URL_SECONDS")
+# A signed URL outlives the access check that issued it (a revoked ID check, a ban), so it
+# must expire quickly: every request to the media view checks access again.
+if not 1 <= S3_SIGNED_URL_SECONDS <= 60:
+    raise ImproperlyConfigured("S3_SIGNED_URL_SECONDS must be between 1 and 60.")
 
 if STORAGE_BACKEND == "s3":
     STORAGES = {
@@ -448,6 +452,10 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_BEAT_SCHEDULE = {
+    "send-age-check-notices": {
+        "task": "apps.memberships.tasks.send_age_check_notices",
+        "schedule": 15 * 60,
+    },
     "send-event-reminders": {
         "task": "apps.events.tasks.send_due_reminders",
         "schedule": 15 * 60,

@@ -17,7 +17,7 @@ from apps.feed.models import FeedPost
 from apps.memberships.access import ALL, entitlements
 from apps.memberships.models import Membership
 from apps.safety import roles
-from tests.conftest import PASSWORD, csrf_client_for, staff_login
+from tests.conftest import PASSWORD, csrf_client_for, staff_login, verify_age
 
 pytestmark = pytest.mark.django_db
 
@@ -54,21 +54,33 @@ def test_a_superuser_is_an_admin_with_every_entitlement_and_no_membership(owner)
     assert not Membership.objects.filter(user=owner).exists()
 
 
-def test_first_login_prepares_the_member_profile(owner):
+def test_first_login_prepares_the_account_and_waits_for_the_age_check(owner):
     assert not owner.email_verified and not owner.profile.participates_in_feed
     client = login(owner)
     owner.refresh_from_db()
-    profile = owner.profile
     assert owner.email_verified
+    # No exception for the owner: the feed waits for their own in-person ID check.
+    assert not owner.profile.participates_in_feed
+    user = client.get("/api/account/session/").json()["user"]
+    assert user["member_app"] == "verify" and not user["feed_access"]
+    assert client.get("/api/members/me/").status_code == 404
+
+
+def test_once_checked_the_owner_is_joined_on_the_next_session_check(owner):
+    client = login(owner)
+    verify_age(owner)
+    user = client.get("/api/account/session/").json()["user"]
+    assert user["member_app"] == "open" and user["feed_access"]
+    profile = owner.profile
+    profile.refresh_from_db()
     assert profile.participates_in_feed and profile.joined_feed_at
     assert profile.hide_from_directory and profile.bio == "" and not profile.avatar
     assert not FeedPost.objects.filter(author=owner).exists()
-    user = client.get("/api/account/session/").json()["user"]
-    assert user["member_app"] == "open" and user["feed_access"]
     assert client.get("/api/members/me/").status_code == 200
 
 
 def test_an_owner_already_signed_in_is_prepared_on_the_next_session_check(owner):
+    verify_age(owner)
     client = APIClient()
     client.force_login(owner)
     assert client.get("/api/account/session/").json()["user"]["member_app"] == "open"
@@ -142,8 +154,9 @@ def test_make_owner_creates_then_does_nothing_new(django_user_model):
     user = django_user_model.objects.get(email="boss@example.org")
     assert user.is_superuser and user.is_staff and user.display_name == "boss"
     assert list(user.groups.values_list("name", flat=True)) == ["Admin"]
-    assert user.email_verified and user.profile.participates_in_feed
+    assert user.email_verified and not user.profile.participates_in_feed
     text = out.getvalue()
+    assert "ID check" in text
     assert "Created boss@example.org" in text and "Upgraded boss@example.org" in text
     assert "authenticator" in text and "DEV_SKIP_STAFF_2FA" in text
     assert django_user_model.objects.filter(email__iexact="boss@example.org").count() == 1

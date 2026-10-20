@@ -9,7 +9,7 @@ taken, never what they do in the app.
 from datetime import datetime
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Case, Q, When
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -26,8 +26,10 @@ from apps.core.api import CsrfProtectedAPIView, too_many_requests
 from apps.core.models import AuditLog, audit
 from apps.core.ratelimit import hashed_ip_key
 from apps.events.models import Event
+from apps.feed.access import feed_access_label
 from apps.feed.models import FeedImage, Report
 from apps.feed.views import deliver_image
+from apps.memberships.access import is_age_verified
 from apps.pages.content import page_entries
 
 from . import metrics, roles, services
@@ -117,20 +119,22 @@ def report_summary(report):
     }
 
 
-def _content(report):
-    """What was reported, for staff. Pictures go through the staff media path."""
+def _content(report, viewer):
+    """What was reported, for staff. Pictures go through the staff media path, and only to
+    staff whose own age has been checked: the member feed's rule holds for the team too."""
     kind = report.target_type
     if kind == Report.TargetType.POST and report.post:
         post = report.post
+        pictures = [image for image in post.images.order_by("position") if image.image]
+        allowed = is_age_verified(viewer)
         return {
             "caption": post.caption,
             "status": post.status,
             "is_sensitive": post.is_sensitive,
-            "images": [
-                f"/api/staff/media/{image.public_id}/"
-                for image in post.images.order_by("position")
-                if image.image
-            ],
+            "images": [f"/api/staff/media/{image.public_id}/" for image in pictures]
+            if allowed
+            else [],
+            "images_withheld": 0 if allowed else len(pictures),
         }
     if kind == Report.TargetType.COMMENT and report.comment:
         comment = report.comment
@@ -158,7 +162,7 @@ def report_detail(report, viewer):
     return {
         **report_summary(report),
         "details": report.details,
-        "content": _content(report),
+        "content": _content(report, viewer),
         "reporter": {"hidden": True, "can_reveal": roles.has_role(viewer, roles.ADMIN)},
         "member": (
             {
@@ -288,7 +292,9 @@ class ReportListView(StaffAPIView):
             reports = reports.filter(status=status_filter)
         if request.query_params.get("mine") == "1":
             reports = reports.filter(assigned_to=request.user)
-        reports = reports.order_by("-created_at")[:PAGE]
+        # Possibly under 18 goes to the top, whatever its age; then newest first.
+        urgent = Case(When(reason=Report.Reason.UNDER_18, then=0), default=1)
+        reports = reports.order_by(urgent, "-created_at")[:PAGE]
         return Response([report_summary(report) for report in reports])
 
 
@@ -381,6 +387,8 @@ def member_payload(member):
             else None,
             "banned": profile.do_not_admit_at is not None or profile.is_feed_banned,
         },
+        "age_verified": is_age_verified(member),
+        "feed_access": feed_access_label(member),
         "reports_about": history["reports"],
         "actions": [action_payload(a) for a in history["actions"]],
     }
@@ -494,6 +502,8 @@ class StaffMediaView(StaffAPIView):
     """A reported post's picture for the team, watermarked with the viewer's name."""
 
     def get(self, request, public_id):
+        if not is_age_verified(request.user):
+            raise Http404
         image = (
             FeedImage.objects.filter(public_id=public_id, post__reports__isnull=False)
             .exclude(image="")

@@ -8,7 +8,8 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 
 from . import emails
-from .models import AgreementSignature, Membership, MembershipAgreement, Tier, has_id_check
+from .access import is_age_verified
+from .models import AgreementSignature, Membership, MembershipAgreement, Tier
 from .providers import registry
 from .providers.base import ProviderError
 
@@ -123,7 +124,7 @@ def join(user, tier_slug, agreement_version, typed_name, method=""):
                 else Membership.Source.PROVIDER,
                 paid_awaiting_id_check=tier.is_free,
             )
-            if tier.is_free and has_id_check(user):
+            if tier.is_free and is_age_verified(user):
                 membership.start_new_period()
                 membership.status = Membership.Status.ACTIVE
                 membership.paid_awaiting_id_check = False

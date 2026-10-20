@@ -59,6 +59,9 @@ def account_feed_payload(user):
         "participating": profile.participates_in_feed,
         "can_join": access.can_join_feed(user),
         "can_view": access.can_view_feed(user),
+        # Entitled, but the feed waits for the in-person age check. The join flow says so
+        # first, and lets them accept the guidelines in advance.
+        "awaiting_age_check": access.awaiting_age_check(user),
         "banned": profile.is_feed_banned,
         "suspended_until": profile.feed_suspended_until if profile.is_feed_suspended() else None,
         "accepted_current_guidelines": access.has_accepted_current_guidelines(user),

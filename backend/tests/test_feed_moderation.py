@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from apps.core.models import AuditLog
 from apps.feed import services
 from apps.feed.models import FeedComment, FeedPost, Notification, Report
+from tests.conftest import verify_age
 
 pytestmark = pytest.mark.django_db
 
@@ -147,7 +148,8 @@ def test_moderation_log_read_only_in_admin(admin_client, admin_user, make_member
     assert AuditLog.objects.filter(pk=action.pk).exists()
 
 
-def test_moderation_queue_view(admin_client, member_client, make_post, settings):
+def test_moderation_queue_view(admin_client, admin_user, member_client, make_post, settings):
+    verify_age(admin_user)  # the pictures need the viewer's own ID check
     _, author = member_client()
     pending = make_post(author, caption="Waiting post", images=1, premoderation=3)
     reported = make_post(author, caption="Reported post")

@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, ScrollText, ShieldAlert } from 'lucide-react'
+import { BadgeCheck, Heart, MessageCircle, ScrollText, ShieldAlert } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link } from 'react-router'
 import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
@@ -9,7 +9,7 @@ import { useAsync } from '@/lib/useAsync'
 import { Avatar } from '../Avatar'
 import { useMembers } from '../membersContext'
 
-const ICONS = { like: Heart, comment: MessageCircle, moderation: ShieldAlert, notice: ShieldAlert, guidelines: ScrollText }
+const ICONS = { like: Heart, comment: MessageCircle, moderation: ShieldAlert, notice: ShieldAlert, guidelines: ScrollText, age_verified: BadgeCheck }
 
 /** Where a notification opens: its post, or Settings > Notices for decisions about the account. */
 function targetOf(note: FeedNotification) {

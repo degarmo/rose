@@ -686,10 +686,6 @@ Prompt 01 decisions come first (1 to 47); prompt 02 and its review addendum foll
 437. The session is refreshed whenever access changes in the person's own hands: after joining the feed or accepting new guidelines (before the app opens), and after stepping away or leaving and erasing. Changes made elsewhere (a membership started at the door, an appeal upheld, a staff grant) reach an open tab because the shell re-reads a session older than 30 seconds once when someone without the feed comes into the app. A full page load always reads it.
 438. The feed and the account-only screens share one shell tree, so losing or gaining the feed swaps the navigation without remounting the open screen (for example, "Erasing everything you shared" stays in view after Leave and erase).
 
-## Prompt 12 (not done)
-
-Prompt 12 (an age verification gate for the member feed) was stopped before any change was made. Nothing from it is in the code.
-
 ## Prompt 13
 
 ### The admin in Rose's look
@@ -751,3 +747,45 @@ Prompt 12 (an age verification gate for the member feed) was stopped before any 
 452. **(security)** The API answers only to active staff with `memberships.change_membership` who have passed the two-step login (`roles.can_use_door_desk`). Everyone else gets the same 404 as an unknown address, before CSRF is checked. Writes need the CSRF token and count towards the account write limit.
 453. Door volunteers hold the desk permission without a team role. The session's `staff` block now covers them: `role` is null and `door_desk` is true. Their two-step link returns to `/members/staff/door`, they land there after logging in, and their staff menu has only the Door desk tab. In the member app's menus the desk comes first for volunteers and beside Staff for the team. The admin desk links to the tablet one ("Open the tablet door desk").
 454. **(privacy)** `Permissions-Policy: camera=(self)` is sent for the admin desk and for `/members/staff/door` only. Links to the tablet desk load the page afresh (`reloadDocument`), so the browser applies that header; every other page still denies the camera.
+
+## Prompt 12: the age check for the member feed
+
+Prompt 12 was stopped before prompt 13 began and was done afterwards, so its decisions follow prompt 13's.
+
+455. **(privacy)** Nobody sees, posts or comments on member images until staff have checked their age in person. The check is the door desk's existing `IdCheck`: a valid photo ID showing 18+ was seen, by whom and when. Nothing else is taken:
+    - no ID number, date of birth, photo, scan or selfie
+    - no document storage or biometric processing
+    - no upload path of any kind, not even a disabled one
+
+    Reasons:
+    - Stored ID images are a breach risk that would outweigh anything they protect.
+    - Illinois' Biometric Information Privacy Act makes face matching and selfie checks a legal liability.
+    - A person at the door holding the ID is more reliable than any automated check.
+456. One rule (`apps.memberships.access.is_age_verified`): true only when the person has a valid `IdCheck` with `verified_18_plus`. `can_join_feed`, `can_view_feed` and `can_post` all require it, whatever the feed entitlement came from: paid tier, free tier, comp, staff grant, staff account or superuser. Every feed endpoint, the media views (signed URLs and watermarked copies), stories, Explore, search, profile grids and notifications sit behind `FeedAPIView`, so the unverified get the same 404 as anyone without access. The team's pictures follow the same rule: the staff section's media path and the admin's moderation images answer 404 to staff without their own check, the report shows "pictures hidden" instead, and the owner is not exempt (`prepare_owner` joins them only once checked).
+457. `IdCheck` now belongs to the person (`user`), so one check carries over to every later membership. `membership` records where it was taken, and is empty for an account with no membership. Checks never expire. A check can be revoked with a reason (`revoked_at`, `revoked_by`, `revoke_reason`): the feed closes at once, and the row stays as the record. Migrations: memberships 0004 to 0006 add the fields and backfill `user` (a deleted account's check is dropped, since it verifies nobody).
+458. **(security)** A team account's own check needs two people. Either another team member records it, or the person records it with a second team member named as witness (`witnessed_by`). Both are logged: `id_check` by the recorder and `id_check_witnessed` by the witness.
+459. Bypasses closed:
+    - **A staff grant** with no check shows "Granted, awaiting ID check": in the admin's feed-access column, on the staff section's member page and on the door desk. It gives nothing until the check. The staff section has no grant switch of its own; it shows the state.
+    - **`import_members`:** `id_checked=no` rows still import as "paid, waiting for ID check" (the existing pending state, which is not active and gives nothing). The door desk flags them "ID check needed". The dry run now counts both kinds of row.
+    - **Comp, guest visit and first activation** already needed the check.
+    - **Renewing an expired membership, or reinstating a suspended one,** now needs a valid check on file or the box ticked. Without this, either could switch on a membership whose check was missing or revoked.
+    - **An online payment** with no check stays "paid, waiting for ID check" and grants nothing.
+    - **The free-tier join and the webhook** start a membership only when the person is verified.
+460. Members-only events and classes are unchanged: they follow an active membership, and every way of activating one needs a valid check (tested).
+461. Accounts that had the feed before the rule: memberships migration 0007 found the active accounts with feed access and no check (18 on the development database) and stamped `Profile.age_check_notice_at`. Their grants and opt-ins are kept, so the feed reopens the moment the check is recorded. Home and Settings explain why it closed. `apps.memberships.tasks.send_age_check_notices` (every 15 minutes) emails each of them once, with the neutral subject "A note about your account", rather than sending mail from inside a migration.
+462. The verify card (Home and Settings > Membership) shows while the check is missing and would unlock something (`age_check.needed` on the session): "Verify your age at your next visit."
+    - what to bring: a valid photo ID showing 18+
+    - the door code and its QR (the display name for someone without a membership)
+    - "We never copy or store your ID."
+
+    The join flow says so before anything else. It lets the person accept the guidelines in advance (`/api/account/feed/guidelines/`), then shows "You are ready". Once checked, someone who accepted in advance goes straight to the profile step. The session has a new `member_app` state, `verify`.
+463. Recording a check notifies the person in the app (a new notification kind, `age_verified`, when the feed is theirs) and sends a neutral email: "You're all set", which never says what was checked. The feed opens without logging out, because access is read on every request and the app reads the session again.
+464. Door desk, in both the admin and the staff section:
+    - every card shows "ID verified" or "ID check needed"
+    - a "Needs ID check" list covers current memberships and accounts with no membership (team members and staff grants)
+    - "Record ID check" records the check on its own, without activating anything
+    - "Revoke ID check" needs a reason
+    - the dialog is unchanged: "Photo ID checked, 18+" and the staff member, nothing else
+465. **(security)** Signed media URLs must expire within 60 seconds: settings refuse a longer `S3_SIGNED_URL_SECONDS`. Every request to the media view checks access again, so a revocation (or a ban) also stops URLs already handed out within a minute.
+466. Create's consent box now reads "Everyone identifiable in these photos is 18 or older and agreed to them being posted here.", and Share stays disabled until it is ticked. "May involve someone under 18" was already a report reason that hides the content at once. It now goes to the top of the staff inbox and of the admin's Reports, marked "Possibly under 18".
+

@@ -118,6 +118,28 @@ the team). Press a big button (**Check in**, **ID check**, **Record payment and 
 5. **Show signature name** reveals the full name someone typed when they signed
    the agreement. Only use it when you truly need it; every use is recorded.
 
+### The age check
+
+Nobody sees or posts photos in the member feed until someone on the team has checked their
+photo ID in person. That includes the team: your own feed, and the pictures in reports, open
+only once your own check is recorded.
+
+- **What to look at:** a valid photo ID showing they are 18 or older. Look, hand it back.
+  Never photograph, copy or write down anything from it. The site keeps only that you saw it.
+- **Needs ID check** (on the door desk) lists everyone waiting: memberships without a check,
+  and people with no membership who have feed access (team members, and people the staff
+  granted the feed to, shown as **Granted, awaiting ID check**). Search by display name finds
+  those people too.
+- **Record ID check** records the check on its own. Activating, comping, renewing a lapsed
+  membership or reinstating one also asks for the **Photo ID checked, 18+** box when there
+  is no check on file.
+- **Your own check:** another team member can record it, or you record it and choose a
+  second team member, there with you, as witness. Both names go in the log.
+- **Revoke ID check** (with a reason) if a check was recorded by mistake. Their member feed
+  closes at once. A check never needs renewing otherwise.
+
+The person gets a plain "You're all set" email and their feed opens without logging out.
+
 ### Event tags and plan rules
 
 Some plans only reach some members-only events (Community: events tagged **Community**;
@@ -221,7 +243,8 @@ several. Most of this work now happens in the member app's staff section, below.
   the author sees it). **Dismiss** closes a report that needs no action.
 - **Warn**, **Suspend** (for a number of days) and **Ban** are for people.
 - Posts reported as *posted without consent* or *may involve someone under 18*
-  are hidden at once. Treat them first.
+  are hidden at once. Treat them first: reports marked **Possibly under 18** are always at
+  the top.
 - People who report never learn the outcome, and authors never learn who
   reported them. Do not tell anyone either.
 

@@ -72,7 +72,7 @@ async function goToDetails() {
 describe('CreatePost', () => {
   it('goes Select, Crop & redact, Details, and keeps Share off until consent is attested', async () => {
     await goToDetails()
-    const consent = screen.getByLabelText(/Everyone identifiable in these photos agreed/)
+    const consent = screen.getByLabelText(/Everyone identifiable in these photos is 18 or older and agreed/)
     expect(consent).not.toBeChecked()
     const share = screen.getByRole('button', { name: 'Share' })
     const headerShare = screen.getByRole('button', { name: 'Share post' })
@@ -89,7 +89,7 @@ describe('CreatePost', () => {
   it('uploads only the redacted renders, never the original files, then says it is shared', async () => {
     const onPosted = await goToDetails()
     await userEvent.type(screen.getByLabelText(/^Caption/, { selector: 'textarea' }), 'Quiet night')
-    await userEvent.click(screen.getByLabelText(/Everyone identifiable in these photos agreed/))
+    await userEvent.click(screen.getByLabelText(/Everyone identifiable in these photos is 18 or older and agreed/))
     await userEvent.click(screen.getByRole('button', { name: 'Share' }))
 
     await waitFor(() => expect(mocks.createPost).toHaveBeenCalledOnce())
@@ -112,7 +112,7 @@ describe('CreatePost', () => {
   it('says when a first post waits for a host', async () => {
     mocks.createPost.mockResolvedValue({ id: 'abc', state: 'pending', in_review: true })
     await goToDetails()
-    await userEvent.click(screen.getByLabelText(/Everyone identifiable in these photos agreed/))
+    await userEvent.click(screen.getByLabelText(/Everyone identifiable in these photos is 18 or older and agreed/))
     await userEvent.click(screen.getByRole('button', { name: 'Share' }))
     expect(await screen.findByText(/Everyone else will see it after a quick look from a host/)).toBeInTheDocument()
   })

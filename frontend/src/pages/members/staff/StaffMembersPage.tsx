@@ -90,6 +90,10 @@ export function StaffMemberPage() {
                 {member.membership ? `${member.membership.tier} · ${member.membership.status}` : 'No open membership'} ·{' '}
                 {member.reports_about === 0 ? 'no reports about them' : `${member.reports_about} ${member.reports_about === 1 ? 'report' : 'reports'} about them`}
               </p>
+              <p className="text-sm text-fg-muted">
+                {member.age_verified ? 'ID verified' : 'ID check needed'}
+                {member.feed_access && ` · Feed access: ${member.feed_access}`}
+              </p>
             </div>
             <AppButton onClick={() => setActing(true)}>Take action</AppButton>
           </div>

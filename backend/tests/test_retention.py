@@ -56,6 +56,7 @@ def test_beat_schedule_runs_purge_and_reminders(settings):
     assert tasks == {
         "apps.events.tasks.purge_expired_rsvps",
         "apps.events.tasks.send_due_reminders",
+        "apps.memberships.tasks.send_age_check_notices",
         "apps.feed.tasks.purge_expired_exports",
         "apps.memberships.tasks.run_lifecycle",
         "apps.memberships.tasks.purge_old_usage",

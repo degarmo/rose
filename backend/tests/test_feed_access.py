@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 from apps.feed import access
 from apps.feed.models import Guidelines
 
-from .conftest import csrf_client_for
+from .conftest import csrf_client_for, verify_age
 
 pytestmark = pytest.mark.django_db
 
@@ -118,7 +118,11 @@ def test_access_functions(make_user, make_member, settings):
     assert not access.can_join_feed(plain)
     plain.profile.feed_access_granted = True
     plain.profile.save()
-    assert access.can_join_feed(plain)
+    # Entitled, but nobody has checked their ID: no feed, only the verify card.
+    assert not access.can_join_feed(plain)
+    assert access.awaiting_age_check(plain)
+    verify_age(plain)
+    assert access.can_join_feed(plain) and not access.awaiting_age_check(plain)
     assert not access.can_view_feed(plain)
 
     member = make_member()
@@ -150,8 +154,12 @@ def test_account_feed_endpoints_hidden_without_entitlement(signed_in, make_user)
     user.profile.save()
     assert client.get("/api/account/session/").json()["user"]["feed_controls"] is True
     body = client.get("/api/account/feed/").json()
-    assert body["can_join"] is True and body["participating"] is False
+    assert body["can_join"] is False and body["awaiting_age_check"] is True
+    assert body["participating"] is False
     assert body["guidelines"]["version"] == Guidelines.current().version
+    verify_age(user)
+    body = client.get("/api/account/feed/").json()
+    assert body["can_join"] is True and body["awaiting_age_check"] is False
 
 
 def test_admin_records_who_granted_access(admin_client, admin_user, make_user):

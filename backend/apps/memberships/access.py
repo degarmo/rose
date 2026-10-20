@@ -6,17 +6,27 @@ which stays for comped members and volunteers, and "feed" for every staff accoun
 team can always reach the member app. A superuser holds every entitlement (the owner's
 "everything" account), with no membership record behind it.
 
+An entitlement to the feed is not enough to use it: is_age_verified(user) must be true as
+well, whatever the entitlement came from, staff and superusers included (apps.feed.access).
+
 The tier rules for members-only events live here too: which events a tier includes, how
 many it allows each calendar month, and how many guests come with the member.
 """
 
 from django.utils import timezone
 
-from .models import Membership, MembershipUsage, Tier
+from .models import IdCheck, Membership, MembershipUsage, Tier
 
 FEED = "feed"
 MEMBERS_EVENTS = "members_events"
 MEMBERS_EDUCATION = "members_education"
+
+
+def is_age_verified(user):
+    """Staff saw a valid photo ID showing 18+ for this person, and nobody revoked it."""
+    if not (user and user.is_authenticated):
+        return False
+    return IdCheck.valid().filter(user=user).exists()
 
 
 def active_membership(user):

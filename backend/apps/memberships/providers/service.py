@@ -16,7 +16,8 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.module_loading import import_string
 
-from ..models import Membership, Payment, WebhookEvent, has_id_check
+from ..access import is_age_verified
+from ..models import Membership, Payment, WebhookEvent
 from .base import (
     CHECKOUT_COMPLETED,
     PAYMENT_FAILED,
@@ -71,7 +72,7 @@ def activate_or_extend(membership):
         membership.status = Membership.Status.ACTIVE
         membership.reminded_14_at = membership.reminded_3_at = membership.grace_started_at = None
         return
-    if membership.user is not None and has_id_check(membership.user):
+    if membership.user is not None and is_age_verified(membership.user):
         membership.start_new_period(now)
         membership.status = Membership.Status.ACTIVE
         membership.paid_awaiting_id_check = False

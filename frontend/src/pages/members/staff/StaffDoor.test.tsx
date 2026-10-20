@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Sidebar, TabBar } from '@/components/members/app/Nav'
 import type { Account } from '@/lib/api'
 import { landingAfterLogin } from '@/lib/memberApp'
-import type { DoorCard, DoorSearch, StaffSession } from '@/lib/safetyApi'
+import type { DoorCard, DoorPerson, DoorSearch, StaffSession } from '@/lib/safetyApi'
 import { renderWithProviders, verifiedUser } from '@/test/render'
 import { StaffDoorPage } from './StaffDoorPage'
 
@@ -43,6 +43,8 @@ function card(overrides: Partial<DoorCard> = {}): DoorCard {
     paid_awaiting_id_check: false,
     period_end: '2026-11-18T12:00:00Z',
     events_remaining: 3,
+    team_account: false,
+    is_you: false,
     do_not_admit: false,
     events_suspended_until: null,
     default_amount: '30.00',
@@ -55,7 +57,10 @@ function card(overrides: Partial<DoorCard> = {}): DoorCard {
 function found(cards: DoorCard[], overrides: Partial<DoorSearch> = {}): DoorSearch {
   return {
     query: 'UX3-D3X',
+    needs_id: false,
     results: cards,
+    people: [],
+    witnesses: [],
     tonight_events: [{ id: 12, title: 'Member Night', starts_at: '2026-10-19T19:30:00-05:00' }],
     donation_methods: [
       { value: 'cash', label: 'Cash' },
@@ -198,6 +203,74 @@ function titles(nav: HTMLElement) {
     .map((link) => link.getAttribute('title'))
     .filter((title): title is string => Boolean(title))
 }
+
+function person(overrides: Partial<DoorPerson> = {}): DoorPerson {
+  return { id: 31, display_name: 'quiet_lamp', team_account: false, feed_granted: true, is_you: false, id_checked: false, do_not_admit: false, actions: ['verify'], ...overrides }
+}
+
+describe('ID checks at the door desk', () => {
+  it('lists everyone waiting for an ID check, people without a membership included', async () => {
+    door.search.mockResolvedValue(found([card({ id_checked: false, actions: ['walk_in', 'verify'] })], { needs_id: true, query: '', people: [person()] }))
+    renderWithProviders(<StaffDoorPage />, { user: as({}) })
+    await userEvent.click(screen.getByRole('button', { name: 'Needs ID check' }))
+    expect(screen.getByRole('button', { name: 'Needs ID check' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(door.search).toHaveBeenCalledWith('', true))
+    expect(await screen.findByRole('heading', { name: 'Waiting for an ID check' })).toBeInTheDocument()
+    const granted = screen.getByRole('article', { name: 'quiet_lamp' })
+    expect(within(granted).getByText('Granted, awaiting ID check')).toBeInTheDocument()
+    expect(within(granted).getByText('ID check needed')).toBeInTheDocument()
+  })
+
+  it('records an ID check for an account with no membership, and nothing else', async () => {
+    door.search.mockResolvedValue(found([], { query: 'quiet', people: [person()] }))
+    door.act.mockResolvedValue({ message: 'quiet_lamp: ID check recorded.' })
+    renderWithProviders(<StaffDoorPage />, { user: as({}) })
+    await searchFor('quiet')
+    await userEvent.click(within(await screen.findByRole('article', { name: 'quiet_lamp' })).getByRole('button', { name: 'Record ID check' }))
+    const dialog = screen.getByRole('dialog', { name: 'Record ID check' })
+    expect(within(dialog).getByRole('button', { name: 'Record ID check' })).toBeDisabled()
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /Photo ID checked, 18\+/ }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Record ID check' }))
+    await waitFor(() => expect(door.act).toHaveBeenCalledWith({ action: 'verify', person: 31, id_checked: true }))
+  })
+
+  it('needs a witness for your own ID check', async () => {
+    door.search.mockResolvedValue(found([], { query: 'me', people: [person({ id: 7, display_name: 'desk_me', team_account: true, feed_granted: false, is_you: true })], witnesses: [{ id: 8, display_name: 'team_staff' }] }))
+    door.act.mockResolvedValue({ message: 'desk_me: ID check recorded.' })
+    renderWithProviders(<StaffDoorPage />, { user: as({}) })
+    await searchFor('me')
+    await userEvent.click(within(await screen.findByRole('article', { name: /desk_me/ })).getByRole('button', { name: 'Record ID check' }))
+    const dialog = screen.getByRole('dialog', { name: 'Record ID check' })
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /Photo ID checked, 18\+/ }))
+    expect(within(dialog).getByRole('button', { name: 'Record ID check' })).toBeDisabled()
+    await userEvent.selectOptions(within(dialog).getByLabelText(/^Witness/), '8')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Record ID check' }))
+    await waitFor(() => expect(door.act).toHaveBeenCalledWith({ action: 'verify', person: 7, witness: 8, id_checked: true }))
+  })
+
+  it('revokes a check with a reason', async () => {
+    door.search.mockResolvedValue(found([card({ actions: ['walk_in', 'renew', 'suspend', 'revoke'] })]))
+    door.act.mockResolvedValue({ message: 'silver_orchid: ID check revoked.' })
+    renderWithProviders(<StaffDoorPage />, { user: as({}) })
+    await searchFor('UX3-D3X')
+    await userEvent.click(await screen.findByRole('button', { name: 'Revoke ID check' }))
+    const dialog = screen.getByRole('dialog', { name: 'Revoke the ID check' })
+    expect(within(dialog).getByText(/member feed closes for them at once/)).toBeInTheDocument()
+    await userEvent.type(within(dialog).getByLabelText(/^Reason/), 'Checked the wrong person')
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Revoke' }))
+    await waitFor(() => expect(door.act).toHaveBeenCalledWith({ action: 'revoke', membership: 4, reason: 'Checked the wrong person' }))
+  })
+
+  it('asks for the ID box before renewing someone with no check on file', async () => {
+    door.search.mockResolvedValue(found([card({ status: 'expired', status_label: 'Expired', id_checked: false, actions: ['renew', 'verify'] })]))
+    renderWithProviders(<StaffDoorPage />, { user: as({}) })
+    await searchFor('UX3-D3X')
+    await userEvent.click(await screen.findByRole('button', { name: 'Renew' }))
+    const dialog = screen.getByRole('dialog', { name: 'Renew' })
+    expect(within(dialog).getByRole('checkbox', { name: /Photo ID checked, 18\+/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Renew' })).toBeDisabled()
+  })
+})
 
 describe('getting to the door desk', () => {
   it('lands a volunteer on the door desk after logging in', () => {

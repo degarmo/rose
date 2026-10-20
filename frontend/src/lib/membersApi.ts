@@ -96,6 +96,8 @@ export interface FeedAccount {
   participating: boolean
   can_join: boolean
   can_view: boolean
+  /** Entitled, but the feed waits for the in-person age check (guidelines may be accepted now). */
+  awaiting_age_check: boolean
   banned: boolean
   suspended_until: string | null
   accepted_current_guidelines: boolean
@@ -108,7 +110,7 @@ export interface FeedAccount {
 
 export interface FeedNotification {
   id: number
-  kind: 'like' | 'comment' | 'moderation' | 'notice' | 'guidelines'
+  kind: 'like' | 'comment' | 'moderation' | 'notice' | 'guidelines' | 'age_verified'
   text: string
   post_id: string | null
   /** The recipient's own post's first picture. */

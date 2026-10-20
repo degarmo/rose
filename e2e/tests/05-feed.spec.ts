@@ -4,8 +4,11 @@ import { allowedHosts, expect, fixtures, PHOTO, personPage, test } from './suppo
 async function joinFeedAgain(page: Page) {
   await page.getByRole('link', { name: 'Rejoin the feed' }).click()
   const readGuidelines = page.getByRole('button', { name: 'Read the guidelines' })
+  // Guidelines already accepted: straight on to the profile step.
+  const toProfile = page.getByRole('button', { name: 'Set up your profile' })
   const joinButton = page.getByRole('button', { name: 'Join the feed' })
-  await expect(readGuidelines.or(joinButton)).toBeVisible()
+  await expect(readGuidelines.or(toProfile).or(joinButton)).toBeVisible()
+  if (await toProfile.isVisible()) await toProfile.click()
   if (await readGuidelines.isVisible()) {
     await readGuidelines.click()
     await page
@@ -61,7 +64,7 @@ test.describe('Member feed', () => {
     await poster.getByRole('textbox', { name: /^Caption/ }).fill(first)
     const share = poster.getByRole('button', { name: 'Share', exact: true })
     await expect(share).toBeDisabled() // consent first
-    await poster.getByLabel(/Everyone identifiable in these photos agreed/).check()
+    await poster.getByLabel(/Everyone identifiable in these photos is 18 or older and agreed/).check()
     await share.click()
     await expect(poster.getByText('Your post has been shared.')).toBeVisible()
     await poster.keyboard.press('Escape')

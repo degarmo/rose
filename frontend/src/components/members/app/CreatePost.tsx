@@ -196,7 +196,7 @@ export function CreatePost({ open, fullScreen, author, onClose, onPosted }: Crea
       return
     }
     if (items.length > 0 && !attested) {
-      setError('Please confirm that everyone identifiable agreed before you share.')
+      setError('Please confirm that everyone identifiable is 18 or older and agreed before you share.')
       return
     }
     setBusy(true)
@@ -440,7 +440,7 @@ export function CreatePost({ open, fullScreen, author, onClose, onPosted }: Crea
         tone="required"
       />
       <label htmlFor={attestId} className="text-fg">
-        Everyone identifiable in these photos agreed to them being posted here. <span className="text-link">Required</span>
+        Everyone identifiable in these photos is 18 or older and agreed to them being posted here. <span className="text-link">Required</span>
       </label>
     </div>
   )

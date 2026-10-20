@@ -33,6 +33,7 @@ class AccountSerializer(serializers.ModelSerializer):
     feed_access = serializers.SerializerMethodField()
     feed_controls = serializers.SerializerMethodField()
     member_app = serializers.SerializerMethodField()
+    age_check = serializers.SerializerMethodField()
     staff = serializers.SerializerMethodField()
     calendar_details = serializers.BooleanField(source="profile.calendar_details", read_only=True)
     unread_notices = serializers.SerializerMethodField()
@@ -48,6 +49,7 @@ class AccountSerializer(serializers.ModelSerializer):
             "feed_access",
             "feed_controls",
             "member_app",
+            "age_check",
             "staff",
             "calendar_details",
             "unread_notices",
@@ -60,6 +62,26 @@ class AccountSerializer(serializers.ModelSerializer):
         from apps.safety.services import unread_notices
 
         return unread_notices(user)
+
+    def get_age_check(self, user):
+        """The in-person age check the member feed needs. `needed` shows the verify card (on
+        Home and in Settings) to anyone it would unlock something for: feed access waiting
+        for it, or a membership that is open or on its way. `notice` says they had the feed
+        before it asked for one."""
+        from apps.feed.access import awaiting_age_check
+        from apps.memberships.access import is_age_verified
+        from apps.memberships.models import Membership
+
+        verified = is_age_verified(user)
+        needed = not verified and (
+            awaiting_age_check(user) or Membership.objects.non_terminal().filter(user=user).exists()
+        )
+        profile = getattr(user, "profile", None)
+        return {
+            "verified": verified,
+            "needed": needed,
+            "notice": bool(needed and profile and profile.age_check_notice_at),
+        }
 
     def get_has_membership(self, user):
         return user.memberships.exists()
@@ -76,10 +98,16 @@ class AccountSerializer(serializers.ModelSerializer):
 
     def get_member_app(self, user):
         """Where the member app stands for this person: "open" (it opens now), "join" (it
-        would after joining), "paused" (a suspension or ban closes it) or None."""
+        would after joining), "verify" (entitled, but waiting for the in-person age check),
+        "paused" (a suspension or ban closes it) or None."""
         from django.conf import settings
 
-        from apps.feed.access import can_join_feed, can_view_feed, has_feed_entitlement
+        from apps.feed.access import (
+            awaiting_age_check,
+            can_join_feed,
+            can_view_feed,
+            has_feed_entitlement,
+        )
 
         if not settings.FEED_ENABLED:
             return None
@@ -87,6 +115,8 @@ class AccountSerializer(serializers.ModelSerializer):
             return "open"
         if can_join_feed(user):
             return "join"
+        if awaiting_age_check(user):
+            return "verify"
         profile = user.profile
         if has_feed_entitlement(user) and (profile.is_feed_banned or profile.is_feed_suspended()):
             return "paused"

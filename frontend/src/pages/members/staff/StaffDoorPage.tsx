@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarCheck, Camera, CircleAlert, CreditCard, HandHeart, IdCard, Repeat, ScanLine, Search, UserCheck, type LucideIcon } from 'lucide-react'
+import { BadgeCheck, CalendarCheck, Camera, CircleAlert, CreditCard, HandHeart, IdCard, ListChecks, Repeat, ScanLine, Search, ShieldX, UserCheck, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { EmptyState, ErrorState, LoadingState } from '@/components/content/States'
 import { appButtonClasses } from '@/components/members/app/ui'
@@ -7,7 +7,7 @@ import { Button, Checkbox, FormField, Input, Modal, Select, useToast } from '@/c
 import { ApiError } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { formatDay } from '@/lib/format'
-import { doorApi, type DoorAction, type DoorCard, type DoorRequest, type DoorSearch } from '@/lib/safetyApi'
+import { doorApi, type DoorAction, type DoorCard, type DoorPerson, type DoorRequest, type DoorSearch } from '@/lib/safetyApi'
 import { useAsync } from '@/lib/useAsync'
 
 /** A reference code as printed: three letters or digits, a dash, three more (no 0, O, 1, I, L). */
@@ -36,10 +36,12 @@ const ACTIONS: Record<DoorAction, ActionSpec> = {
   activate_paid: { label: 'ID check', title: 'Check ID and activate', icon: BadgeCheck, checksId: true, submit: 'Activate' },
   activate: { label: 'Record payment and activate', title: 'Record payment and activate', icon: CreditCard, pays: true, checksId: true, submit: 'Record payment and activate' },
   guest_visit: { label: 'Guest visit', title: 'Guest visit', icon: UserCheck, pays: true, checksId: true, submit: 'Record payment, in for tonight' },
-  renew: { label: 'Renew', title: 'Renew', icon: Repeat, pays: true, submit: 'Renew' },
+  renew: { label: 'Renew', title: 'Renew', icon: Repeat, pays: true, checksId: true, submit: 'Renew' },
   comp: { label: 'Comp membership', title: 'Complimentary membership', icon: IdCard, reason: true, checksId: true, submit: 'Comp membership', tone: 'secondary' },
   suspend: { label: 'Suspend', title: 'Suspend', icon: CircleAlert, reason: true, submit: 'Suspend', tone: 'danger' },
-  reinstate: { label: 'Reinstate', title: 'Reinstate', icon: BadgeCheck, reason: true, submit: 'Reinstate', tone: 'secondary' },
+  reinstate: { label: 'Reinstate', title: 'Reinstate', icon: BadgeCheck, reason: true, checksId: true, submit: 'Reinstate', tone: 'secondary' },
+  verify: { label: 'Record ID check', title: 'Record ID check', icon: BadgeCheck, checksId: true, submit: 'Record ID check', tone: 'secondary' },
+  revoke: { label: 'Revoke ID check', title: 'Revoke the ID check', icon: ShieldX, reason: true, submit: 'Revoke', tone: 'danger' },
 }
 /** The big buttons, in the order the door uses them; the rest sit below. */
 const MAIN: DoorAction[] = ['walk_in', 'activate_paid', 'activate', 'guest_visit', 'renew']
@@ -126,16 +128,20 @@ function statusTone(card: DoorCard) {
 }
 
 interface Dialog {
-  card: DoorCard
+  /** A membership card, or an account with no membership (only verify and revoke). */
+  card?: DoorCard
+  person?: DoorPerson
   action: DoorAction | 'refund'
   paymentId?: number
 }
 
 function ActionDialog({ dialog, search, onClose, onDone }: { dialog: Dialog; search: DoorSearch; onClose: () => void; onDone: (message: string) => void }) {
-  const { card, action } = dialog
+  const { card, person, action } = dialog
+  const subject = (card ?? person)!
   const spec = action === 'refund' ? null : ACTIONS[action]
   const [method, setMethod] = useState('cash')
-  const [amount, setAmount] = useState(action === 'refund' ? '' : card.default_amount)
+  const [amount, setAmount] = useState(action === 'refund' || !card ? '' : card.default_amount)
+  const [witness, setWitness] = useState('')
   const [note, setNote] = useState('')
   const [reason, setReason] = useState('')
   const [idChecked, setIdChecked] = useState(false)
@@ -143,13 +149,17 @@ function ActionDialog({ dialog, search, onClose, onDone }: { dialog: Dialog; sea
   const [party, setParty] = useState('1')
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
-  const needsId = Boolean(spec?.checksId && !card.id_checked)
+  const needsId = Boolean(spec?.checksId && !subject.id_checked)
+  // Your own ID check needs a second team member there with you.
+  const needsWitness = needsId && subject.is_you
   const title = action === 'refund' ? 'Refund' : (spec?.title ?? '')
 
   async function submit(formEvent: FormEvent) {
     formEvent.preventDefault()
     if (needsId && !idChecked) return setError('Check a photo ID showing 18+ first.')
-    const payload: DoorRequest = { action, membership: card.id }
+    if (needsWitness && !witness) return setError('Choose the team member witnessing your check.')
+    const payload: DoorRequest = card ? { action, membership: card.id } : { action, person: subject.id }
+    if (needsWitness) payload.witness = Number(witness)
     if (action === 'refund') Object.assign(payload, { payment: dialog.paymentId, amount, note })
     if (spec?.pays) Object.assign(payload, { method, amount, note })
     if (spec?.reason) payload.reason = reason
@@ -169,14 +179,15 @@ function ActionDialog({ dialog, search, onClose, onDone }: { dialog: Dialog; sea
     <Modal open onClose={onClose} title={title}>
       <form noValidate onSubmit={(e) => void submit(e)} className="flex flex-col gap-4">
         <p className="text-fg-muted">
-          <span className="font-semibold text-fg">{card.display_name}</span> · {card.reference_code} · {card.tier.name}
+          <span className="font-semibold text-fg">{subject.display_name}</span> · {card ? `${card.reference_code} · ${card.tier.name}` : 'No membership'}
         </p>
+        {action === 'revoke' && <p className="text-fg">The member feed closes for them at once. The reason goes in the log.</p>}
         {action === 'walk_in' && (
           <>
             <FormField label="Event" required>
               {(field) => <Select {...field} value={event} onChange={(e) => setEvent(e.target.value)} options={search.tonight_events.map((item) => ({ value: String(item.id), label: `${item.title} (${new Date(item.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' })})` }))} />}
             </FormField>
-            <FormField label="Party" hint={`${card.tier.guests_included} guest${card.tier.guests_included === 1 ? '' : 's'} included per event on ${card.tier.name}.`}>
+            <FormField label="Party" hint={card ? `${card.tier.guests_included} guest${card.tier.guests_included === 1 ? '' : 's'} included per event on ${card.tier.name}.` : undefined}>
               {(field) => <Select {...field} value={party} onChange={(e) => setParty(e.target.value)} options={[{ value: '1', label: 'Just them' }, { value: '2', label: 'With a guest' }]} />}
             </FormField>
           </>
@@ -199,15 +210,20 @@ function ActionDialog({ dialog, search, onClose, onDone }: { dialog: Dialog; sea
             {(field) => <Input {...field} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} />}
           </FormField>
         )}
+        {needsWitness && (
+          <FormField label="Witness" hint="Your own check needs another team member, here with you. Both of you are named in the log." required>
+            {(field) => <Select {...field} value={witness} onChange={(e) => setWitness(e.target.value)} options={[{ value: '', label: 'Choose a team member' }, ...search.witnesses.map((w) => ({ value: String(w.id), label: w.display_name }))]} />}
+          </FormField>
+        )}
         {needsId && <Checkbox label="Photo ID checked, 18+" hint="Only that it was seen. Nothing is copied or kept." checked={idChecked} onChange={(e) => setIdChecked(e.target.checked)} />}
-        {action === 'activate_paid' && card.id_checked && <p className="text-fg-muted">An ID check is already on file.</p>}
+        {action === 'activate_paid' && subject.id_checked && <p className="text-fg-muted">An ID check is already on file.</p>}
         {error && (
           <p role="alert" className="rounded-app bg-tint px-4 py-3 font-semibold text-tint-fg">
             {error}
           </p>
         )}
         <div className="flex flex-wrap gap-3">
-          <Button type="submit" size="lg" disabled={busy || (needsId && !idChecked)} aria-busy={busy}>
+          <Button type="submit" size="lg" disabled={busy || (needsId && !idChecked) || (needsWitness && !witness)} aria-busy={busy}>
             {busy ? 'Working' : action === 'refund' ? 'Record refund' : spec?.submit}
           </Button>
           <Button type="button" variant="secondary" size="lg" onClick={onClose}>
@@ -392,6 +408,44 @@ function ResultCard({ card, search, onOpen, signature, onReveal }: { card: DoorC
   )
 }
 
+/** An account with no membership: a team member, or someone the staff granted the feed to. */
+function PersonCard({ person, onOpen }: { person: DoorPerson; onOpen: (dialog: Dialog) => void }) {
+  const verify = person.actions.includes('verify')
+  return (
+    <article aria-labelledby={`person-${person.id}`} className={cn('flex flex-col gap-4 rounded-app border bg-canvas p-5', person.do_not_admit ? 'border-2 border-danger' : 'border-border')}>
+      {person.do_not_admit && (
+        <p role="alert" className="rounded-app bg-danger px-4 py-3 text-lg font-semibold text-white">
+          Do not admit. Ask a member of the team.
+        </p>
+      )}
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold uppercase tracking-[0.06em] text-fg-muted">No membership</p>
+          <h2 id={`person-${person.id}`} className="text-2xl font-semibold text-fg">
+            {person.display_name}
+            {person.is_you && <span className="ml-2 text-base font-normal text-fg-muted">(you)</span>}
+          </h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {person.team_account && <Chip>Team</Chip>}
+          {person.feed_granted && <Chip tone={person.id_checked ? 'ok' : 'wait'}>{person.id_checked ? 'Feed granted' : 'Granted, awaiting ID check'}</Chip>}
+          {person.id_checked ? <Chip tone="ok">ID verified</Chip> : <Chip tone="alert">ID check needed</Chip>}
+        </div>
+      </header>
+      {verify ? (
+        <button type="button" onClick={() => onOpen({ person, action: 'verify' })} className={appButtonClasses('primary', cn(BIG, 'w-full justify-start gap-3 sm:w-auto'))}>
+          <BadgeCheck aria-hidden="true" className="size-5" />
+          Record ID check
+        </button>
+      ) : (
+        <button type="button" onClick={() => onOpen({ person, action: 'revoke' })} className={appButtonClasses('outline', 'h-12 self-start border-danger px-5 text-danger')}>
+          Revoke ID check
+        </button>
+      )}
+    </article>
+  )
+}
+
 /**
  * The door desk for a tablet (1024×768) or a phone: search or scan a reference code, see
  * who it is and what they may do, and act with large buttons. The admin's door desk runs
@@ -402,18 +456,20 @@ export function StaffDoorPage() {
   const inputId = useId()
   const [typed, setTyped] = useState('')
   const [query, setQuery] = useState('')
+  const [needsId, setNeedsId] = useState(false)
   const [version, setVersion] = useState(0)
   const [scanning, setScanning] = useState(false)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [donation, setDonation] = useState(false)
   const [signatures, setSignatures] = useState<Record<number, string>>({})
-  const results = useAsync(() => (query ? doorApi.search(query) : Promise.resolve(null)), `door:${query}:${version}`)
+  const results = useAsync(() => (needsId ? doorApi.search('', true) : query ? doorApi.search(query) : Promise.resolve(null)), `door:${needsId ? '!needs-id' : query}:${version}`)
   const search = results.status === 'success' ? results.data : null
 
   function find(value: string) {
     const next = value.trim()
     setTyped(next)
     setQuery(next)
+    setNeedsId(false)
     setSignatures({})
   }
 
@@ -477,26 +533,45 @@ export function StaffDoorPage() {
             }}
           />
         )}
-        <div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            aria-pressed={needsId}
+            onClick={() => {
+              setNeedsId((on) => !on)
+              setSignatures({})
+            }}
+            className={appButtonClasses(needsId ? 'primary' : 'secondary', 'h-12 px-5')}
+          >
+            <ListChecks aria-hidden="true" className="size-5" />
+            Needs ID check
+          </button>
           <button type="button" onClick={() => setDonation(true)} className={appButtonClasses('secondary', 'h-12 px-5')}>
             <HandHeart aria-hidden="true" className="size-5" />
             Record donation
           </button>
         </div>
 
-        {!query && (
+        {!query && !needsId && (
           <div className="flex flex-col items-center gap-2 rounded-app border border-dashed border-border px-6 py-12 text-center">
             <Camera aria-hidden="true" className="size-10 text-fg-muted" strokeWidth={1.5} />
             <p className="text-lg font-semibold text-fg">Scan a code or type it in</p>
             <p className="max-w-[420px] text-fg-muted">Search by the reference code on the member’s phone, or by part of their display name.</p>
           </div>
         )}
-        {query && results.status === 'loading' && <LoadingState label="Searching" />}
+        {(query || needsId) && results.status === 'loading' && <LoadingState label="Searching" />}
+        {search?.needs_id && <h2 className="text-lg font-semibold text-fg">Waiting for an ID check</h2>}
         {results.status === 'error' && <ErrorState title="The search did not work" onRetry={results.retry} />}
-        {search && search.results.length === 0 && <EmptyState title={`Nothing found for “${search.query}”`} message="Check the code, or try part of the display name." />}
+        {search && search.results.length === 0 && search.people.length === 0 &&
+          (search.needs_id ? (
+            <EmptyState title="Nobody is waiting for an ID check" message="Everyone with a current membership or feed access has one on file." />
+          ) : (
+            <EmptyState title={`Nothing found for “${search.query}”`} message="Check the code, or try part of the display name." />
+          ))}
         {search?.results.map((card) => (
           <ResultCard key={card.id} card={card} search={search} onOpen={setDialog} signature={signatures[card.id]} onReveal={() => void reveal(card)} />
         ))}
+        {search?.people.map((person) => <PersonCard key={`person-${person.id}`} person={person} onOpen={setDialog} />)}
       </div>
       {dialog && search && <ActionDialog dialog={dialog} search={search} onClose={() => setDialog(null)} onDone={done} />}
       {donation && <DonationDialog search={search} onClose={() => setDonation(false)} onDone={done} />}

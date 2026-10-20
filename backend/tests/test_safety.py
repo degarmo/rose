@@ -20,7 +20,7 @@ from apps.memberships import desk
 from apps.memberships.models import Membership
 from apps.safety import metrics, roles, services
 from apps.safety.models import Appeal, BlockedEmail, MemberAction
-from tests.conftest import csrf_client_for, staff_login
+from tests.conftest import csrf_client_for, staff_login, verify_age
 
 pytestmark = pytest.mark.django_db
 
@@ -61,6 +61,7 @@ def joined_member(make_user):
         user = make_user(**kwargs)
         user.profile.feed_access_granted = True
         user.profile.save()
+        verify_age(user)
         feed_services.join_feed(user, Guidelines.current().version)
         return user
 
@@ -196,11 +197,13 @@ def test_only_admins_manage_the_team_and_it_is_logged(team, make_user):
     assert own.status_code == 400
 
 
-def test_staff_always_have_the_member_app(make_user):
+def test_staff_have_the_member_app_once_their_own_age_is_checked(make_user):
     volunteer = make_user()
     volunteer.is_staff = True
     volunteer.save()
     client = csrf_client_for(_logged_in(volunteer))
+    assert client.get("/api/account/session/").json()["user"]["member_app"] == "verify"
+    verify_age(volunteer)
     assert client.get("/api/account/session/").json()["user"]["member_app"] == "join"
 
 
@@ -371,7 +374,8 @@ def test_reported_content_pictures_only_through_the_staff_path(team, joined_memb
     post = make_post(author, images=1)
     post.status = FeedPost.Status.PUBLISHED
     post.save(update_fields=["status"])
-    client, _ = team(roles.MODERATOR)
+    client, moderator = team(roles.MODERATOR)
+    verify_age(moderator)  # pictures need the viewer's own ID check, staff included
     image = post.images.first()
     assert client.get(f"/api/staff/media/{image.public_id}/").status_code == 404
     report_post(joined_member(), post)
@@ -704,12 +708,10 @@ def test_member_app_state_on_the_session(make_user, joined_member, team):
     entitled = make_user()
     entitled.profile.feed_access_granted = True
     entitled.profile.save()
-    assert (
-        csrf_client_for(_logged_in(entitled))
-        .get("/api/account/session/")
-        .json()["user"]["member_app"]
-        == "join"
-    )
+    entitled_client = csrf_client_for(_logged_in(entitled))
+    assert entitled_client.get("/api/account/session/").json()["user"]["member_app"] == "verify"
+    verify_age(entitled)
+    assert entitled_client.get("/api/account/session/").json()["user"]["member_app"] == "join"
     _, moderator = team(roles.MODERATOR)
     suspended = joined_member()
     action(moderator, suspended, kind="feed_suspension", days=3)
