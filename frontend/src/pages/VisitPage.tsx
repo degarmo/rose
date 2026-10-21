@@ -127,7 +127,7 @@ export function VisitPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="visit-plan.webp" placeholder="rose" />
+      <PageHero copy={copy} slot="visit.hero" placeholder="rose" />
 
       <section aria-labelledby="expect" className={cn('mx-auto max-w-[1440px] pb-6 lg:pb-16', GUTTER)}>
         <Copy copy={copy} k="expect.title" as="h2" id="expect" className="sr-only" />

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { RemoteImage } from '@/lib/api'
 import { cn } from '@/lib/cn'
-import { IMAGE_BASE_PATH, resolveImage, srcSetFor } from '@/lib/images'
+import type { FocalPoint } from '@/lib/siteImages'
 
 /** The striped wash under a picture: rose (people, rooms) or warm (classes, objects). */
 export type PlaceholderTexture = 'rose' | 'warm'
@@ -20,12 +20,12 @@ const ratios: Record<AspectRatio, string> = {
 }
 
 interface ImageFrameProps {
-  /** A filename from docs/image-manifest.json. */
-  image?: string
   /** An API image. The server withholds any image without face consent. */
   remote?: RemoteImage | null
-  /** Empty falls back to the manifest's or the API image's own description. */
+  /** Used when the image has no description of its own. */
   alt: string
+  /** The point that stays in view however the frame crops the picture. */
+  focal?: FocalPoint | null
   ratio?: AspectRatio
   placeholder?: PlaceholderTexture
   sizes?: string
@@ -43,14 +43,14 @@ function blockSave(event: { preventDefault: () => void }) {
 }
 
 /**
- * The only way the site renders imagery. Local images must be in the
- * manifest, and any entry with faces_visible true and consent_confirmed
- * false is refused. Anything refused or missing shows the striped placeholder.
+ * The only way the site renders imagery: a record's picture from the API, or a page
+ * image through SiteImage. The server withholds any picture showing faces without
+ * confirmed consent, so anything withheld or missing shows the striped placeholder.
  */
 export function ImageFrame({
-  image,
   remote,
   alt,
+  focal,
   ratio = '4/3',
   placeholder = 'rose',
   sizes = '100vw',
@@ -60,25 +60,9 @@ export function ImageFrame({
   protect = false,
 }: ImageFrameProps) {
   const [failed, setFailed] = useState(false)
-  const local = image ? resolveImage(image) : null
 
   let content = null
-  if (!failed && local) {
-    content = (
-      <img
-        src={`${IMAGE_BASE_PATH}/${local.filename}`}
-        srcSet={srcSetFor(local)}
-        sizes={sizes}
-        width={local.width}
-        height={local.height}
-        alt={alt || local.alt || ''}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding="async"
-        onError={() => setFailed(true)}
-        className="absolute inset-0 size-full object-cover"
-      />
-    )
-  } else if (!failed && remote) {
+  if (!failed && remote) {
     content = (
       <img
         src={remote.url}
@@ -94,6 +78,7 @@ export function ImageFrame({
         draggable={protect ? false : undefined}
         onContextMenu={protect ? blockSave : undefined}
         onDragStart={protect ? blockSave : undefined}
+        style={focal ? { objectPosition: `${focal.x * 100}% ${focal.y * 100}%` } : undefined}
         className={cn('absolute inset-0 size-full object-cover', protect && PROTECTED_CLASSES)}
       />
     )

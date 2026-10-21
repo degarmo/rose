@@ -269,7 +269,7 @@ export function CreatePost({ open, fullScreen, author, onClose, onPosted }: Crea
     <input
       ref={fileInput}
       type="file"
-      accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+      accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif"
       multiple
       className="peer sr-only"
       id="composer-files"

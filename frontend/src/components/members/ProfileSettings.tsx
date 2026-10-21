@@ -56,7 +56,7 @@ export function AvatarPicker({ onSaved }: { onSaved: (me: Me) => void }) {
       <p className="text-sm text-fg-muted">
         Many members use a texture, an object or a silhouette rather than their face. That is completely normal here.
       </p>
-      <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="sr-only" onChange={(e) => void choose(e.target.files)} />
+      <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif" className="sr-only" onChange={(e) => void choose(e.target.files)} />
       {!source ? (
         <label htmlFor={inputId} className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-border px-4 text-sm text-fg hover:border-primary">
           <ImagePlus aria-hidden="true" className="size-4" />

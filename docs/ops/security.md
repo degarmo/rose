@@ -92,7 +92,7 @@ No response names the Django version; gunicorn's `Server` header says only
 
 Every image upload (feed posts, avatars, admin images) is checked before it is
 stored (`apps/core/images.py`): at most 15 MB, real format by magic bytes (JPEG,
-PNG, WebP or HEIC, whatever the name or content type says), at most 40
+PNG, WebP, AVIF or HEIC, whatever the name or content type says), at most 40
 megapixels and 12,000 px on a side, read from the header before any pixel is
 decoded. Pillow's `MAX_IMAGE_PIXELS` is the same 40 megapixels, and its
 decompression-bomb warning is treated as a refusal. Accepted images are

@@ -49,7 +49,7 @@ export function GuestsPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="visit-hero.webp" placeholder="rose" />
+      <PageHero copy={copy} slot="guests.hero" placeholder="rose" />
 
       <section aria-labelledby="who" className={cn(BAND, 'pb-6 lg:pb-10')}>
         <CopyHeading copy={copy} prefix="who" id="who" className="mb-0 lg:mb-0" />

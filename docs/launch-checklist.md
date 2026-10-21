@@ -41,17 +41,18 @@ has an owner; replace `[owner]` with a name before starting.
 - [ ] **Image consent review**: every site image checked in Admin > Image review;
       anything with a recognisable face has written consent on file, or is kept
       hidden. Owner: [owner]
-- [ ] **Image rights and consent for the old site's images**: for each line in
-      `docs/image-sources.txt`, the club confirms it owns the image (Wix stock images
-      cannot be reused) and has written consent from anyone recognisable, before the line
-      is uncommented and fetched. Owner: [owner]
-- [ ] **The Plan Your Visit photograph** (`visit-plan.webp`, from the owner's
+- [ ] **Image rights and consent for the old site's images**: for each image in
+      `docs/old-site-images.txt`, the club confirms it owns the image (Wix stock images
+      cannot be reused) and has written consent from anyone recognisable, before it is
+      uploaded. Owner: [owner]
+- [ ] **The Plan Your Visit photograph** (Page images > Plan your visit, from the owner's
       `photos/Plan.jpeg`): confirm the club holds the rights and the pictured person's
       written consent to its use on the public site. No face is visible, so the site shows it
       now. Owner: [owner]
-- [ ] **The home page photograph** (`home-hero.webp`, from `photos/website/Front_Image.jpg`):
-      confirm the club holds the rights to use it on the public site. Everyone in it is seen
-      from behind in silhouette, so the site shows it now. Owner: [owner]
+- [ ] **The home page photograph** (Page images > Home: top banner, from
+      `photos/website/Front_Image.jpg`): confirm the club holds the rights to use it on the
+      public site. Everyone in it is seen from behind in silhouette, so the site shows it
+      now. Owner: [owner]
 - [ ] **Quick-exit destination** chosen (default: a weather site) and set in Site
       settings. Owner: [owner]
 

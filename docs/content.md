@@ -87,6 +87,7 @@ A `*` group is `title` and `lede`. Older files may still hold `eyebrow` keys; th
 
 ## Images
 
-Images are never part of the copy. The previous site's images are listed, commented out,
-in `docs/image-sources.txt`; once the club confirms it may reuse one and has consent from
-anyone recognisable, follow "Adding images" in the README.
+Images are never part of the copy: a page's pictures are in Admin > Content > Page images
+(each page group links to that page's copy), listed in `docs/page-images.md`. The previous
+site's images are listed in `docs/old-site-images.txt`; once the club confirms it may reuse
+one and has consent from anyone recognisable, upload it there or on its record.

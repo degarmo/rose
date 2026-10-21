@@ -1,10 +1,8 @@
-import mimetypes
-
 import markdown
 import nh3
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils.safestring import mark_safe
@@ -13,7 +11,6 @@ from unfold.sites import UnfoldAdminSite
 from . import admin_auth
 from .branding import display_name
 from .consent_images import consent_image_field_names, consent_image_models
-from .manifest import STATUS_LABELS, entry_status, find_entry, image_file, load_manifest
 
 # Staff who look after the pages that carry images may open Image review.
 IMAGE_PERMISSIONS = (
@@ -25,7 +22,13 @@ IMAGE_PERMISSIONS = (
 
 
 def can_review_images(user):
-    return user.is_superuser or any(user.has_perm(perm) for perm in IMAGE_PERMISSIONS)
+    from apps.pages.admin import edits_page_images
+
+    return (
+        user.is_superuser
+        or edits_page_images(user)
+        or any(user.has_perm(perm) for perm in IMAGE_PERMISSIONS)
+    )
 
 
 class RoseAdminSite(UnfoldAdminSite):
@@ -69,11 +72,6 @@ class RoseAdminSite(UnfoldAdminSite):
                 self.admin_view(self.metrics_export_view),
                 name="metrics_export",
             ),
-            path(
-                "image-review/file/<str:filename>",
-                self.admin_view(self.image_file_view),
-                name="image_review_file",
-            ),
         ]
         return extra + super().get_urls()
 
@@ -116,19 +114,6 @@ class RoseAdminSite(UnfoldAdminSite):
         """Read-only overview of every site image and why it is shown or hidden."""
         if not can_review_images(request.user):
             raise PermissionDenied
-        manifest_rows = []
-        for entry in load_manifest()["images"]:
-            status = entry_status(entry)
-            manifest_rows.append(
-                {
-                    "entry": entry,
-                    "status": status,
-                    "status_label": STATUS_LABELS[status],
-                    "has_file": image_file(entry).exists(),
-                }
-            )
-        manifest_rows.sort(key=lambda row: (row["status"] == "shown", row["entry"]["filename"]))
-
         upload_rows = []
         for model in consent_image_models(include_private=False):
             for field in consent_image_field_names(model):
@@ -148,27 +133,10 @@ class RoseAdminSite(UnfoldAdminSite):
         context = {
             **self.each_context(request),
             "title": "Image review",
-            "manifest_rows": manifest_rows,
             "upload_rows": upload_rows,
-            "hidden_count": sum(1 for row in manifest_rows if row["status"] != "shown")
-            + sum(1 for row in upload_rows if not row["shown"]),
+            "hidden_count": sum(1 for row in upload_rows if not row["shown"]),
         }
         return TemplateResponse(request, "admin/image_review.html", context)
-
-    def image_file_view(self, request, filename):
-        """Serve a manifest image to staff only, so hidden images never go public."""
-        if not can_review_images(request.user):
-            raise PermissionDenied
-        entry = find_entry(load_manifest(), filename)
-        if entry is None:
-            raise Http404
-        file_path = image_file(entry)
-        if not file_path.exists():
-            raise Http404
-        content_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
-        response = FileResponse(file_path.open("rb"), content_type=content_type)
-        response["Cache-Control"] = "private, no-store"
-        return response
 
     def staff_guide_view(self, request):
         """docs/staff-guide.md, for anyone with a staff login."""

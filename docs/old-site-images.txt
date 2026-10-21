@@ -1,53 +1,21 @@
-# Image sources for scripts/fetch_images.py
+# The previous website's images, for reference (captured 2026-10-18).
 #
-# One image per line, pipe-separated:
-#   url | name | source | license | credit | faces=yes|no | consent=yes|no | alt=text
+# Each image takes two lines: where it was used (page | role | alt | context), then
+# its address and what is known of its rights (url | name | source | licence |
+# credit | faces | consent). Nothing reads this file; the site's pictures are
+# uploaded in the admin.
 #
-# - name: output filename without extension; lowercase letters, digits, dashes.
-#   The site already looks for the names listed below and shows a gradient
-#   placeholder until the file exists.
-# - source: "org-site", "unsplash", "pexels", or another royalty-free site.
-# - faces: whether any identifiable face is visible. Defaults to yes.
-# - consent: whether everyone visible has given written consent. Defaults to no.
-#   Images with faces=yes and consent=no are downloaded but never rendered.
-# - alt: what the picture shows, for screen readers. Every slot below uses it.
-# - url: file://photos/... is a path from the repository root. photos/ is not
-#   committed, so those lines only run where the originals are on disk.
-#
-# Names the site uses today (the page header pictures show from 1024px wide):
-#   home-hero          home hero, beside the headline (4:5 on phones, 5:4 on desktop)
-#   about-hero         page header, About (5:4)
-#   volunteer-hero     page header, Volunteer (3:2)
-#   rentals-hero       page header, Rentals (3:2)
-#   home-closing       page header, Donate (3:2)
-#   visit-hero         page header, Guests (3:2)
-#   visit-plan         page header, Plan your visit (3:2; turned by hand, so not listed below)
-#
-# Examples (remove the leading "# " to use):
-# https://images.unsplash.com/photo-XXXXXXXXXXXX?w=2400 | home-hero | unsplash | Unsplash License | Photographer Name | faces=no | consent=no
-# https://images.pexels.com/photos/0000000/pexels-photo-0000000.jpeg | home-closing | pexels | Pexels License | Photographer Name | faces=no | consent=no
-# https://www.example.org/path/to/interior.jpg | home-interior | org-site | Owned by the organization | | faces=no | consent=no
-
-# The site's photographs (added 2026-10-21). Pexels photos are under the Pexels
-# License (free to use, no attribution required); the credit names the
-# photographer's Pexels account and the photo's page.
-file://photos/website/Front_Image.jpg | home-hero | Supplied by the club | Supplied by the club; rights to confirm before launch (launch checklist) | | faces=no | consent=no | alt=Black-and-white photograph of people dancing under stage lights and haze, seen from behind
-file://photos/website/pexels-shkrabaanthony-8191755.jpg | about-hero | pexels | Pexels License | Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755 | faces=no | consent=no | alt=A rainbow pride flag draped over a leather armchair against a warm ochre wall
-file://photos/website/pexels-shkrabaanthony-8191755.jpg | volunteer-hero | pexels | Pexels License | Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755 | faces=no | consent=no | alt=A rainbow pride flag draped over a leather armchair against a warm ochre wall
-file://photos/website/pexels-myatezhny39-2121663.jpg | rentals-hero | pexels | Pexels License | myatezhny39, pexels.com/photo/2121663 | faces=no | consent=no | alt=A red-lit archway with graffiti-covered brick walls and a disco ball
-file://photos/website/pexels-myatezhny39-2121663.jpg | visit-hero | pexels | Pexels License | myatezhny39, pexels.com/photo/2121663 | faces=no | consent=no | alt=A red-lit archway with graffiti-covered brick walls and a disco ball
-file://photos/website/pexels-31299941-8587259.jpg | home-closing | pexels | Pexels License | Pexels user 31299941, pexels.com/photo/8587259 | faces=no | consent=no | alt=Leather cuffs, a blindfold and a flogger among strawberries on dark fabric
-
 # ---------------------------------------------------------------------------
-# The previous site's images (captured 2026-10-18). NOT YET CONFIRMED.
+# NOT YET CONFIRMED.
 #
-# Every line below is commented out. Before removing the leading "# " from one:
+# Before using one:
 #   1. The club confirms it owns the image or has the right to reuse it. Images
 #      whose file name starts with 11062b_ or a 32-character id are Wix stock and
 #      are licensed for use on Wix sites only: do not reuse them.
-#   2. Set faces= and consent= truthfully. They default to faces=yes consent=no,
-#      which keeps an image hidden until review_images marks it safe.
-#   3. Give it a name the site uses (see the list above) or add a new one.
+#   2. Download it and upload it in Admin > Content > Page images (a page's fixed
+#      pictures, docs/page-images.md) or on the event, journal post, education item
+#      or staff profile it belongs to. Tick "faces visible" truthfully, and "consent
+#      confirmed" only with written consent on file.
 # Images with text baked in (event posters, the Events By Type tiles) need their
 # words in the page copy instead; never rely on text inside an image.
 # ---------------------------------------------------------------------------

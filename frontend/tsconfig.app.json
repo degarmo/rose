@@ -17,8 +17,7 @@
     "jsx": "react-jsx",
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@image-manifest": ["../docs/image-manifest.json"]
+      "@/*": ["./src/*"]
     },
 
     /* Linting */

@@ -4,9 +4,8 @@
     python manage.py migrate_media_to_storage --commit   # copy and verify
 
 Sources and destinations:
-- DJANGO_MEDIA_ROOT (journal, education and event images)  -> public bucket, same names
-- PRIVATE_MEDIA_ROOT (member images, avatars, exports)      -> private bucket, same names
-- SITE_IMAGES_DIR (fetched site imagery)                    -> public bucket under site/
+- DJANGO_MEDIA_ROOT (page, journal, education and event images) -> public bucket, same names
+- PRIVATE_MEDIA_ROOT (member images, avatars, exports)           -> private bucket, same names
 
 Object names are the names the database already stores, so no row changes.
 Each copy is verified by size and MD5 checksum. Files already present with the
@@ -25,7 +24,6 @@ from django.core.management.base import BaseCommand, CommandError
 from storages.utils import clean_name
 
 SKIP_DIRS = {"watermark-cache", "watermarks"}
-SITE_PREFIX = "site/"
 
 
 @dataclass
@@ -83,13 +81,12 @@ class Command(BaseCommand):
             raise CommandError("Set STORAGE_BACKEND=s3 (and the S3_* settings) first.")
 
         plan = [
-            ("public", Path(settings.MEDIA_ROOT), public, ""),
-            ("private", Path(settings.PRIVATE_MEDIA_ROOT), private, ""),
-            ("site images", Path(settings.SITE_IMAGES_DIR), public, SITE_PREFIX),
+            ("public", Path(settings.MEDIA_ROOT), public),
+            ("private", Path(settings.PRIVATE_MEDIA_ROOT), private),
         ]
         totals = Counts()
-        for label, root, storage, prefix in plan:
-            counts = self.copy_tree(root, storage, prefix, commit)
+        for label, root, storage in plan:
+            counts = self.copy_tree(root, storage, commit)
             self.stdout.write(
                 f"{label}: {counts.scanned} files, {counts.present} already there, "
                 f"{counts.copied if commit else counts.to_copy} "
@@ -110,11 +107,10 @@ class Command(BaseCommand):
             raise CommandError(f"{len(totals.failed)} files failed verification.")
         self.stdout.write(self.style.SUCCESS("Done. The database was not changed."))
 
-    def copy_tree(self, root, storage, prefix, commit):
+    def copy_tree(self, root, storage, commit):
         counts = Counts()
-        for path, relative in local_files(root):
+        for path, name in local_files(root):
             counts.scanned += 1
-            name = f"{prefix}{relative}"
             size = path.stat().st_size
             with path.open("rb") as handle:
                 checksum = md5_of(handle)

@@ -9,7 +9,6 @@ from django.utils.deconstruct import deconstructible
 from storages.backends.s3 import S3Storage
 
 PUBLIC_CACHE_CONTROL = "public, max-age=31536000, immutable"
-SITE_CACHE_CONTROL = "public, max-age=604800"
 PRIVATE_CACHE_CONTROL = "private, no-store, max-age=0"
 
 
@@ -29,7 +28,7 @@ def _common():
 
 @deconstructible
 class PublicS3Storage(S3Storage):
-    """Site, journal, education and event images. Served from S3_PUBLIC_BASE_URL with a long cache.
+    """Page, journal, education and event images. Served from S3_PUBLIC_BASE_URL with a long cache.
 
     Uploaded names are random, so a changed image is always a new URL.
     """
@@ -46,13 +45,6 @@ class PublicS3Storage(S3Storage):
         }
         options.update(overrides)
         super().__init__(**options)
-
-    def get_object_parameters(self, name):
-        params = super().get_object_parameters(name)
-        if name.startswith("site/"):
-            # Site imagery keeps fixed names, so it may change: cache for a week, not forever.
-            params["CacheControl"] = SITE_CACHE_CONTROL
-        return params
 
 
 @deconstructible

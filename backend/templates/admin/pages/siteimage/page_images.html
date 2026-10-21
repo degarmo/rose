@@ -1,0 +1,64 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Page images | {{ site_title }}{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="rose-stack">
+  <header class="rose-page-head">
+    <h1 class="rose-title">Page images</h1>
+    <p class="rose-subtle">Every fixed picture on the public pages, page by page. A change shows on the site within seconds. An empty slot, or a picture showing faces without confirmed consent, shows the page's texture instead.</p>
+  </header>
+
+  {% for group in groups %}
+  <details class="rose-card rose-page-group" id="page-{{ group.page }}"{% if group.open %} open{% endif %}>
+    <summary class="rose-page-group-head">
+      <h2 class="rose-section-title">{{ group.name }}</h2>
+      <span class="rose-subtle">{{ group.slots|length }} picture{{ group.slots|length|pluralize }}</span>
+    </summary>
+    <p class="rose-page-group-links">
+      {% if group.copy_url %}<a class="rose-link" href="{{ group.copy_url }}">Edit this page's words</a>{% endif %}
+      <a class="rose-link" href="{{ group.site_url }}" target="_blank" rel="noopener">View on site</a>
+    </p>
+    <ul class="rose-slot-list">
+      {% for slot in group.slots %}
+      <li class="rose-slot">
+        {% if slot.image %}
+        <img class="rose-slot-thumb" src="{{ slot.image.url }}" alt="{{ slot.image_alt }}" loading="lazy">
+        {% else %}
+        <div class="rose-slot-thumb rose-slot-empty">Empty, showing fallback</div>
+        {% endif %}
+        <div class="rose-slot-body">
+          <p class="rose-row-title">{{ slot.label }}</p>
+          <p class="rose-help">{{ slot.help_text }}</p>
+          {% if slot.image %}
+          <span class="rose-chip {% if slot.is_shown %}rose-chip-open{% else %}rose-chip-wait{% endif %}">{% if slot.is_shown %}Shown on the site{% else %}Hidden: faces visible without confirmed consent{% endif %}</span>
+          <ul class="rose-facts rose-facts-compact">
+            <li><span>Alt text</span><strong>{{ slot.image_alt }}</strong></li>
+            <li><span>Faces visible</span><strong>{{ slot.image_faces_visible|yesno:"Yes,No" }}</strong></li>
+            <li><span>Consent confirmed</span><strong>{{ slot.image_consent_confirmed|yesno:"Yes,No" }}</strong></li>
+            {% if slot.credit %}<li><span>Source</span><strong>{{ slot.credit }}</strong></li>{% endif %}
+          </ul>
+          {% endif %}
+          <p class="rose-subtle">Last updated {{ slot.updated_at|date:"j M Y, H:i" }} by {% if slot.updated_by %}{{ slot.updated_by.display_name }}{% else %}the site's set-up{% endif %}</p>
+          <div class="rose-slot-actions">
+            <a class="rose-button" href="{% url 'admin:pages_siteimage_change' slot.pk %}">{% if slot.image %}Replace{% else %}Add a picture{% endif %}</a>
+            {% if slot.image %}
+            <form method="post" action="{% url 'admin:pages_siteimage_remove' slot.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="rose-button-secondary">Remove</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'admin:pages_siteimage_restore_previous' slot.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="rose-button-secondary"{% if not slot.versions.all %} disabled{% endif %}>Restore previous</button>
+            </form>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+</div>
+{% endblock %}

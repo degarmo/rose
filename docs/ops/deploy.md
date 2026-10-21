@@ -88,8 +88,7 @@ Blueprint creates paid resources.
 
 ### Content and people
 
-14. **Site images and existing uploads**: on the computer that holds them (after
-    `scripts/fetch_images.py` and `review_images`), run with the environment's
+14. **Existing uploads**: on the computer that holds them, run with the environment's
     storage settings exported:
     `python manage.py migrate_media_to_storage` (dry run, read the counts), then
     `python manage.py migrate_media_to_storage --commit`. It is safe to repeat.

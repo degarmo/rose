@@ -103,6 +103,7 @@ def test_owner_sees_every_section(admin_user):
         "Announcements",
         "Education",
         "Page copy",
+        "Page images",
         "FAQ",
         "Guidelines",
         "Agreement",

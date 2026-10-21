@@ -1,17 +1,33 @@
+import math
+
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import redirect
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.views.decorators.http import require_POST
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import action, display
-from unfold.widgets import UnfoldAdminTextareaWidget
+from unfold.widgets import UnfoldAdminDecimalFieldWidget, UnfoldAdminTextareaWidget
 
 from apps.core.admin_display import image_preview
+from apps.core.models import AuditLog, audit
+from apps.safety.roles import STAFF, has_role
 
-from .models import FAQItem, PageContent, Redirect, SiteSettings, SocialLink, StaffProfile
+from .models import (
+    FAQItem,
+    PageContent,
+    Redirect,
+    SiteImage,
+    SiteImageVersion,
+    SiteSettings,
+    SocialLink,
+    StaffProfile,
+)
 from .site_content import ContentError, load_guarded, parse_texts
 
 MAX_CONTENT_FILE_BYTES = 200_000
@@ -303,3 +319,260 @@ class PageContentAdmin(ModelAdmin):
 class RedirectAdmin(ModelAdmin):
     list_display = ("old_path", "new_path", "updated_at")
     search_fields = ("old_path", "new_path")
+
+
+# Page images
+
+
+def edits_page_images(user):
+    """Staff and Admin change page images; Moderators do not."""
+    return has_role(user, STAFF)
+
+
+def ratio_value(ratio):
+    width, _, height = ratio.partition("/")
+    return float(width) / float(height)
+
+
+# A picture this much wider or taller than its slot loses a lot to cropping.
+FAR_OFF_RATIO = 1.35
+
+
+def size_warnings(slot):
+    """Worth knowing, never blocking: too small, or a very different shape."""
+    if not slot.image or not slot.image_width:
+        return []
+    warnings = []
+    if slot.image_width < slot.recommended_width:
+        warnings.append(
+            f"{slot.label}: the picture is {slot.image_width} pixels wide, smaller than the "
+            f"recommended {slot.recommended_width}. It may look soft on large screens."
+        )
+    shape = slot.image_width / slot.image_height
+    if abs(math.log(shape / ratio_value(slot.aspect_ratio))) > math.log(FAR_OFF_RATIO):
+        warnings.append(
+            f"{slot.label}: the picture's shape is far from {slot.aspect_ratio}, so much of it "
+            "will be cropped. Check the focal point and the previews."
+        )
+    return warnings
+
+
+class SiteImageForm(forms.ModelForm):
+    class Meta:
+        model = SiteImage
+        fields = [
+            "image",
+            "image_alt",
+            "image_faces_visible",
+            "image_consent_confirmed",
+            "credit",
+            "focal_x",
+            "focal_y",
+        ]
+        labels = {
+            "image": "Picture",
+            "image_alt": "Alt text",
+            "image_faces_visible": "Faces visible",
+            "image_consent_confirmed": "Consent confirmed",
+            "focal_x": "Focal point, across (0 to 1)",
+            "focal_y": "Focal point, down (0 to 1)",
+        }
+        widgets = {
+            "focal_x": UnfoldAdminDecimalFieldWidget(
+                attrs={"step": "0.01", "min": "0", "max": "1"}
+            ),
+            "focal_y": UnfoldAdminDecimalFieldWidget(
+                attrs={"step": "0.01", "min": "0", "max": "1"}
+            ),
+        }
+
+
+@admin.register(SiteImage)
+class SiteImageAdmin(ModelAdmin):
+    """Content > Page images: every fixed picture on the public pages, page by page."""
+
+    form = SiteImageForm
+    readonly_fields = ("about_slot", "focal_point_picker", "history", "last_updated")
+    fieldsets = (
+        (None, {"fields": ("about_slot",)}),
+        (
+            "Picture",
+            {
+                "fields": (
+                    "image",
+                    "image_alt",
+                    "image_faces_visible",
+                    "image_consent_confirmed",
+                    "credit",
+                ),
+                "description": "Choose a new file to replace the picture, or clear it to "
+                "go back to the page's texture. Metadata is stripped on upload.",
+            },
+        ),
+        ("Cropping", {"fields": ("focal_point_picker", "focal_x", "focal_y")}),
+        ("History", {"fields": ("history", "last_updated")}),
+    )
+
+    class Media:
+        js = ("pages/focal-point.js",)
+
+    # Who may do what
+
+    def has_module_permission(self, request):
+        return edits_page_images(request.user)
+
+    def has_view_permission(self, request, obj=None):
+        return edits_page_images(request.user)
+
+    def has_change_permission(self, request, obj=None):
+        return edits_page_images(request.user)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # The page-by-page list
+
+    def changelist_view(self, request, extra_context=None):
+        if not edits_page_images(request.user):
+            raise PermissionDenied
+        slots = SiteImage.objects.select_related("updated_by").prefetch_related("versions")
+        open_page = request.GET.get("page", SiteImage.Page.HOME)
+        # The link to a page's words only for those who may open Page copy.
+        sees_copy = request.user.has_perm("pages.view_pagecontent")
+        groups = []
+        for page, name in SiteImage.Page.choices:
+            rows = [slot for slot in slots if slot.page == page]
+            if rows:
+                groups.append(
+                    {
+                        "page": page,
+                        "name": name,
+                        "open": page == open_page,
+                        "slots": rows,
+                        "copy_url": reverse("admin:pages_pagecontent_changelist")
+                        + f"?page__exact={page}"
+                        if sees_copy
+                        else "",
+                        "site_url": rows[0].get_absolute_url(),
+                    }
+                )
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Page images",
+            "opts": self.model._meta,
+            "groups": groups,
+        }
+        return TemplateResponse(request, "admin/pages/siteimage/page_images.html", context)
+
+    # Remove and restore
+
+    def get_urls(self):
+        return [
+            path(
+                "<int:pk>/remove/",
+                self.admin_site.admin_view(require_POST(self.remove_view)),
+                name="pages_siteimage_remove",
+            ),
+            path(
+                "<int:pk>/restore/<int:version>/",
+                self.admin_site.admin_view(require_POST(self.restore_view)),
+                name="pages_siteimage_restore",
+            ),
+            path(
+                "<int:pk>/restore-previous/",
+                self.admin_site.admin_view(require_POST(self.restore_previous_view)),
+                name="pages_siteimage_restore_previous",
+            ),
+            *super().get_urls(),
+        ]
+
+    def _slot(self, request, pk):
+        if not edits_page_images(request.user):
+            raise PermissionDenied
+        return get_object_or_404(SiteImage, pk=pk)
+
+    def _back(self, request, slot):
+        if request.POST.get("next") == "change":
+            return redirect(reverse("admin:pages_siteimage_change", args=[slot.pk]))
+        return redirect(reverse("admin:pages_siteimage_changelist") + f"?page={slot.page}")
+
+    def remove_view(self, request, pk):
+        slot = self._slot(request, pk)
+        if slot.image:
+            slot.image = ""
+            slot.updated_by = request.user
+            slot.save()
+            self._audit("site_image_removed", request.user, slot)
+            self.message_user(request, f"{slot.label}: removed. The page shows its texture.")
+        return self._back(request, slot)
+
+    def restore_view(self, request, pk, version):
+        slot = self._slot(request, pk)
+        chosen = get_object_or_404(SiteImageVersion, pk=version, site_image=slot)
+        self._restore(request, slot, chosen)
+        return self._back(request, slot)
+
+    def restore_previous_view(self, request, pk):
+        slot = self._slot(request, pk)
+        chosen = slot.versions.first()
+        if chosen is None:
+            self.message_user(
+                request, f"{slot.label}: there is no previous picture.", messages.WARNING
+            )
+        else:
+            self._restore(request, slot, chosen)
+        return self._back(request, slot)
+
+    def _restore(self, request, slot, version):
+        with transaction.atomic():
+            slot.restore(version, request.user)
+            self._audit("site_image_restored", request.user, slot)
+        self.message_user(request, f"{slot.label}: the previous picture is back.")
+        for warning in size_warnings(slot):
+            self.message_user(request, warning, messages.WARNING)
+
+    # Saving
+
+    def save_model(self, request, obj, form, change):
+        before = SiteImage.objects.filter(pk=obj.pk).values_list("image", flat=True).first()
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+        if not obj.image and before:
+            action = "site_image_removed"
+        elif obj.image and obj.image.name != before:
+            action = "site_image_replaced"
+        else:
+            action = "site_image_edited"
+        self._audit(action, request.user, obj)
+        for warning in size_warnings(obj):
+            self.message_user(request, warning, messages.WARNING)
+
+    def _audit(self, action, actor, slot):
+        audit(
+            AuditLog.Category.CONTENT, action, actor, slot.label, "site_image", target_ref=slot.slot
+        )
+
+    # The change page's read-only parts
+
+    @admin.display(description="Slot")
+    def about_slot(self, obj):
+        return render_to_string("admin/pages/siteimage/about_slot.html", {"slot": obj})
+
+    @admin.display(description="Focal point")
+    def focal_point_picker(self, obj):
+        return render_to_string("admin/pages/siteimage/focal_point.html", {"slot": obj})
+
+    @admin.display(description="Previous pictures")
+    def history(self, obj):
+        return render_to_string(
+            "admin/pages/siteimage/history.html",
+            {"slot": obj, "versions": obj.versions.select_related("replaced_by")},
+        )
+
+    @admin.display(description="Last updated")
+    def last_updated(self, obj):
+        who = obj.updated_by.display_name if obj.updated_by else "the site's set-up"
+        return format_html("{} by {}", f"{obj.updated_at:%d %b %Y, %H:%M}", who)

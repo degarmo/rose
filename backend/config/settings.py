@@ -264,13 +264,11 @@ if STORAGE_BACKEND == "s3":
         "default": {"BACKEND": "apps.core.storage.PublicS3Storage"},
         "private": {"BACKEND": "apps.core.storage.PrivateS3Storage"},
     }
-    SITE_IMAGES_URL = f"{S3_PUBLIC_BASE_URL}/site/"
 else:
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "private": {"BACKEND": "apps.core.private_media.PrivateFileSystemStorage"},
     }
-    SITE_IMAGES_URL = "/images/"
 STORAGES["staticfiles"] = {
     "BACKEND": (
         "django.contrib.staticfiles.storage.StaticFilesStorage"
@@ -281,14 +279,6 @@ STORAGES["staticfiles"] = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Site imagery: fetched into the frontend's public folder, uploaded to the
-# public bucket under site/ by migrate_media_to_storage.
-IMAGE_MANIFEST_PATH = Path(
-    env.str("IMAGE_MANIFEST_PATH", default=str(REPO_DIR / "docs" / "image-manifest.json"))
-)
-SITE_IMAGES_DIR = Path(
-    env.str("SITE_IMAGES_DIR", default=str(REPO_DIR / "frontend" / "public" / "images"))
-)
 
 # Uploads: size and pixel caps, and the formats accepted (checked by magic bytes).
 UPLOAD_MAX_BYTES = 15 * 1024 * 1024
