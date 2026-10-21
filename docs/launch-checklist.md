@@ -49,10 +49,9 @@ has an owner; replace `[owner]` with a name before starting.
       `photos/Plan.jpeg`): confirm the club holds the rights and the pictured person's
       written consent to its use on the public site. No face is visible, so the site shows it
       now. Owner: [owner]
-- [ ] **The home page photograph** (`home-hero.webp`, from `photos/website/bondage_picture.jpg`):
-      confirm the club holds the rights and the model's written consent to its use on the
-      public site. No face is visible but tattoos are, so the person may be recognisable; the
-      site shows it now. Owner: [owner]
+- [ ] **The home page photograph** (`home-hero.webp`, from `photos/website/Front_Image.jpg`):
+      confirm the club holds the rights to use it on the public site. Everyone in it is seen
+      from behind in silhouette, so the site shows it now. Owner: [owner]
 - [ ] **Quick-exit destination** chosen (default: a weather site) and set in Site
       settings. Owner: [owner]
 

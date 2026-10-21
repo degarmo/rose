@@ -31,7 +31,7 @@
 # The site's photographs (added 2026-10-21). Pexels photos are under the Pexels
 # License (free to use, no attribution required); the credit names the
 # photographer's Pexels account and the photo's page.
-file://photos/website/bondage_picture.jpg | home-hero | Supplied by the club | Owned by the club; the model's consent to confirm before launch (launch checklist) | | faces=no | consent=no | alt=Black-and-white photograph of a rope suspension, the model's face turned away
+file://photos/website/Front_Image.jpg | home-hero | Supplied by the club | Supplied by the club; rights to confirm before launch (launch checklist) | | faces=no | consent=no | alt=Black-and-white photograph of people dancing under stage lights and haze, seen from behind
 file://photos/website/pexels-shkrabaanthony-8191755.jpg | about-hero | pexels | Pexels License | Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755 | faces=no | consent=no | alt=A rainbow pride flag draped over a leather armchair against a warm ochre wall
 file://photos/website/pexels-shkrabaanthony-8191755.jpg | volunteer-hero | pexels | Pexels License | Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755 | faces=no | consent=no | alt=A rainbow pride flag draped over a leather armchair against a warm ochre wall
 file://photos/website/pexels-myatezhny39-2121663.jpg | rentals-hero | pexels | Pexels License | myatezhny39, pexels.com/photo/2121663 | faces=no | consent=no | alt=A red-lit archway with graffiti-covered brick walls and a disco ball
