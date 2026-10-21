@@ -38,6 +38,23 @@ def test_parse_sources_rejects_bad_lines(line):
         fetch_images.parse_sources(line)
 
 
+def test_alt_text_is_optional_and_recorded():
+    plain, described = fetch_images.parse_sources(
+        "https://x.example/a.jpg | a | pexels\n"
+        "https://x.example/b.jpg | b | pexels | | | faces=no | consent=no | alt=A red archway\n"
+    )
+    assert (plain.alt, described.alt) == ("", "A red archway")
+    with pytest.raises(ValueError):
+        fetch_images.parse_sources("https://x.example/a.jpg | a | pexels | | | | | A red archway")
+
+
+def test_relative_file_urls_read_from_the_repository(monkeypatch, tmp_path):
+    (tmp_path / "photos").mkdir()
+    (tmp_path / "photos" / "a.jpg").write_bytes(b"picture")
+    monkeypatch.setattr(fetch_images, "ROOT", tmp_path)
+    assert fetch_images.download("file://photos/a.jpg") == b"picture"
+
+
 def test_run_writes_clean_variants_and_manifest(tmp_path, gps_image_path):
     big = BytesIO()
     with Image.open(gps_image_path) as source:
@@ -47,7 +64,8 @@ def test_run_writes_clean_variants_and_manifest(tmp_path, gps_image_path):
 
     sources = tmp_path / "sources.txt"
     sources.write_text(
-        "https://x.example/a.jpg | home-hero | unsplash | Unsplash License | Ana | faces=no\n"
+        "https://x.example/a.jpg | home-hero | unsplash | Unsplash License | Ana | faces=no"
+        " | consent=no | alt=Roses by candlelight\n"
     )
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps({"images": [{"filename": "old.webp"}]}))
@@ -78,6 +96,7 @@ def test_run_writes_clean_variants_and_manifest(tmp_path, gps_image_path):
     assert entry["faces_visible"] is False
     assert entry["consent_confirmed"] is False
     assert entry["original_url"] == "https://x.example/a.jpg"
+    assert entry["alt"] == "Roses by candlelight"
 
     fetch_images.run(sources, manifest_path, output, fetch=lambda url: payload)
     manifest = json.loads(manifest_path.read_text())

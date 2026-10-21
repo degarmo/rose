@@ -15,6 +15,8 @@ export interface ManifestImage {
   original_url: string
   license: string
   credit: string
+  /** Describes the picture; pages that pass no alt text of their own use it. */
+  alt?: string
   faces_visible: boolean
   consent_confirmed: boolean
 }

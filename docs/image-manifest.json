@@ -1,6 +1,156 @@
 {
   "images": [
     {
+      "filename": "about-hero.webp",
+      "width": 1280,
+      "height": 1920,
+      "variants": [
+        {
+          "width": 427,
+          "height": 640,
+          "filename": "about-hero-427.webp"
+        },
+        {
+          "width": 853,
+          "height": 1280,
+          "filename": "about-hero-853.webp"
+        },
+        {
+          "width": 1280,
+          "height": 1920,
+          "filename": "about-hero-1280.webp"
+        }
+      ],
+      "source": "pexels",
+      "original_url": "file://photos/website/pexels-shkrabaanthony-8191755.jpg",
+      "license": "Pexels License",
+      "credit": "Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755",
+      "alt": "A rainbow pride flag draped over a leather armchair against a warm ochre wall",
+      "faces_visible": false,
+      "consent_confirmed": false,
+      "added_at": "2026-10-21"
+    },
+    {
+      "filename": "home-closing.webp",
+      "width": 1280,
+      "height": 1920,
+      "variants": [
+        {
+          "width": 427,
+          "height": 640,
+          "filename": "home-closing-427.webp"
+        },
+        {
+          "width": 853,
+          "height": 1280,
+          "filename": "home-closing-853.webp"
+        },
+        {
+          "width": 1280,
+          "height": 1920,
+          "filename": "home-closing-1280.webp"
+        }
+      ],
+      "source": "pexels",
+      "original_url": "file://photos/website/pexels-31299941-8587259.jpg",
+      "license": "Pexels License",
+      "credit": "Pexels user 31299941, pexels.com/photo/8587259",
+      "alt": "Leather cuffs, a blindfold and a flogger among strawberries on dark fabric",
+      "faces_visible": false,
+      "consent_confirmed": false,
+      "added_at": "2026-10-21"
+    },
+    {
+      "filename": "home-hero.webp",
+      "width": 1920,
+      "height": 1280,
+      "variants": [
+        {
+          "width": 640,
+          "height": 427,
+          "filename": "home-hero-640.webp"
+        },
+        {
+          "width": 1280,
+          "height": 853,
+          "filename": "home-hero-1280.webp"
+        },
+        {
+          "width": 1920,
+          "height": 1280,
+          "filename": "home-hero-1920.webp"
+        }
+      ],
+      "source": "Supplied by the club",
+      "original_url": "file://photos/website/bondage_picture.jpg",
+      "license": "Owned by the club; the model's consent to confirm before launch (launch checklist)",
+      "credit": "",
+      "alt": "Black-and-white photograph of a rope suspension, the model's face turned away",
+      "faces_visible": false,
+      "consent_confirmed": false,
+      "added_at": "2026-10-21"
+    },
+    {
+      "filename": "rentals-hero.webp",
+      "width": 1920,
+      "height": 1273,
+      "variants": [
+        {
+          "width": 640,
+          "height": 424,
+          "filename": "rentals-hero-640.webp"
+        },
+        {
+          "width": 1280,
+          "height": 849,
+          "filename": "rentals-hero-1280.webp"
+        },
+        {
+          "width": 1920,
+          "height": 1273,
+          "filename": "rentals-hero-1920.webp"
+        }
+      ],
+      "source": "pexels",
+      "original_url": "file://photos/website/pexels-myatezhny39-2121663.jpg",
+      "license": "Pexels License",
+      "credit": "myatezhny39, pexels.com/photo/2121663",
+      "alt": "A red-lit archway with graffiti-covered brick walls and a disco ball",
+      "faces_visible": false,
+      "consent_confirmed": false,
+      "added_at": "2026-10-21"
+    },
+    {
+      "filename": "visit-hero.webp",
+      "width": 1920,
+      "height": 1273,
+      "variants": [
+        {
+          "width": 640,
+          "height": 424,
+          "filename": "visit-hero-640.webp"
+        },
+        {
+          "width": 1280,
+          "height": 849,
+          "filename": "visit-hero-1280.webp"
+        },
+        {
+          "width": 1920,
+          "height": 1273,
+          "filename": "visit-hero-1920.webp"
+        }
+      ],
+      "source": "pexels",
+      "original_url": "file://photos/website/pexels-myatezhny39-2121663.jpg",
+      "license": "Pexels License",
+      "credit": "myatezhny39, pexels.com/photo/2121663",
+      "alt": "A red-lit archway with graffiti-covered brick walls and a disco ball",
+      "faces_visible": false,
+      "consent_confirmed": false,
+      "added_at": "2026-10-21"
+    },
+    {
       "filename": "visit-plan.webp",
       "width": 1920,
       "height": 1280,
@@ -25,9 +175,40 @@
       "original_url": "file://photos/Plan.jpeg",
       "license": "Owner-supplied; rights and the subject's consent to confirm before launch",
       "credit": "",
+      "alt": "Black-and-white close-up of a hand resting on a bare back in low light",
       "faces_visible": false,
       "consent_confirmed": false,
       "added_at": "2026-10-19"
+    },
+    {
+      "filename": "volunteer-hero.webp",
+      "width": 1280,
+      "height": 1920,
+      "variants": [
+        {
+          "width": 427,
+          "height": 640,
+          "filename": "volunteer-hero-427.webp"
+        },
+        {
+          "width": 853,
+          "height": 1280,
+          "filename": "volunteer-hero-853.webp"
+        },
+        {
+          "width": 1280,
+          "height": 1920,
+          "filename": "volunteer-hero-1280.webp"
+        }
+      ],
+      "source": "pexels",
+      "original_url": "file://photos/website/pexels-shkrabaanthony-8191755.jpg",
+      "license": "Pexels License",
+      "credit": "Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755",
+      "alt": "A rainbow pride flag draped over a leather armchair against a warm ochre wall",
+      "faces_visible": false,
+      "consent_confirmed": false,
+      "added_at": "2026-10-21"
     }
   ]
 }
