@@ -6,7 +6,7 @@ import { JournalStrip } from '@/components/content/JournalStrip'
 import { OpportunityCard } from '@/components/content/OpportunityCard'
 import { ErrorState, SkeletonCards, EmptyState } from '@/components/content/States'
 import { ValuesStrip } from '@/components/content/ValuesStrip'
-import { ButtonLink, GradientBackground, GUTTER, ImageFrame, Section, SectionHeading } from '@/components/ui'
+import { ButtonLink, GradientBackground, GUTTER, Section, SectionHeading, SiteImage } from '@/components/ui'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { usePageContent, type PageCopy } from '@/lib/pageContent'
@@ -119,9 +119,8 @@ export function HomePage() {
               </ButtonLink>
             </div>
           </div>
-          <ImageFrame
-            image="home-hero.webp"
-            alt=""
+          <SiteImage
+            slot="home.hero"
             ratio="4/5"
             placeholder="rose"
             priority

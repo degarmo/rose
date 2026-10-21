@@ -264,19 +264,18 @@ or uploaded by a superuser at Page copy > **Load site content**. Drafts are refu
 production unless deliberately allowed. See [docs/content.md](docs/content.md). Redirects from the
 old site's addresses are in `content/redirects.yaml` (committed: paths only).
 
-## Adding images
+## Images
 
-Images are never hotlinked. To add one:
+Every picture on the site is uploaded in the admin, never hotlinked or committed:
 
-1. Add a line to [docs/image-sources.txt](docs/image-sources.txt). The file explains the format
-   and lists the image names the site already looks for.
-2. Run `backend/.venv/bin/python scripts/fetch_images.py` from the repository root.
-3. Review what is hidden: `backend/.venv/bin/python backend/manage.py review_images`, then mark
-   each image as no faces, consent confirmed, or keep hidden. Volunteers can see the same
-   status, with thumbnails, at Admin > Image review.
+- A page's fixed pictures (the home banner, the page headers) are **Admin > Content >
+  Page images**: replace, remove or restore each one, and set its focal point.
+  [docs/page-images.md](docs/page-images.md) lists every picture on every page.
+- Events, journal posts, education items and staff profiles carry their own pictures.
 
-New images are recorded as `faces_visible: true, consent_confirmed: false` unless you say
-otherwise, and images in that state are never shown on the site.
+Uploads are checked by their bytes (JPEG, PNG, WebP, AVIF or HEIC), stripped of metadata
+and stored as WebP with narrower copies. A picture marked as showing faces is never shown
+until consent is confirmed. Admin > Image review lists every image and whether it is shown.
 
 ## Brand assets
 
@@ -301,7 +300,7 @@ frontend/   Vite + React + TypeScript + Tailwind, Vitest tests
 e2e/        Playwright browser tests (phone and desktop)
 docs/       Architecture, decisions, design system, payments, staff guide, launch checklist;
             docs/ops/ for deploy, storage, email, security, restore and incidents
-scripts/    fetch_images.py, decrypt_backup.py
+scripts/    build_brand_assets.py, decrypt_backup.py, design_compare.py
 Dockerfile  Production image (web, worker and beat)
 render.yaml Render Blueprint: staging and production
 ```

@@ -1,0 +1,6 @@
+<div class="rose-stack-tight">
+  <p class="rose-row-title">{{ slot.label }}</p>
+  <p class="rose-help">{{ slot.help_text }}</p>
+  <p class="rose-subtle">Recommended: at least {{ slot.recommended_width }} pixels wide, shaped {{ slot.aspect_ratio }}{% if slot.phone_aspect_ratio %} ({{ slot.phone_aspect_ratio }} on phones){% endif %}. Smaller or differently shaped pictures are accepted with a warning.</p>
+  <p><a class="rose-link" href="{{ slot.get_absolute_url }}" target="_blank" rel="noopener">View on site</a></p>
+</div>

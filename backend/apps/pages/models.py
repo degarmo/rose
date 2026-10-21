@@ -2,9 +2,11 @@ import re
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db import models, transaction
 
-from apps.core.consent_images import consented_image
+from apps.core.consent_images import PUBLIC_VARIANT_WIDTHS, consented_image
+from apps.core.images import variant_name
 from apps.core.text import sanitize_rich_text
 
 
@@ -253,3 +255,170 @@ class Redirect(models.Model):
         super().clean()
         if not self.new_path.startswith("/") or self.new_path.startswith("//"):
             raise ValidationError({"new_path": "Use a path on this site, starting with /."})
+
+
+class SiteImage(consented_image("image", upload_to="site-images")):
+    """One fixed picture on a public page (a slot), changed in Admin > Content > Page images.
+
+    The site asks for it by `slot` ("home.hero"); docs/page-images.md lists every slot.
+    An empty slot, or one whose picture shows faces without confirmed consent, shows the
+    page's texture instead. Replacing, removing or restoring keeps the previous pictures
+    as versions (`SiteImageVersion`), the newest few only.
+    """
+
+    class Page(models.TextChoices):
+        HOME = "home", "Home"
+        ABOUT = "about", "About"
+        VISIT = "visit", "Plan your visit"
+        GUESTS = "guests", "Guests"
+        RENTALS = "rentals", "Rentals"
+        VOLUNTEER = "volunteer", "Volunteer"
+        DONATE = "donate", "Donate"
+
+    page = models.CharField(max_length=20, choices=Page.choices)
+    slot = models.CharField(max_length=60, unique=True, help_text="The key the site asks for.")
+    label = models.CharField(max_length=80, help_text="What staff see, e.g. Home: top banner.")
+    help_text = models.CharField(
+        max_length=240, blank=True, help_text="The recommended size and shape."
+    )
+    aspect_ratio = models.CharField(max_length=10, help_text="Width/height on computers, e.g. 3/2.")
+    phone_aspect_ratio = models.CharField(
+        max_length=10, blank=True, help_text="Width/height on phones. Blank: phones do not show it."
+    )
+    recommended_width = models.PositiveIntegerField(
+        default=1600, help_text="Smaller pictures are accepted with a warning."
+    )
+    credit = models.CharField(
+        max_length=300, blank=True, help_text="Where the picture came from, and its licence."
+    )
+    focal_x = models.FloatField(
+        default=0.5, validators=[MinValueValidator(0), MaxValueValidator(1)]
+    )
+    focal_y = models.FloatField(
+        default=0.5, validators=[MinValueValidator(0), MaxValueValidator(1)]
+    )
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        editable=False,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    PATHS = {
+        Page.HOME: "/",
+        Page.ABOUT: "/about",
+        Page.VISIT: "/visit",
+        Page.GUESTS: "/guests",
+        Page.RENTALS: "/rentals",
+        Page.VOLUNTEER: "/get-involved/volunteer",
+        Page.DONATE: "/get-involved/donate",
+    }
+    KEEP_VERSIONS = 5
+
+    class Meta:
+        ordering = ["sort_order", "slot"]
+        constraints = [
+            models.UniqueConstraint(fields=["page", "slot"], name="pages_siteimage_page_slot")
+        ]
+        verbose_name = "page image"
+
+    def __str__(self):
+        return self.label
+
+    def consent_publish_state(self):
+        """A slot is always on a public page."""
+        return True
+
+    @property
+    def is_shown(self):
+        """Whether the site shows this picture (set, and cleared for consent)."""
+        return self.image_is_displayable("image")
+
+    def get_absolute_url(self):
+        from apps.core.email import site_link
+
+        return site_link(self.PATHS[self.page])
+
+    def save(self, *args, **kwargs):
+        previous = SiteImage.objects.filter(pk=self.pk).first() if self.pk else None
+        super().save(*args, **kwargs)
+        if previous and previous.image and previous.image.name != self.image.name:
+            SiteImageVersion.keep(previous, replaced_by=self.updated_by)
+            self.purge_versions()
+
+    def restore(self, version, actor):
+        """Put a previous picture back. The one showing now becomes a version itself."""
+        self.image.name = version.image.name
+        for field in VERSIONED_FIELDS:
+            setattr(self, field, getattr(version, field))
+        self.updated_by = actor
+        with transaction.atomic():
+            version.delete()
+            self.save()
+
+    def purge_versions(self):
+        """Keep the newest KEEP_VERSIONS; delete the rest and their files."""
+        for version in self.versions.all()[self.KEEP_VERSIONS :]:
+            name = version.image.name
+            version.delete()
+            # Slots can share a file (the migration seeds some), so check every row.
+            in_use = (
+                SiteImage.objects.filter(image=name).exists()
+                or SiteImageVersion.objects.filter(image=name).exists()
+            )
+            if name and not in_use:
+                delete_with_variants(version.image.storage, name)
+
+
+VERSIONED_FIELDS = (
+    "image_width",
+    "image_height",
+    "image_alt",
+    "image_faces_visible",
+    "image_consent_confirmed",
+    "credit",
+    "focal_x",
+    "focal_y",
+)
+
+
+def delete_with_variants(storage, name):
+    for path in (name, *(variant_name(name, width) for width in PUBLIC_VARIANT_WIDTHS)):
+        if storage.exists(path):
+            storage.delete(path)
+
+
+class SiteImageVersion(models.Model):
+    """A picture a slot showed before, kept so staff can restore it."""
+
+    site_image = models.ForeignKey(SiteImage, on_delete=models.CASCADE, related_name="versions")
+    image = models.ImageField(max_length=200, editable=False)
+    image_width = models.PositiveIntegerField(null=True, blank=True)
+    image_height = models.PositiveIntegerField(null=True, blank=True)
+    image_alt = models.CharField(max_length=200, blank=True)
+    image_faces_visible = models.BooleanField(default=False)
+    image_consent_confirmed = models.BooleanField(default=False)
+    credit = models.CharField(max_length=300, blank=True)
+    focal_x = models.FloatField(default=0.5)
+    focal_y = models.FloatField(default=0.5)
+    replaced_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+    def __str__(self):
+        return f"{self.site_image}: {self.created_at:%Y-%m-%d %H:%M}"
+
+    @classmethod
+    def keep(cls, site_image, replaced_by=None):
+        values = {field: getattr(site_image, field) for field in VERSIONED_FIELDS}
+        return cls.objects.create(
+            site_image=site_image, image=site_image.image.name, replaced_by=replaced_by, **values
+        )

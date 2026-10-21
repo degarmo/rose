@@ -4,7 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 
-const manifestPath = fileURLToPath(new URL('../docs/image-manifest.json', import.meta.url))
 // Where the dev server forwards /api and /media. Docker Compose points it at the api service.
 const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://localhost:8000'
 
@@ -32,12 +31,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@image-manifest': manifestPath,
     },
   },
   server: {
     port: 5173,
-    fs: { allow: ['.', manifestPath] },
     // Keep the browser's Host, so the API builds image addresses on this origin rather
     // than the backend's port, which the browser would refuse as cross-origin.
     proxy: {

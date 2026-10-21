@@ -7,6 +7,7 @@ The fallback never answers for the API, the admin, media or anything that
 looks like a file, which get a real 404 instead.
 """
 
+import json
 import re
 from functools import lru_cache
 
@@ -15,9 +16,19 @@ from django.http import Http404, HttpResponse
 from django.utils.html import escape
 from django.views.decorators.http import require_safe
 
+from apps.pages.site_images import site_images
+
 from .branding import display_name, neutral_name, short_name
 
-SITE_IMAGES_META = '<meta name="rose-site-images" content="{}" />'
+# The page images (apps.pages.site_images), read by the app before it makes any request.
+SITE_IMAGES_DATA = '<script type="application/json" id="rose-site-images">{}</script>'
+# A page's own pictures start downloading with the page. The sizes match the app's frame
+# (PageHero and the home hero), so the browser uses this download for the picture; page
+# headers only show from 1024px.
+PAGE_IMAGE = (
+    '<link rel="preload" as="image" type="image/webp" fetchpriority="high" imagesrcset="{}" '
+    'imagesizes="(min-width: 1024px) 50vw, 100vw"{} />'
+)
 # The club's names and the neutral one, read by the app before it makes any request
 # (the age gate shows the name; member-app tabs and calendar notes use the neutral one).
 NAME_META = '<meta name="rose-site-{}" content="{}" />'
@@ -62,7 +73,7 @@ def index_html(path_requested="/", age_confirmed=True):
     title = neutral if member_app else display
     html = TITLE.sub(f"<title>{title}</title>", html, count=1)
     tags = [
-        SITE_IMAGES_META.format(escape(settings.SITE_IMAGES_URL)),
+        SITE_IMAGES_DATA.format(_script_json(site_images())),
         NAME_META.format("display-name", display),
         NAME_META.format("short-name", short),
         NAME_META.format("neutral-name", neutral),
@@ -81,8 +92,30 @@ def index_html(path_requested="/", age_confirmed=True):
     tags += [PRECONNECT.format(escape(origin)) for origin in settings.MEDIA_ORIGINS]
     if not age_confirmed:
         tags.append(GATE_EMBLEM)
+    else:
+        tags += _page_image_preloads(path_requested)
     head = "".join(f"    {tag}\n" for tag in tags)
     return html.replace("</head>", f"{head}  </head>", 1)
+
+
+def _script_json(data):
+    """JSON safe inside a <script> element: nothing in it can close the element."""
+    return json.dumps(data, separators=(",", ":")).replace("<", "\\u003c")
+
+
+def _page_image_preloads(path):
+    from apps.pages.models import SiteImage
+
+    pages = {page_path: page for page, page_path in SiteImage.PATHS.items()}
+    page = pages.get(path.rstrip("/") or "/")
+    if page is None:
+        return []
+    media = "" if page == SiteImage.Page.HOME else ' media="(min-width: 1024px)"'
+    return [
+        PAGE_IMAGE.format(escape(image["srcset"]), media)
+        for slot, image in site_images().items()
+        if slot.startswith(f"{page}.") and image["srcset"]
+    ]
 
 
 @require_safe

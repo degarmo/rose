@@ -24,8 +24,6 @@ def isolated_settings(settings, tmp_path):
     settings.SITE_DISPLAY_NAME = settings.SITE_SHORT_NAME = "Rose"
     settings.EMAIL_SENDER_NAME = settings.MERCHANT_DISPLAY_NAME = "Rose"
     settings.OTP_TOTP_ISSUER = "Rose"
-    settings.IMAGE_MANIFEST_PATH = tmp_path / "image-manifest.json"
-    settings.SITE_IMAGES_DIR = tmp_path / "images"
     # Celery reads CELERY_* from Django settings on every lookup.
     settings.CELERY_TASK_ALWAYS_EAGER = True
     # Tests run with DEBUG off, where only the in-person provider may exist.

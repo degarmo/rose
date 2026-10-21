@@ -20,9 +20,10 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 MAX_DIMENSION = 2400
 WEBP_QUALITY = 82
 
-INVALID = "Upload a JPEG, PNG, WebP or HEIC photo."
+INVALID = "Upload a JPEG, PNG, WebP, AVIF or HEIC photo."
 TOO_BIG = "That photo is too large. Try one under 15 MB and 40 megapixels."
 HEIF_BRANDS = {b"heic", b"heix", b"hevc", b"hevx", b"heim", b"heis", b"mif1", b"msf1"}
+AVIF_BRANDS = {b"avif", b"avis"}
 
 
 def random_filename(extension="webp"):
@@ -37,6 +38,8 @@ def sniff_format(head):
         return "png"
     if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
         return "webp"
+    if head[4:8] == b"ftyp" and head[8:12] in AVIF_BRANDS:
+        return "avif"
     if head[4:8] == b"ftyp" and head[8:12] in HEIF_BRANDS:
         return "heic"
     return None
@@ -53,7 +56,7 @@ def _size(source):
 
 
 def validate_upload(source):
-    """Reject anything that is not a reasonably sized JPEG, PNG, WebP or HEIC.
+    """Reject anything that is not a reasonably sized JPEG, PNG, WebP, AVIF or HEIC.
 
     Checks the byte size, the magic bytes and the pixel dimensions from the
     header, before any pixels are decoded, so a decompression bomb is refused

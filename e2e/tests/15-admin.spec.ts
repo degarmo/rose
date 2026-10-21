@@ -21,6 +21,7 @@ const ADMIN_PAGES = [
   'image-review/',
   'auth/group/',
   'pages/sitesettings/',
+  'pages/siteimage/',
   'core/auditlog/',
   'staff-guide/',
 ]

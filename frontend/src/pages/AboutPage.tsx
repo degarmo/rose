@@ -60,7 +60,7 @@ export function AboutPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="about-hero.webp" ratio="5/4" placeholder="warm" />
+      <PageHero copy={copy} slot="about.hero" ratio="5/4" placeholder="warm" />
 
       <Section rule aria-labelledby="mission">
         <div className="grid gap-3 lg:grid-cols-[1fr_2fr] lg:gap-16">

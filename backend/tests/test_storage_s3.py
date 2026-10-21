@@ -162,23 +162,18 @@ def test_public_images_are_served_from_the_public_bucket_with_a_long_cache(s3):
 def local_media(settings, tmp_path):
     public = tmp_path / "media"
     private = tmp_path / "private"
-    site = tmp_path / "site"
     (public / "journal").mkdir(parents=True)
     (private / "feed").mkdir(parents=True)
     (private / "watermark-cache").mkdir(parents=True)
-    site.mkdir()
     (public / "journal" / "a.webp").write_bytes(b"public-image" * 100)
     (private / "feed" / "b.webp").write_bytes(b"private-image" * 100)
     (private / "watermark-cache" / "old.djcache").write_bytes(b"cache")
-    (site / "hero-640.webp").write_bytes(b"site-image" * 100)
-    (site / ".gitkeep").write_bytes(b"")
-    return public, private, site
+    return public, private
 
 
 def run_migrate(s3, settings, local_media, *args):
-    public, private, site = local_media
+    public, private = local_media
     settings.MEDIA_ROOT = public
-    settings.SITE_IMAGES_DIR = site
     out = StringIO()
     # The fixture's PRIVATE_MEDIA_ROOT points at an unused folder; aim it at the files.
     settings.PRIVATE_MEDIA_ROOT = private
@@ -195,13 +190,13 @@ def test_dry_run_copies_nothing(s3, settings, local_media):
 
 def test_commit_copies_verifies_and_is_idempotent(s3, settings, local_media):
     output = run_migrate(s3, settings, local_media, "--commit")
-    assert output.count("copied and verified") == 3
-    assert s3.keys(s3.public) == ["journal/a.webp", "site/hero-640.webp"]
+    assert output.count("copied and verified") == 2
+    assert s3.keys(s3.public) == ["journal/a.webp"]
     assert s3.keys(s3.private) == ["feed/b.webp"]
     body = s3.client.get_object(Bucket=s3.private, Key="feed/b.webp")["Body"].read()
     assert hashlib.md5(body).hexdigest() == hashlib.md5(b"private-image" * 100).hexdigest()
-    site = s3.client.head_object(Bucket=s3.public, Key="site/hero-640.webp")
-    assert site["CacheControl"] == "public, max-age=604800"
+    copied = s3.client.head_object(Bucket=s3.public, Key="journal/a.webp")
+    assert copied["CacheControl"] == "public, max-age=31536000, immutable"
 
     again = run_migrate(s3, settings, local_media, "--commit")
     assert "1 files, 1 already there, 0 copied" in again

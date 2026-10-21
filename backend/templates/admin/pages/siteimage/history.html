@@ -1,0 +1,22 @@
+<div class="rose-stack-tight">
+  {% if slot.image %}
+  <p><button type="submit" class="rose-button-secondary" formaction="{% url 'admin:pages_siteimage_remove' slot.pk %}" formnovalidate name="next" value="change">Remove the picture (show the page's texture)</button></p>
+  {% endif %}
+  {% if versions %}
+  <ul class="rose-version-list">
+    {% for version in versions %}
+    <li class="rose-version">
+      <img class="rose-version-thumb" src="{{ version.image.url }}" alt="{{ version.image_alt }}" loading="lazy">
+      <div>
+        <p>Replaced {{ version.created_at|date:"j M Y, H:i" }}{% if version.replaced_by %} by {{ version.replaced_by.display_name }}{% endif %}</p>
+        <p class="rose-subtle">{{ version.image_alt }}</p>
+        <button type="submit" class="rose-button-secondary" formaction="{% url 'admin:pages_siteimage_restore' slot.pk version.pk %}" formnovalidate name="next" value="change">Restore</button>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="rose-subtle">The {{ slot.KEEP_VERSIONS }} most recent pictures are kept; older ones are deleted.</p>
+  {% else %}
+  <p class="rose-subtle">No previous pictures yet.</p>
+  {% endif %}
+</div>

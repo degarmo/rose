@@ -264,6 +264,27 @@ and key (for example `home` / `hero.title`). Change the text and save; the site 
 within a minute. "Formatted" values allow paragraphs, lists, bold, italics and links; plain
 values keep their line breaks. **Staff profiles** and **FAQ items** are edited the same way.
 
+## Changing the pictures on a page
+
+**Content** > **Page images** (Staff and Admin) lists every fixed picture on the public
+pages, page by page: the home banner and each page header. Open a page's group to see
+its pictures, with a link to that page's words and to the page itself.
+
+- **Replace**: choose a new file (JPEG, PNG, WebP, AVIF or HEIC). Write what it shows in
+  **Alt text**, which is required. Tick **Faces visible** if anyone could be recognised;
+  such a picture is only shown once **Consent confirmed** is ticked, which needs written
+  consent on file. Record where it came from and its licence in **Source**.
+- **Focal point**: click the picture on the spot that must always stay in view. The
+  previews beside it show how it will be cropped on a computer and on a phone.
+- A picture smaller than recommended, or a very different shape, is saved with a warning.
+- **Remove** goes back to the page's soft texture. **Restore previous** puts back the
+  picture before; the last five are kept on the picture's own page under **History**.
+- **View on site** opens the page. Changes show within seconds. Every replacement,
+  removal and restore is recorded in the audit log.
+
+Pictures of events, journal posts, education items and staff profiles are changed on
+those records instead.
+
 ### Approving draft content
 
 The copy from the old website was drafted into files marked "draft - needs club approval".
@@ -355,8 +376,8 @@ anyone more, and never tell a member who reported them.
 
 ## Image review
 
-**Settings > Image review** (for staff who edit events, the journal, education or the staff
-page) shows every site image and whether it is shown or hidden, and why. An image with faces visible and no confirmed
+**Settings > Image review** (for staff who edit page images, events, the journal, education
+or the staff page) shows every site image and whether it is shown or hidden, and why. An image with faces visible and no confirmed
 consent is always hidden. To change one, open the record it belongs to and fix
 the alt text or consent boxes.
 

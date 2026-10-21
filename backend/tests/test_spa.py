@@ -1,5 +1,8 @@
 """Django serves the built single-page app on the same origin as the API."""
 
+import json
+import re
+
 import pytest
 
 pytestmark = pytest.mark.django_db
@@ -29,10 +32,30 @@ def test_client_routes_get_index_with_no_cache(client, dist, path):
     assert '<div id="root">' in response.content.decode()
 
 
-def test_index_carries_the_site_images_address(client, dist, settings):
-    settings.SITE_IMAGES_URL = "https://media.site.example/site/"
+def test_index_carries_the_page_images(client, dist):
     html = client.get("/").content.decode()
-    assert '<meta name="rose-site-images" content="https://media.site.example/site/" />' in html
+    data = re.search(r'<script type="application/json" id="rose-site-images">(.*?)</script>', html)
+    images = json.loads(data.group(1))
+    assert images["home.hero"]["alt"].startswith("Black-and-white photograph")
+    assert images["home.hero"]["focal"] == {"x": 0.5, "y": 0.5}
+
+
+def test_page_images_cannot_close_their_script_element(client, dist):
+    from apps.pages.models import SiteImage
+
+    SiteImage.objects.filter(slot="home.hero").update(image_alt="</script><script>alert(1)")
+    html = client.get("/").content.decode()
+    assert "</script><script>alert(1)" not in html
+    assert "\\u003c/script>\\u003cscript>alert(1)" in html
+
+
+def test_a_page_preloads_its_own_picture(client, dist):
+    home = client.get("/", HTTP_COOKIE="age_ok=1").content.decode()
+    assert 'rel="preload" as="image"' in home and "dance-floor-640w.webp 640w" in home
+    about = client.get("/about", HTTP_COOKIE="age_ok=1").content.decode()
+    assert 'media="(min-width: 1024px)"' in about and "pride-flag-640w.webp" in about
+    events = client.get("/events", HTTP_COOKIE="age_ok=1").content.decode()
+    assert 'rel="preload" as="image"' not in events
 
 
 def test_index_preconnects_to_the_storage_origins(client, dist, settings):

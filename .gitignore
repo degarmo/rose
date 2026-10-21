@@ -30,9 +30,11 @@ prompts/
 /content/*
 !/content/redirects.yaml
 
-# Original photographs supplied by the owner. Only the processed, metadata-free copies
-# in frontend/public/images (made by scripts/fetch_images.py) are committed.
+# Original photographs supplied by the owner. Staff upload them in Admin > Page images,
+# which strips their metadata; the originals are never committed.
 /photos/
 
 # Screenshots that show the club's real name (decision 486); never committed.
 docs/screenshots/rename/
+# Page images screenshots show the emblem, which carries the club's name; never committed.
+docs/screenshots/page-images/

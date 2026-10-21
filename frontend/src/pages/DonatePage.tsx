@@ -166,7 +166,7 @@ export function DonatePage() {
 
   return (
     <>
-      <PageHero copy={copy} image="home-closing.webp" placeholder="rose">
+      <PageHero copy={copy} slot="donate.hero" placeholder="rose">
         {options.status === 'success' && options.data.nonprofit_status && (
           <p className="text-sm text-fg-muted">{options.data.nonprofit_status}</p>
         )}

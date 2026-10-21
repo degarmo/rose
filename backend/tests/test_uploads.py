@@ -69,7 +69,7 @@ def test_heic_from_phones_is_accepted():
 )
 def test_other_formats_are_refused_whatever_the_name(payload):
     upload = SimpleUploadedFile("holiday.jpg", payload, content_type="image/jpeg")
-    with pytest.raises(ValidationError, match="JPEG, PNG, WebP or HEIC"):
+    with pytest.raises(ValidationError, match="JPEG, PNG, WebP, AVIF or HEIC"):
         images.validate_upload(upload)
 
 

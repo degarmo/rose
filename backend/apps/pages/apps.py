@@ -6,4 +6,4 @@ class PagesConfig(AppConfig):
     name = "apps.pages"
 
     def ready(self):
-        from . import content  # noqa: F401  (cache invalidation signals)
+        from . import content, site_images  # noqa: F401  (cache invalidation signals)

@@ -35,6 +35,12 @@ def _members(request):
     return sees_members(request.user)
 
 
+def _page_images(request):
+    from apps.pages.admin import edits_page_images
+
+    return edits_page_images(request.user)
+
+
 def _superuser(request):
     return request.user.is_superuser
 
@@ -183,6 +189,12 @@ def _groups():
                 _model("Announcements", "megaphone", "feed", "announcement"),
                 _model("Education", "graduation-cap", "education", "opportunity"),
                 _model("Page copy", "file-text", "pages", "pagecontent"),
+                _item(
+                    "Page images",
+                    "image",
+                    _changelist("pages", "siteimage"),
+                    _page_images,
+                ),
                 _model("FAQ", "circle-question-mark", "pages", "faqitem"),
                 _model("Guidelines", "scroll-text", "feed", "guidelines"),
                 _model("Agreement", "file-pen-line", "memberships", "membershipagreement"),

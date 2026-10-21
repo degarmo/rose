@@ -1,0 +1,26 @@
+<div class="rose-focal" data-focal>
+  <p class="rose-help">Click the picture on the spot that must always stay in view, or use the arrow keys. The previews show how it will be cropped.</p>
+  <div class="rose-focal-stage" data-focal-stage tabindex="0" role="application" aria-label="Focal point: click, or move with the arrow keys"{% if not slot.image %} hidden{% endif %}>
+    <img class="rose-focal-image" data-focal-image src="{% if slot.image %}{{ slot.image.url }}{% endif %}" alt="">
+    <span class="rose-focal-marker" data-focal-marker aria-hidden="true"></span>
+  </div>
+  {% if not slot.image %}<p class="rose-subtle" data-focal-empty>Choose a picture above to set its focal point.</p>{% endif %}
+  <div class="rose-focal-previews" data-focal-crops{% if not slot.image %} hidden{% endif %}>
+    <figure class="rose-focal-preview">
+      <div class="rose-focal-crop rose-focal-crop-desktop" data-ratio="{{ slot.aspect_ratio }}">
+        <img data-focal-preview src="{% if slot.image %}{{ slot.image.url }}{% endif %}" alt="">
+      </div>
+      <figcaption class="rose-subtle">Computer, {{ slot.aspect_ratio }}</figcaption>
+    </figure>
+    <figure class="rose-focal-preview">
+      {% if slot.phone_aspect_ratio %}
+      <div class="rose-focal-crop rose-focal-crop-phone" data-ratio="{{ slot.phone_aspect_ratio }}">
+        <img data-focal-preview src="{% if slot.image %}{{ slot.image.url }}{% endif %}" alt="">
+      </div>
+      <figcaption class="rose-subtle">Phone, {{ slot.phone_aspect_ratio }}</figcaption>
+      {% else %}
+      <p class="rose-subtle">Phones do not show this picture.</p>
+      {% endif %}
+    </figure>
+  </div>
+</div>
