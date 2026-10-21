@@ -315,7 +315,7 @@ export function RentalsPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="about-hero.webp" placeholder="warm" />
+      <PageHero copy={copy} image="rentals-hero.webp" placeholder="warm" />
 
       <Section aria-labelledby="spaces">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-24">

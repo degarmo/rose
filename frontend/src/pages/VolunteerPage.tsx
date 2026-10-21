@@ -236,7 +236,7 @@ export function VolunteerPage() {
 
   return (
     <>
-      <PageHero copy={copy} image="about-hero.webp" placeholder="rose" />
+      <PageHero copy={copy} image="volunteer-hero.webp" placeholder="rose" />
 
       <Section width="narrow" aria-labelledby="why">
         <CopyHeading copy={copy} prefix="why" id="why" />

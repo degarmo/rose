@@ -24,6 +24,7 @@ interface ImageFrameProps {
   image?: string
   /** An API image. The server withholds any image without face consent. */
   remote?: RemoteImage | null
+  /** Empty falls back to the manifest's or the API image's own description. */
   alt: string
   ratio?: AspectRatio
   placeholder?: PlaceholderTexture
@@ -70,7 +71,7 @@ export function ImageFrame({
         sizes={sizes}
         width={local.width}
         height={local.height}
-        alt={alt}
+        alt={alt || local.alt || ''}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         onError={() => setFailed(true)}

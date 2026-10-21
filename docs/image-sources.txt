@@ -1,7 +1,7 @@
 # Image sources for scripts/fetch_images.py
 #
 # One image per line, pipe-separated:
-#   url | name | source | license | credit | faces=yes|no | consent=yes|no
+#   url | name | source | license | credit | faces=yes|no | consent=yes|no | alt=text
 #
 # - name: output filename without extension; lowercase letters, digits, dashes.
 #   The site already looks for the names listed below and shows a gradient
@@ -10,23 +10,33 @@
 # - faces: whether any identifiable face is visible. Defaults to yes.
 # - consent: whether everyone visible has given written consent. Defaults to no.
 #   Images with faces=yes and consent=no are downloaded but never rendered.
+# - alt: what the picture shows, for screen readers. Every slot below uses it.
+# - url: file://photos/... is a path from the repository root. photos/ is not
+#   committed, so those lines only run where the originals are on disk.
 #
-# Names the site uses today:
-#   home-hero          16:9 hero (roses, candlelight, deep shadow)
-#   home-interior      4:5  who-we-are (architecture, a lounge at night)
-#   home-closing       21:9 closing call to action (leather texture, brass)
-#   about-hero         wide page header, about (architecture, silhouettes)
-#   education-hero     wide page header, education (books, candlelight)
-#   events-hero        wide page header, events (a set table, low lamps)
-#   journal-hero       wide page header, journal (silk, a notebook)
-#   visit-hero         wide page header, plan your visit (a doorway, an entrance light)
-#   contact-hero       wide page header, contact (silk, a handwritten note)
-#   join-hero          wide page header, join (a rose on dark fabric)
+# Names the site uses today (the page header pictures show from 1024px wide):
+#   home-hero          home hero, beside the headline (4:5 on phones, 5:4 on desktop)
+#   about-hero         page header, About (5:4)
+#   volunteer-hero     page header, Volunteer (3:2)
+#   rentals-hero       page header, Rentals (3:2)
+#   home-closing       page header, Donate (3:2)
+#   visit-hero         page header, Guests (3:2)
+#   visit-plan         page header, Plan your visit (3:2; turned by hand, so not listed below)
 #
 # Examples (remove the leading "# " to use):
 # https://images.unsplash.com/photo-XXXXXXXXXXXX?w=2400 | home-hero | unsplash | Unsplash License | Photographer Name | faces=no | consent=no
 # https://images.pexels.com/photos/0000000/pexels-photo-0000000.jpeg | home-closing | pexels | Pexels License | Photographer Name | faces=no | consent=no
 # https://www.example.org/path/to/interior.jpg | home-interior | org-site | Owned by the organization | | faces=no | consent=no
+
+# The site's photographs (added 2026-10-21). Pexels photos are under the Pexels
+# License (free to use, no attribution required); the credit names the
+# photographer's Pexels account and the photo's page.
+file://photos/website/bondage_picture.jpg | home-hero | Supplied by the club | Owned by the club; the model's consent to confirm before launch (launch checklist) | | faces=no | consent=no | alt=Black-and-white photograph of a rope suspension, the model's face turned away
+file://photos/website/pexels-shkrabaanthony-8191755.jpg | about-hero | pexels | Pexels License | Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755 | faces=no | consent=no | alt=A rainbow pride flag draped over a leather armchair against a warm ochre wall
+file://photos/website/pexels-shkrabaanthony-8191755.jpg | volunteer-hero | pexels | Pexels License | Anthony Shkraba (shkrabaanthony), pexels.com/photo/8191755 | faces=no | consent=no | alt=A rainbow pride flag draped over a leather armchair against a warm ochre wall
+file://photos/website/pexels-myatezhny39-2121663.jpg | rentals-hero | pexels | Pexels License | myatezhny39, pexels.com/photo/2121663 | faces=no | consent=no | alt=A red-lit archway with graffiti-covered brick walls and a disco ball
+file://photos/website/pexels-myatezhny39-2121663.jpg | visit-hero | pexels | Pexels License | myatezhny39, pexels.com/photo/2121663 | faces=no | consent=no | alt=A red-lit archway with graffiti-covered brick walls and a disco ball
+file://photos/website/pexels-31299941-8587259.jpg | home-closing | pexels | Pexels License | Pexels user 31299941, pexels.com/photo/8587259 | faces=no | consent=no | alt=Leather cuffs, a blindfold and a flogger among strawberries on dark fabric
 
 # ---------------------------------------------------------------------------
 # The previous site's images (captured 2026-10-18). NOT YET CONFIRMED.

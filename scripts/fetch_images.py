@@ -7,7 +7,11 @@ Usage (from the repository root, using the backend virtualenv):
 
 Each non-comment line of the sources file has pipe-separated fields:
 
-    url | name | source | license | credit | faces=yes|no | consent=yes|no
+    url | name | source | license | credit | faces=yes|no | consent=yes|no | alt=text
+
+`alt=` describes the picture for screen readers; pages that show it without alt text of
+their own use it. A `file://` URL without a third slash is a path from the repository
+root (`file://photos/website/a.jpg`).
 
 `name` becomes the output filename (`name.webp` plus width variants such as
 `name-640.webp`). Faces default to "yes" and consent to "no", so an image
@@ -16,6 +20,7 @@ stays hidden on the site until someone has looked at it and marked it safe.
 
 import argparse
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -26,6 +31,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
+# The image helpers read the upload limits from the backend's settings.
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 from apps.core.images import encode_webp, open_clean  # noqa: E402
 
@@ -48,6 +55,7 @@ class SourceLine:
     credit: str
     faces_visible: bool
     consent_confirmed: bool
+    alt: str = ""
 
 
 def parse_flag(value, key, default):
@@ -63,6 +71,14 @@ def parse_flag(value, key, default):
     return answer == "yes"
 
 
+def parse_alt(value):
+    if not value:
+        return ""
+    if not value.startswith("alt="):
+        raise ValueError(f"expected alt=text, got {value!r}")
+    return value.removeprefix("alt=").strip()
+
+
 def parse_sources(text):
     entries = []
     for number, raw in enumerate(text.splitlines(), start=1):
@@ -72,8 +88,8 @@ def parse_sources(text):
         parts = [part.strip() for part in line.split("|")]
         if len(parts) < 3:
             raise ValueError(f"line {number}: need at least url | name | source")
-        parts += [""] * (7 - len(parts))
-        url, name, source, license_, credit, faces, consent = parts[:7]
+        parts += [""] * (8 - len(parts))
+        url, name, source, license_, credit, faces, consent, alt = parts[:8]
         if not url.startswith(ALLOWED_SCHEMES):
             raise ValueError(f"line {number}: unsupported URL {url!r}")
         if not NAME_PATTERN.match(name):
@@ -88,6 +104,7 @@ def parse_sources(text):
                     credit=credit,
                     faces_visible=parse_flag(faces, "faces", default=True),
                     consent_confirmed=parse_flag(consent, "consent", default=False),
+                    alt=parse_alt(alt),
                 )
             )
         except ValueError as exc:
@@ -96,9 +113,12 @@ def parse_sources(text):
 
 
 def download(url):
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = response.read(MAX_DOWNLOAD_BYTES + 1)
+    if url.startswith("file://") and not url.startswith("file:///"):
+        data = (ROOT / url.removeprefix("file://")).read_bytes()
+    else:
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = response.read(MAX_DOWNLOAD_BYTES + 1)
     if len(data) > MAX_DOWNLOAD_BYTES:
         raise ValueError(f"{url} is larger than {MAX_DOWNLOAD_BYTES} bytes")
     return data
@@ -131,6 +151,7 @@ def process(entry, data, output_dir):
         "original_url": entry.url,
         "license": entry.license,
         "credit": entry.credit,
+        "alt": entry.alt,
         "faces_visible": entry.faces_visible,
         "consent_confirmed": entry.consent_confirmed,
         "added_at": datetime.now(UTC).strftime("%Y-%m-%d"),
