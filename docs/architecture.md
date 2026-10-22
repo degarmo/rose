@@ -22,7 +22,7 @@ Django (`VITE_PROXY_TARGET`). The SPA uses Django session auth with CSRF on ever
 no token is ever stored in browser storage.
 
 One Docker image (`Dockerfile`) runs as the web service, the worker and beat, in two
-Render environments (staging and production, `render.yaml`); deployment, storage, email,
+Render environments (staging in `render.yaml`, production in `render.production.yaml`); deployment, storage, email,
 security and restores are in `docs/ops/`.
 
 ## Backend (`/backend`)

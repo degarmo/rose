@@ -189,7 +189,7 @@ The stack uses ports 8080 (site), 9100 (MinIO) and 8125 (Mailpit). CI runs the s
 
 ## Deploying and operating
 
-Production runs on Render from `render.yaml` (staging and production). Start with
+The site runs on Render: `render.yaml` is staging, `render.production.yaml` is production. Start with
 [docs/ops/deploy.md](docs/ops/deploy.md); the rest of `docs/ops/` covers storage, email,
 security, restores and what to do if data may have leaked. Volunteers get
 [docs/staff-guide.md](docs/staff-guide.md), and [docs/launch-checklist.md](docs/launch-checklist.md)
@@ -302,5 +302,6 @@ docs/       Architecture, decisions, design system, payments, staff guide, launc
             docs/ops/ for deploy, storage, email, security, restore and incidents
 scripts/    build_brand_assets.py, decrypt_backup.py, design_compare.py
 Dockerfile  Production image (web, worker and beat)
-render.yaml Render Blueprint: staging and production
+render.yaml Render Blueprint: staging
+render.production.yaml Render Blueprint: production (create at launch)
 ```

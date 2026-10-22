@@ -1,6 +1,7 @@
 # Deploying
 
-The site runs on Render from `render.yaml`: one Docker image (`Dockerfile`) as
+The site runs on Render from two Blueprints, `render.yaml` (staging) and
+`render.production.yaml` (production): one Docker image (`Dockerfile`) as
 a web service, a Celery worker and one Celery beat, with Render Postgres and
 Render Key Value, in two environments, **staging** and **production**. Every
 step below is done by a person; nothing here deploys automatically, and the
@@ -48,10 +49,14 @@ Blueprint creates paid resources.
 ### The Blueprint
 
 10. Render dashboard > New > Blueprint > connect the GitHub repository > pick
-    `render.yaml`. Render shows the project `rose` with its two environments.
-    Create **staging first**; leave production for after the staging checks
-    (step 18).
-11. Render asks for every value marked `sync: false`. Enter them from this table
+    `render.yaml`. It creates only the project `rose` with its **staging**
+    environment. Production is a separate Blueprint (`render.production.yaml`,
+    project `rose-production`), created the same way after the staging checks
+    (step 18), so nothing for production is created or billed early.
+11. Render does **not** prompt for these: it ignores `sync: false` inside
+    environment groups. Once the Blueprint has created the services, open
+    Environment Groups > `rose-<env>-secrets` and add each value below by hand,
+    then Manual Deploy > Deploy latest commit. Enter them from this table
     (they go into the environment's `rose-<env>-secrets` group, which the web,
     worker and beat services all read):
 
