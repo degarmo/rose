@@ -119,9 +119,9 @@ projects:
             plan: standard
             numInstances: 1
             healthCheckPath: /healthz
-            preDeployCommand: >-
-              python manage.py check --deploy --database default --fail-level ERROR
-              && python manage.py migrate --noinput
+            # The safety checks, then migrations (backend/scripts/predeploy.sh, in the image's
+            # working directory). A script, because Render runs this without a shell.
+            preDeployCommand: ./scripts/predeploy.sh
             envVars: &production-env
               - fromGroup: rose-production-settings
               - fromGroup: rose-production-secrets

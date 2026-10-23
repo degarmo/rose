@@ -122,15 +122,15 @@ Blueprint creates paid resources.
 
 ### Staging preview mode (before storage and email exist)
 
-Staging can run before the R2 buckets (step 8) and Postmark (step 9) are set up.
-In Environment Groups > `rose-staging-settings`, set these three values, then Manual
-Deploy > Deploy latest commit:
+Staging runs before the R2 buckets (step 8) and Postmark (step 9) are set up:
+`render.yaml` puts it in preview mode, in the `rose-staging-settings` group that the
+web, worker and beat services all read:
 
 | Name | Value |
 | --- | --- |
-| `PREVIEW_MODE` | `true` (add it) |
-| `STORAGE_BACKEND` | `local` (instead of `s3`) |
-| `EMAIL_PROVIDER` | `console` (instead of `postmark`) |
+| `PREVIEW_MODE` | `true` |
+| `STORAGE_BACKEND` | `local` |
+| `EMAIL_PROVIDER` | `console` |
 
 The S3 and Postmark secrets can stay empty. What changes, and only on staging:
 
@@ -152,13 +152,13 @@ The S3 and Postmark secrets can stay empty. What changes, and only on staging:
   "PREVIEW MODE: uploads are not persistent and emails are written to the log." at
   start, and the admin and staff section show a "Preview mode" strip.
 
-`PREVIEW_MODE` is never set in `render.yaml`, and production refuses it
-(`rose.E013`), along with local storage and console email whatever it says.
-`STORAGE_BACKEND` and `EMAIL_PROVIDER` are declared in `render.yaml`, so a
-Blueprint sync puts them back to `s3` and `postmark`; set them again, or finish
-steps 8 and 9 first. To leave preview mode, add the storage and email secrets,
-set `STORAGE_BACKEND=s3` and `EMAIL_PROVIDER=postmark`, delete `PREVIEW_MODE` and
-redeploy. Nothing uploaded during the preview carries over.
+`render.production.yaml` never sets `PREVIEW_MODE`, and production refuses it
+(`rose.E013`), along with local storage and console email whatever it says. To
+leave preview mode on staging, add the storage and email secrets (steps 8 and 9),
+then change `render.yaml`: `STORAGE_BACKEND` to `s3`, `EMAIL_PROVIDER` to
+`postmark`, and remove `PREVIEW_MODE`. Commit, sync the Blueprint and deploy.
+Changing them only in the dashboard lasts until the next Blueprint sync, which
+puts back what the file says. Nothing uploaded during the preview carries over.
 
 ## Routine deploys
 

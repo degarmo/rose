@@ -19,6 +19,8 @@
 #                  values (two different buckets), POSTMARK_SERVER_TOKEN,
 #                  EMAIL_SENDER_ADDRESS, CONTACT_NOTIFY_EMAIL, and in production
 #                  BACKUP_AGE_RECIPIENT.
+# While staging is in preview mode (rose-staging-settings below), the S3_* values and
+# POSTMARK_SERVER_TOKEN may stay blank.
 # A secret key:  python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 # The plans below are paid plans; creating this Blueprint creates billable
 # resources, so it is applied by hand, never by CI.
@@ -36,15 +38,21 @@ projects:
                 value: "false"
               - key: DJANGO_TRUSTED_PROXY_COUNT
                 value: "1"
+              # Preview mode (docs/ops/deploy.md): uploads on the web container's disk, gone
+              # on every redeploy, and email written to the log, until R2 and Postmark are
+              # set up. Staging only; production refuses it. To leave it: s3, postmark, and
+              # delete PREVIEW_MODE.
+              - key: PREVIEW_MODE
+                value: "true"
               - key: STORAGE_BACKEND
-                value: s3
+                value: local
               - key: S3_REGION
                 value: auto
               # Staging takes in-person payments only; the sandbox cannot run here.
               - key: PAYMENT_PROVIDERS
                 value: manual
               - key: EMAIL_PROVIDER
-                value: postmark
+                value: console
               - key: EMAIL_SENDER_NAME
                 value: Rose
               - key: MERCHANT_DISPLAY_NAME
@@ -117,9 +125,9 @@ projects:
             plan: starter
             numInstances: 1
             healthCheckPath: /healthz
-            preDeployCommand: >-
-              python manage.py check --deploy --database default --fail-level ERROR
-              && python manage.py migrate --noinput
+            # The safety checks, then migrations (backend/scripts/predeploy.sh, in the image's
+            # working directory). A script, because Render runs this without a shell.
+            preDeployCommand: ./scripts/predeploy.sh
             envVars: &staging-env
               - fromGroup: rose-staging-settings
               - fromGroup: rose-staging-secrets
