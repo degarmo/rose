@@ -4,6 +4,7 @@ from django.core import signing
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
+from apps.core.email import site_link
 from apps.core.ratelimit import hashed_value
 
 from .models import User
@@ -40,3 +41,14 @@ def user_from_reset_params(uid, token):
     if user is None or not default_token_generator.check_token(user, token):
         return None
     return user
+
+
+def verification_link(user):
+    """The link in the "Confirm your email" message. The token is in the fragment, so it
+    never reaches a server log."""
+    return site_link(f"/account/verify#token={make_verification_token(user)}")
+
+
+def reset_link(user):
+    uid, token = make_reset_params(user)
+    return site_link(f"/account/reset#uid={uid}&token={token}")

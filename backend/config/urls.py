@@ -36,6 +36,8 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Public uploads on disk in a staging preview; a 404 everywhere else.
+urlpatterns += [re_path(r"^media/(?P<path>.*)$", core_views.preview_media, name="preview-media")]
 
 # Last: every other path is a client-side route of the single-page app.
 urlpatterns += [re_path(r"^(?P<path>.*)$", spa.spa, name="spa")]

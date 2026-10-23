@@ -69,7 +69,7 @@ describe('getting into the app', () => {
     for (const member_app of ['join', 'paused', null] as const) {
       expect(landingAfterLogin({ member_app, staff: null }, null, '/members/home')).toBe('/members/home')
     }
-    const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, door_desk: true, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/' } }
+    const owner = { member_app: 'open' as const, staff: { role: 'admin' as const, door_desk: true, verified: false, verify_url: '/v', needs_enrollment: true, admin_url: '/a', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/', preview_mode: false } }
     expect(landingAfterLogin(owner, null, '/members/home')).toBe('/a')
     expect(landingAfterLogin({ ...owner, staff: { ...owner.staff, role: 'staff' as const } }, null, '/')).toBe('/a')
     expect(landingAfterLogin({ ...owner, staff: { ...owner.staff, role: 'moderator' as const } }, null, '/')).toBe('/members/staff/reports')

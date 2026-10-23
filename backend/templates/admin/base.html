@@ -1,6 +1,7 @@
 {% extends 'unfold/layouts/skeleton.html' %}
-{% comment %} Unfold's admin page (django-unfold 0.108.0), with the banner every staff page shows
-   while the member feed's age check is off (apps.core.context_processors). {% endcomment %}
+{% comment %} Unfold's admin page (django-unfold 0.108.0), with the banners every staff page shows
+   in a staging preview and while the member feed's age check is off
+   (apps.core.context_processors). {% endcomment %}
 
 {% load admin_list i18n unfold %}
 
@@ -16,6 +17,10 @@
             {% block header %}
                 {% include "unfold/helpers/header.html" %}
             {% endblock %}
+
+            {% if preview_banner %}
+                <p class="rose-banner rose-banner-preview" role="status">{{ preview_banner }}</p>
+            {% endif %}
 
             {% if age_check_off %}
                 {% if age_check_can_change %}

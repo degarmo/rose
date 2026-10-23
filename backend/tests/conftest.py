@@ -28,6 +28,8 @@ def isolated_settings(settings, tmp_path):
     settings.CELERY_TASK_ALWAYS_EAGER = True
     # Tests run with DEBUG off, where only the in-person provider may exist.
     settings.PAYMENT_PROVIDERS = ["manual"]
+    # Preview mode is staging's; tests start without it whatever .env says.
+    settings.PREVIEW_MODE = False
     cache.clear()
     yield
     cache.clear()
@@ -418,3 +420,42 @@ def s3(settings, tmp_path):
         for key in keys(bucket):
             client.delete_object(Bucket=bucket, Key=key)
         client.delete_bucket(Bucket=bucket)
+
+
+STRONG_KEY = "k7#Qm9!vR2@xL5$wT8^zN3&bJ6*hF1(pD4)sG0_yC9+eA2-uK7=iO5~"
+
+
+@pytest.fixture
+def safe_production(settings):
+    """A configuration that passes every check; each test breaks one thing."""
+    # The URLs are read once, with the admin at ADMIN_PATH: load them before it changes here,
+    # so a later test never finds the admin at this fixture's path.
+    import config.urls  # noqa: F401
+
+    settings.DJANGO_ENV = "production"
+    settings.DEBUG = False
+    settings.SECRET_KEY = STRONG_KEY
+    settings.ALLOWED_HOSTS = ["site.example"]
+    settings.CSRF_TRUSTED_ORIGINS = ["https://site.example"]
+    settings.PAYMENT_PROVIDERS = ["manual"]
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "default": {"BACKEND": "apps.core.storage.PublicS3Storage"},
+        "private": {"BACKEND": "apps.core.storage.PrivateS3Storage"},
+    }
+    settings.S3_ENDPOINT_URL = "https://account.r2.cloudflarestorage.com"
+    settings.S3_BROWSER_ENDPOINT_URL = "https://account.r2.cloudflarestorage.com"
+    settings.S3_PUBLIC_BASE_URL = "https://media.site.example"
+    settings.S3_ACCESS_KEY_ID = "key"
+    settings.S3_SECRET_ACCESS_KEY = "secret"
+    settings.S3_PUBLIC_BUCKET = "site-public"
+    settings.S3_PRIVATE_BUCKET = "site-private"
+    settings.EMAIL_BACKEND = "anymail.backends.postmark.EmailBackend"
+    settings.ADMIN_PATH = "staff-a8f3/"
+    settings.SECURE_SSL_REDIRECT = True
+    settings.SESSION_COOKIE_SECURE = True
+    settings.CSRF_COOKIE_SECURE = True
+    settings.SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    settings.SECURE_CONTENT_TYPE_NOSNIFF = True
+    settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    return settings

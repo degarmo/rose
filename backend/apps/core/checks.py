@@ -4,22 +4,34 @@ They run as Django system checks (so `manage.py check --deploy --database
 default` reports them) and again at process start in config/wsgi.py and
 config/celery.py through assert_deploy_safe(). Development-only pieces (DEBUG,
 the sandbox payment provider, demo seed data, MinIO, console email) can
-therefore never run in a deployed environment.
+therefore never run in a deployed environment. The one exception is a staging
+preview (apps.core.preview): local storage and console email become warnings
+there, and nowhere else.
 """
 
+import logging
 from urllib.parse import urlsplit
 
 from django.conf import settings
-from django.core.checks import Error, Tags, register, run_checks
+from django.core.checks import Error, Tags, Warning, register, run_checks
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
 
+from .preview import STARTUP_WARNING, preview_active
+
+logger = logging.getLogger("rose.preview")
+
 S3_BACKENDS = {"apps.core.storage.PublicS3Storage", "apps.core.storage.PrivateS3Storage"}
+LOCAL_BACKENDS = {
+    "django.core.files.storage.FileSystemStorage",
+    "apps.core.private_media.PrivateFileSystemStorage",
+}
 UNSAFE_EMAIL = {
     "django.core.mail.backends.console.EmailBackend",
     "django.core.mail.backends.locmem.EmailBackend",
     "django.core.mail.backends.filebased.EmailBackend",
     "django.core.mail.backends.dummy.EmailBackend",
+    "apps.core.preview.LogEmailBackend",
 }
 WEAK_KEY_MARKERS = ("django-insecure", "change-me", "not-a-secret", "local-development", "dummy")
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "minio", "host.docker.internal"}
@@ -37,6 +49,10 @@ def weak_secret(key):
 
 def _error(code, message, hint=""):
     return Error(message, hint=hint or None, id=f"rose.{code}")
+
+
+def _warning(code, message, hint=""):
+    return Warning(message, hint=hint or None, id=f"rose.{code}")
 
 
 @register(Tags.security, deploy=False)
@@ -62,9 +78,16 @@ def deployment_settings(app_configs=None, **kwargs):
     origins = settings.CSRF_TRUSTED_ORIGINS
     if not origins or any(not origin.startswith("https://") for origin in origins):
         errors.append(_error("E005", "DJANGO_CSRF_TRUSTED_ORIGINS is missing or not all https."))
+    if settings.PREVIEW_MODE and env == "production":
+        errors.append(
+            _error(
+                "E013",
+                "PREVIEW_MODE is on in production.",
+                "Remove PREVIEW_MODE. It is for staging only.",
+            )
+        )
     errors.extend(_storage_errors())
-    if settings.EMAIL_BACKEND in UNSAFE_EMAIL:
-        errors.append(_error("E007", "Email goes to the console or memory, not a real provider."))
+    errors.extend(_email_errors())
     if settings.ADMIN_PATH.strip("/") == "admin":
         errors.append(
             _error("E008", "The admin is at the default /admin/ path.", "Set DJANGO_ADMIN_PATH.")
@@ -87,6 +110,15 @@ def deployment_settings(app_configs=None, **kwargs):
 
 def _storage_errors():
     backends = {settings.STORAGES["default"]["BACKEND"], settings.STORAGES["private"]["BACKEND"]}
+    if backends == LOCAL_BACKENDS and preview_active():
+        return [
+            _warning(
+                "W006",
+                "Preview mode: uploads are kept on this container's disk and are lost on every "
+                "redeploy. Private media is still served only through its access-checked view.",
+                "Set STORAGE_BACKEND=s3 and the S3_* settings, then remove PREVIEW_MODE.",
+            )
+        ]
     if backends != S3_BACKENDS:
         return [_error("E006", "Media is not on S3-compatible storage.", "STORAGE_BACKEND=s3")]
     errors = []
@@ -110,6 +142,21 @@ def _storage_errors():
         if parts.scheme != "https" or (parts.hostname or "") in LOCAL_HOSTS:
             errors.append(_error("E006", f"{name} must be an https address, not a local emulator."))
     return errors
+
+
+def _email_errors():
+    if settings.EMAIL_BACKEND not in UNSAFE_EMAIL:
+        return []
+    if settings.EMAIL_PROVIDER == "console" and preview_active():
+        return [
+            _warning(
+                "W007",
+                "Preview mode: email is not sent. Each message is a line in the log (subject "
+                "only); manage.py show_email_link gives staff a sign-in link when one is needed.",
+                "Set EMAIL_PROVIDER to a real provider, then remove PREVIEW_MODE.",
+            )
+        ]
+    return [_error("E007", "Email goes to the console or memory, not a real provider.")]
 
 
 def _transport_errors():
@@ -165,3 +212,5 @@ def assert_deploy_safe():
     if problems:
         lines = "\n".join(f"  {problem.id}: {problem.msg}" for problem in problems)
         raise ImproperlyConfigured(f"Refusing to start {settings.DJANGO_ENV}:\n{lines}")
+    if preview_active():
+        logger.warning(STARTUP_WARNING)

@@ -24,6 +24,13 @@ in `tests/test_deploy_checks.py`):
 | `rose.E009` | HTTPS redirect, secure cookies, a one-year HSTS, nosniff or the proxy HTTPS header is off |
 | `rose.E010` | the database contains demo seed data (`seed_demo` writes a marker) |
 | `rose.E011` | staging has no basic-auth credentials |
+| `rose.E012` | `DEV_SKIP_STAFF_2FA` is on |
+| `rose.E013` | `PREVIEW_MODE` is on in production |
+
+In a staging preview (`PREVIEW_MODE=true`, see [deploy.md](deploy.md)), and only
+there, local storage and console email are reported as the warnings `rose.W006`
+and `rose.W007` instead of `rose.E006` and `rose.E007`. Every other check, and
+production, is unchanged.
 
 The same checks run in Render's pre-deploy step (`manage.py check --deploy
 --database default`), so a bad configuration stops a deploy before migrations.

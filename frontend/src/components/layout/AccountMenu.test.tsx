@@ -39,7 +39,7 @@ describe('AccountMenu', () => {
         verified: true,
         verify_url: null,
         needs_enrollment: false,
-        admin_url: 'https://site.example/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/',
+        admin_url: 'https://site.example/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/', preview_mode: false,
       },
     })
     const block = screen.getByRole('list', { name: 'Staff' })
@@ -63,7 +63,7 @@ describe('AccountMenu', () => {
         verified: true,
         verify_url: null,
         needs_enrollment: false,
-        admin_url: 'https://site.example/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/',
+        admin_url: 'https://site.example/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/', preview_mode: false,
       },
     })
     const block = screen.getByRole('list', { name: 'Staff' })

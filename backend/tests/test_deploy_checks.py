@@ -13,40 +13,6 @@ from apps.core.models import SeedMarker
 
 pytestmark = pytest.mark.django_db
 
-STRONG_KEY = "k7#Qm9!vR2@xL5$wT8^zN3&bJ6*hF1(pD4)sG0_yC9+eA2-uK7=iO5~"
-
-
-@pytest.fixture
-def safe_production(settings):
-    """A configuration that passes every check; each test breaks one thing."""
-    settings.DJANGO_ENV = "production"
-    settings.DEBUG = False
-    settings.SECRET_KEY = STRONG_KEY
-    settings.ALLOWED_HOSTS = ["site.example"]
-    settings.CSRF_TRUSTED_ORIGINS = ["https://site.example"]
-    settings.PAYMENT_PROVIDERS = ["manual"]
-    settings.STORAGES = {
-        **settings.STORAGES,
-        "default": {"BACKEND": "apps.core.storage.PublicS3Storage"},
-        "private": {"BACKEND": "apps.core.storage.PrivateS3Storage"},
-    }
-    settings.S3_ENDPOINT_URL = "https://account.r2.cloudflarestorage.com"
-    settings.S3_BROWSER_ENDPOINT_URL = "https://account.r2.cloudflarestorage.com"
-    settings.S3_PUBLIC_BASE_URL = "https://media.site.example"
-    settings.S3_ACCESS_KEY_ID = "key"
-    settings.S3_SECRET_ACCESS_KEY = "secret"
-    settings.S3_PUBLIC_BUCKET = "site-public"
-    settings.S3_PRIVATE_BUCKET = "site-private"
-    settings.EMAIL_BACKEND = "anymail.backends.postmark.EmailBackend"
-    settings.ADMIN_PATH = "staff-a8f3/"
-    settings.SECURE_SSL_REDIRECT = True
-    settings.SESSION_COOKIE_SECURE = True
-    settings.CSRF_COOKIE_SECURE = True
-    settings.SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
-    settings.SECURE_CONTENT_TYPE_NOSNIFF = True
-    settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    return settings
-
 
 def ids():
     found = checks.deployment_settings() + checks.no_demo_seed(databases=["default"])

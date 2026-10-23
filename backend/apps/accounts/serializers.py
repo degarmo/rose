@@ -137,6 +137,7 @@ class AccountSerializer(serializers.ModelSerializer):
         from django.conf import settings
         from django_otp.plugins.otp_totp.models import TOTPDevice
 
+        from apps.core.preview import preview_active
         from apps.memberships.access import age_check_required
         from apps.memberships.age import can_change_setting
         from apps.memberships.desk import DESK_PERMISSION
@@ -165,6 +166,8 @@ class AccountSerializer(serializers.ModelSerializer):
             "age_check_required": age_check_required(),
             "can_change_age_check": can_change_setting(user),
             "age_check_url": f"{admin}{reverse('admin:pages_sitesettings_age_verification')}",
+            # A staging preview: the staff section shows a thin strip saying so.
+            "preview_mode": preview_active(),
         }
 
     def get_feed_controls(self, user):

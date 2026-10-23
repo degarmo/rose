@@ -81,6 +81,11 @@ export function StaffFrame({
   return (
     <>
       <PhoneBar title={title} back />
+      {staff.preview_mode && (
+        <p role="status" className="border-b border-wait bg-wait px-4 py-1 text-center text-xs font-semibold text-wait-fg">
+          Preview mode: uploads are temporary, emails are not sent.
+        </p>
+      )}
       <div className={cn('mx-auto w-full px-4 pb-12 md:px-8 md:pt-8', wide ? 'max-w-[1100px]' : 'max-w-[935px]')}>
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 md:pt-0">
           <div>

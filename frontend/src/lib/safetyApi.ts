@@ -22,6 +22,8 @@ export interface StaffSession {
   can_change_age_check: boolean
   /** Its page in the admin, where an admin changes it. */
   age_check_url: string
+  /** A staging preview: uploads are temporary and email is not sent. */
+  preview_mode: boolean
 }
 
 export const ROLE_LABELS: Record<Role, string> = { moderator: 'Moderator', staff: 'Staff', admin: 'Admin' }

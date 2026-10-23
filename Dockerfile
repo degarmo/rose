@@ -48,6 +48,10 @@ RUN python -m whitenoise.compress /srv/frontend/dist
 RUN DJANGO_SECRET_KEY=build-only DATABASE_URL=sqlite:////tmp/build.sqlite3 \
     python manage.py collectstatic --noinput
 
+# Uploads on the container's own disk, for a staging preview without object storage
+# (docs/ops/deploy.md): writable by the app user, and emptied by every redeploy.
+RUN install -d -o app -g app /srv/backend/media /srv/backend/private_media
+
 USER app
 ENV STAFF_GUIDE_PATH=/srv/docs/staff-guide.md
 EXPOSE 8000

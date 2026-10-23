@@ -49,7 +49,7 @@ function as(staff: Partial<StaffSession> | null): Account {
     verified: true,
     verify_url: null,
     needs_enrollment: false,
-    admin_url: '/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/',
+    admin_url: '/admin/', age_check_required: true, can_change_age_check: false, age_check_url: 'https://site.example/admin/pages/sitesettings/age-verification/', preview_mode: false,
     ...staff,
   }
   return { ...verifiedUser, feed_access: true, member_app: 'open', staff: session }
@@ -177,5 +177,15 @@ describe('the age verification banner', () => {
     unmount()
     renderWithProviders(<StaffReportsPage />, { user: as({ role: 'moderator' }) })
     expect(screen.queryByText('Age verification for the member feed is off')).not.toBeInTheDocument()
+  })
+})
+
+describe('the preview mode strip', () => {
+  it('says uploads are temporary and email is not sent, only in a staging preview', () => {
+    const { unmount } = renderWithProviders(<StaffReportsPage />, { user: as({ preview_mode: true }) })
+    expect(screen.getByText('Preview mode: uploads are temporary, emails are not sent.')).toHaveAttribute('role', 'status')
+    unmount()
+    renderWithProviders(<StaffReportsPage />, { user: as({}) })
+    expect(screen.queryByText(/Preview mode/)).not.toBeInTheDocument()
   })
 })

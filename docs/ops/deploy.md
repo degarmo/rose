@@ -120,6 +120,46 @@ Blueprint creates paid resources.
 19. Repeat steps 10 to 17 for **production**. Do not run `seed_demo` anywhere
     deployed; it refuses, and a seeded database would stop the site starting.
 
+### Staging preview mode (before storage and email exist)
+
+Staging can run before the R2 buckets (step 8) and Postmark (step 9) are set up.
+In Environment Groups > `rose-staging-settings`, set these three values, then Manual
+Deploy > Deploy latest commit:
+
+| Name | Value |
+| --- | --- |
+| `PREVIEW_MODE` | `true` (add it) |
+| `STORAGE_BACKEND` | `local` (instead of `s3`) |
+| `EMAIL_PROVIDER` | `console` (instead of `postmark`) |
+
+The S3 and Postmark secrets can stay empty. What changes, and only on staging:
+
+- **Uploads live on the web container's disk and disappear on every redeploy**
+  (and on a restart or a move to another machine). Pictures added in the admin, feed
+  posts and exports all go. Public uploads are served from `/media/`; private media
+  stays in its own folder and is served only through its access-checked view. Tasks
+  that process uploads run inside the web service, since the worker cannot see that
+  disk; scheduled clean-ups on the worker skip files they cannot find.
+- **No email is sent.** Each message becomes one log line with its subject only: the
+  address, the body and any link stay out of the log. To let someone confirm their
+  address or set a password, open Render > `rose-staging-web` > Shell and run
+  `python manage.py show_email_link <their email> --staff <your staff email>`
+  (add `--reset` for a password-reset link). It prints a fresh link there, works
+  only in preview mode, and is written to the audit log. Admins can also confirm an
+  address with Admin > Members > "Mark email verified".
+- The deploy check reports `rose.W006` and `rose.W007` as warnings instead of
+  stopping the deploy; every other check still stops it. The service logs
+  "PREVIEW MODE: uploads are not persistent and emails are written to the log." at
+  start, and the admin and staff section show a "Preview mode" strip.
+
+`PREVIEW_MODE` is never set in `render.yaml`, and production refuses it
+(`rose.E013`), along with local storage and console email whatever it says.
+`STORAGE_BACKEND` and `EMAIL_PROVIDER` are declared in `render.yaml`, so a
+Blueprint sync puts them back to `s3` and `postmark`; set them again, or finish
+steps 8 and 9 first. To leave preview mode, add the storage and email secrets,
+set `STORAGE_BACKEND=s3` and `EMAIL_PROVIDER=postmark`, delete `PREVIEW_MODE` and
+redeploy. Nothing uploaded during the preview carries over.
+
 ## Routine deploys
 
 1. Merge to the default branch only when the `checks` workflow is green.

@@ -64,6 +64,7 @@ env = environ.Env(
     BACKUP_ENABLED=(bool, False),
     BACKUP_RETENTION_DAYS=(int, 30),
     SITE_INDEXABLE=(bool, None),
+    PREVIEW_MODE=(bool, False),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
@@ -78,6 +79,12 @@ SITE_SHORT_NAME = env("SITE_SHORT_NAME").strip() or SITE_DISPLAY_NAME
 DJANGO_ENV = env("DJANGO_ENV")
 DEPLOYED_ENVS = ("staging", "production")
 IS_DEPLOYED = DJANGO_ENV in DEPLOYED_ENVS
+
+# Staging preview (apps.core.preview, docs/ops/deploy.md): staging may keep uploads on the
+# container's disk and write email to the log until storage and email are set up. It has no
+# effect elsewhere, and production refuses it (rose.E013).
+PREVIEW_MODE = env("PREVIEW_MODE")
+_preview = PREVIEW_MODE and DJANGO_ENV == "staging"
 
 # Whether search engines may index the public pages (robots.txt). Production
 # only by default; staging is always closed whatever this says.
@@ -161,6 +168,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.age_check_banner",
+                "apps.core.context_processors.preview_banner",
             ],
         },
     },
@@ -318,6 +326,9 @@ EMAIL_PROVIDERS = {
     "mailgun": "anymail.backends.mailgun.EmailBackend",
 }
 EMAIL_BACKEND = EMAIL_PROVIDERS[EMAIL_PROVIDER]
+# A staging preview writes console email through the scrubbed log, never raw to stdout.
+if _preview and EMAIL_PROVIDER == "console":
+    EMAIL_BACKEND = "apps.core.preview.LogEmailBackend"
 if EMAIL_PROVIDER == "smtp":
     _smtp = env.email("EMAIL_URL", default="smtp://localhost:25")
     _smtp.pop("EMAIL_BACKEND", None)
@@ -451,6 +462,10 @@ PG_DUMP_PATH = env("PG_DUMP_PATH", default="pg_dump")
 # --- Celery ---------------------------------------------------------------
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6380/0")
 CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER")
+# A staging preview keeps uploads on the web container's disk, which the worker cannot
+# see, so the tasks that process them run in the web process.
+if _preview and STORAGE_BACKEND == "local":
+    CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_IGNORE_RESULT = True
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_SERIALIZER = "json"

@@ -14,3 +14,13 @@ def age_check_banner(request):
     from apps.memberships.age import can_change_setting
 
     return {"age_check_off": True, "age_check_can_change": can_change_setting(user)}
+
+
+def preview_banner(request):
+    """The admin's "Preview mode" strip, on every staff page of a staging preview."""
+    user = getattr(request, "user", None)
+    if not (user and user.is_authenticated and user.is_staff):
+        return {}
+    from .preview import BANNER, preview_active
+
+    return {"preview_banner": BANNER} if preview_active() else {}

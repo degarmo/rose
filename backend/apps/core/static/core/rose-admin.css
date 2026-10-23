@@ -972,6 +972,12 @@ a.rose-banner:hover {
 .dark a.rose-banner:hover {
   background: #78350f;
 }
+/* A staging preview: a thin strip above everything else. */
+.rose-banner-preview {
+  margin: 0;
+  padding: 4px 16px;
+  font-size: 13px;
+}
 
 /* A withheld number ("<5"): the full wording is its tooltip and what screen readers say. */
 .rose-metric-withheld {

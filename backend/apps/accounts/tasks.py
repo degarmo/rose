@@ -10,7 +10,7 @@ from django.utils import timezone
 from apps.core.email import send_neutral_mail, site_link
 
 from .models import User
-from .tokens import make_reset_params, make_verification_token
+from .tokens import reset_link, verification_link
 
 VERIFY_SUBJECT = "Confirm your email"
 ALREADY_REGISTERED_SUBJECT = "About your sign-up"
@@ -30,7 +30,7 @@ def send_verification_email(user_id):
     user = _active_user(user_id)
     if user is None or user.email_verified:
         return
-    link = site_link(f"/account/verify#token={make_verification_token(user)}")
+    link = verification_link(user)
     body = (
         f"Hello {user.display_name},\n\n"
         f"Please confirm your email address by opening this link within three days:\n\n"
@@ -57,8 +57,7 @@ def send_password_reset_email(user_id):
     user = _active_user(user_id)
     if user is None:
         return
-    uid, token = make_reset_params(user)
-    link = site_link(f"/account/reset#uid={uid}&token={token}")
+    link = reset_link(user)
     body = f"Use this link within two hours to choose a new password:\n\n{link}" + SIGN_OFF
     send_neutral_mail(RESET_SUBJECT, body, to=[user.email])
 
