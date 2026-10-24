@@ -108,7 +108,12 @@ Blueprint creates paid resources.
     (`cat > /tmp/members.csv`, paste, Ctrl-D), run
     `python manage.py import_members /tmp/members.csv` (dry run), read the
     output, then add `--commit`. Delete the file: `rm /tmp/members.csv`.
-17. **Test email**: `python manage.py send_test_email <you> --staff <your staff email>`.
+17. **Storage and email check**: `python manage.py check_services <you>`. It puts a
+    tiny image in the public bucket and fetches it back over `S3_PUBLIC_BASE_URL`,
+    confirms the private bucket refuses an anonymous request but serves a signed URL
+    (deleting both test files), and sends you a neutral test email through the
+    configured provider. One PASS or FAIL line each, with the provider's message on a
+    failure and never a key or token. (`send_test_email` sends only the email.)
 
 ### Staging checks, then production
 
@@ -120,19 +125,22 @@ Blueprint creates paid resources.
 19. Repeat steps 10 to 17 for **production**. Do not run `seed_demo` anywhere
     deployed; it refuses, and a seeded database would stop the site starting.
 
-### Staging preview mode (before storage and email exist)
+### Staging preview mode (an emergency fallback)
 
-Staging runs before the R2 buckets (step 8) and Postmark (step 9) are set up:
-`render.yaml` puts it in preview mode, in the `rose-staging-settings` group that the
-web, worker and beat services all read:
+Staging runs on its own R2 buckets and Postmark server, exactly as production does.
+If either is unavailable and staging must keep running, it can fall back to preview
+mode. Set these in `render.yaml` under `rose-staging-settings` (the group the web,
+worker and beat services all read), commit, sync the Blueprint and deploy:
 
 | Name | Value |
 | --- | --- |
-| `PREVIEW_MODE` | `true` |
-| `STORAGE_BACKEND` | `local` |
-| `EMAIL_PROVIDER` | `console` |
+| `PREVIEW_MODE` | `true` (add it) |
+| `STORAGE_BACKEND` | `local` (instead of `s3`) |
+| `EMAIL_PROVIDER` | `console` (instead of `postmark`) |
 
-The S3 and Postmark secrets can stay empty. What changes, and only on staging:
+Setting them only in the dashboard lasts until the next Blueprint sync, which puts
+back what the file says. The S3 and Postmark secrets can stay as they are; preview
+mode does not use them. What changes, and only on staging:
 
 - **Uploads live on the web container's disk and disappear on every redeploy**
   (and on a restart or a move to another machine). Pictures added in the admin, feed
@@ -153,12 +161,23 @@ The S3 and Postmark secrets can stay empty. What changes, and only on staging:
   start, and the admin and staff section show a "Preview mode" strip.
 
 `render.production.yaml` never sets `PREVIEW_MODE`, and production refuses it
-(`rose.E013`), along with local storage and console email whatever it says. To
-leave preview mode on staging, add the storage and email secrets (steps 8 and 9),
-then change `render.yaml`: `STORAGE_BACKEND` to `s3`, `EMAIL_PROVIDER` to
-`postmark`, and remove `PREVIEW_MODE`. Commit, sync the Blueprint and deploy.
-Changing them only in the dashboard lasts until the next Blueprint sync, which
-puts back what the file says. Nothing uploaded during the preview carries over.
+(`rose.E013`), along with local storage and console email whatever it says.
+
+To leave preview mode, with the storage and email secrets in place (steps 8 and 9):
+
+1. In `render.yaml`, set `STORAGE_BACKEND` back to `s3` and `EMAIL_PROVIDER` to
+   `postmark`, and remove `PREVIEW_MODE`. Commit and push.
+2. Blueprints > `rose` > Manual Sync. A sync may leave a variable that the file no
+   longer lists, so open Environment Groups > `rose-staging-settings` and delete
+   `PREVIEW_MODE` if it is still there.
+3. Deploy the web service, then the worker and beat (Manual Deploy > Deploy latest
+   commit on each), so all three read the new settings.
+4. In the web service Shell: `python manage.py store_site_image_seeds` puts the
+   page pictures the site starts with into the public bucket and names any page
+   slot whose picture was uploaded during the preview (upload those again in Admin >
+   Content > Page images). Then `python manage.py check_services <you>` (step 17).
+
+Nothing else uploaded during the preview carries over.
 
 ## Routine deploys
 
