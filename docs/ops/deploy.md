@@ -63,7 +63,7 @@ Blueprint creates paid resources.
 | Name | Where it comes from |
 | --- | --- |
 | `DJANGO_SECRET_KEY` | Step 4 |
-| `DJANGO_ALLOWED_HOSTS` | Your domain, comma-separated with the Render host name, for example `<domain>,www.<domain>,rose-production-web.onrender.com` |
+| `DJANGO_ALLOWED_HOSTS` | Your domain, comma-separated with the Render host name, for example `roseclub.onrender.com` (production, no custom domain) or `rose-staging-web.onrender.com` (staging); add any custom domain, comma-separated |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://<domain>,https://www.<domain>` (staging: its own domain) |
 | `DJANGO_ADMIN_PATH` | Step 5 |
 | `SITE_URL` | `https://<domain>` (used in email links) |

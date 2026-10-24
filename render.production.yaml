@@ -112,7 +112,10 @@ projects:
             maxmemoryPolicy: noeviction
             ipAllowList: []
           - type: web
-            name: rose-production-web
+            # The web service name sets the public address: https://roseclub.onrender.com
+            # (Render adds a suffix if the name is taken). Keep it neutral; it shows in
+            # browser history and link previews.
+            name: roseclub
             runtime: docker
             dockerfilePath: ./Dockerfile
             dockerContext: .
