@@ -251,9 +251,10 @@ Admin > Feed > Announcements. Its design is in `docs/design-system.md` under "Me
 
 ## Site copy
 
-The words on the public pages are edited in Admin > Pages > Page copy. Placeholder copy for
-development comes with `seed_demo`. The club's own copy, drafted from the previous website, is
-in `/content` (kept out of git, like `prompts/`) and loaded with:
+The words on the public pages are edited in Admin > Pages > Page copy. The starting copy is
+committed in `backend/apps/pages/site_copy/` (drafts that name no one); the club's own files,
+drafted from the previous website, are in `/content` (kept out of git, like `prompts/`). Both
+are loaded, never overwriting copy staff have edited in the admin, with:
 
 ```sh
 .venv/bin/python manage.py load_site_content            # dry run

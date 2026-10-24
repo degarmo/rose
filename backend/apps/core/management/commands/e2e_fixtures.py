@@ -34,7 +34,7 @@ from apps.pages.demo_activity import seed_activity
 from apps.pages.management.commands.demo_media import sample_image
 from apps.pages.management.commands.seed_demo import DEMO_CONTENT_DIR
 from apps.pages.models import SiteSettings
-from apps.pages.site_content import load, read_files
+from apps.pages.site_content import SITE_COPY_DIR, load, read_files
 from apps.safety import roles
 
 PASSWORD = "e2e-only-password-0123"
@@ -89,8 +89,8 @@ class Command(BaseCommand):
         now = timezone.now()
         # The membership page's seven tiers and the door guest pass, as development has them.
         upsert_tiers(placeholder=False)
-        # The pages' words: the same placeholder copy development uses.
-        load(read_files(DEMO_CONTENT_DIR), commit=True)
+        # The pages' words and the made-up staff profiles, as development has them.
+        load(read_files(SITE_COPY_DIR) + read_files(DEMO_CONTENT_DIR), commit=True)
         site = SiteSettings.load()
         site.nonprofit_status_text = "A volunteer-run 501(c)(3) nonprofit."
         site.check_payable_to = "Test Organisation"

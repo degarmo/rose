@@ -115,6 +115,28 @@ Blueprint creates paid resources.
     configured provider. One PASS or FAIL line each, with the provider's message on a
     failure and never a key or token. (`send_test_email` sends only the email.)
 
+### Filling a fresh staging
+
+After the first staging deploy, open Render > `rose-staging-web` > Shell and run:
+
+```
+python manage.py load_site_content --commit --allow-draft
+python manage.py load_staging_samples --commit
+```
+
+The first loads the words on every page (the committed drafts in
+`backend/apps/pages/site_copy/`) and leaves copy staff have edited in the admin alone. The
+second adds sample content with no people in it: the next six weeks of evenings (Thursday
+education nights, 7 pm to midnight and alcohol-free; Friday and Saturday socials, 9 pm to
+2 am, BYOB), a featured workshop, a members' night, six education opportunities, the FAQ,
+three journal posts and an announcement, with generated pictures. The admin lists badge
+them "Sample"; the public site never does. Both are safe to repeat: run
+`load_staging_samples --commit` again to move the evenings forward. In preview mode a
+redeploy wipes uploaded pictures but keeps the database rows; running it again draws the
+missing pictures. `load_staging_samples --purge` removes every sample row and its pictures,
+and nothing staff made. It never runs in production, and production refuses to start
+with sample content in its database (`rose.E014`).
+
 ### Staging checks, then production
 
 18. Against staging, run the browser smoke tests from your computer:

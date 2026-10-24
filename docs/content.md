@@ -8,8 +8,10 @@ skeleton while copy arrives and nothing for a key that has no value yet.
 
 | Source | Used for | In git? |
 | --- | --- | --- |
-| `content/*.yaml` | The club's real copy, drafted from the previous website. One file per page or section, each starting with `status:` and `source_url:`. | No: the folder names the organisation, like `prompts/`. Only `content/redirects.yaml` (paths only) is committed. |
-| `backend/apps/pages/demo_content/*.yaml` | Placeholder copy for development and the browser tests. Loaded by `seed_demo` and `e2e_fixtures`. Never used in production. | Yes |
+| `backend/apps/pages/site_copy/*.yaml` | The words on every page (home, about, events, education, membership, join, visit, guests, the FAQ, rentals, volunteer, donate, contact, rules, privacy, values and the staff and journal introductions), marked `draft - needs club approval`. They name no one: the club's name is `{display_name}` or `{short_name}`, and no address, email or person appears (`tests/test_staging_content.py` checks). Loaded by default by `load_site_content`, and by `seed_demo` and `e2e_fixtures`. | Yes |
+| `content/*.yaml` | The club's own files, drafted from the previous website: site settings, tiers, redirects and any copy that replaces the committed drafts. Loaded after `site_copy/`. | No: the folder names the organisation, like `prompts/`. Only `content/redirects.yaml` (paths only) is committed. |
+| `backend/apps/pages/demo_content/staff.yaml` | Made-up staff profiles for development and the browser tests (`seed_demo`, `e2e_fixtures`). Never loaded on staging or production. | Yes |
+| `backend/apps/pages/samples.py` | Sample events, education, FAQ questions, journal posts and an announcement, with no people: `load_staging_samples` on staging, and `seed_demo` in development. Badged "Sample" in the admin lists only. | Yes |
 | Admin > Pages > Page copy | Every later edit. | n/a |
 
 ## The file format
@@ -57,10 +59,13 @@ deletes anything, and if any file has a problem nothing at all is written.
      uploads the files, runs it once without "Write the changes" to see what would change,
      then again with it ticked.
    - **Anywhere with the files on disk:** `python manage.py load_site_content` (a dry run),
-     then `--commit`. `--dir` points at another folder; naming files loads only those.
+     then `--commit`. It loads `site_copy/`, then `/content` when it has files. `--dir`
+     loads one other folder instead; naming files loads only those.
 3. In production, a file still marked as a draft is refused. Ticking "Allow drafts" (or
    `--allow-draft`) loads it anyway, and that is written to the audit log. Every committed
    load is logged.
+4. Copy saved in the admin is never overwritten by a later load: the report lists each key
+   it kept. `--overwrite` (or ticking "Replace copy edited here in the admin") replaces it.
 
 ## Keys each page reads
 

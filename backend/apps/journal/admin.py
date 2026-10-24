@@ -4,6 +4,7 @@ from django.forms.models import BaseInlineFormSet
 from unfold.admin import ModelAdmin, TabularInline
 
 from apps.core.admin_display import ButtonFields, flag
+from apps.core.samples import SampleBadgeAdmin
 
 from .models import MAX_IMAGES, MIN_IMAGES, Post, PostImage
 
@@ -31,7 +32,7 @@ class PostImageInline(TabularInline):
 
 
 @admin.register(Post)
-class PostAdmin(ButtonFields, ModelAdmin):
+class PostAdmin(SampleBadgeAdmin, ButtonFields, ModelAdmin):
     inlines = [PostImageInline]
     list_display = ("slug", "published_at", "is_published_chip", "image_count", "event")
     is_published_chip = flag("is_published", "Published", "Draft", "Status")

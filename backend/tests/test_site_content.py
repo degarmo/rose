@@ -18,6 +18,7 @@ pytestmark = pytest.mark.django_db
 REPO = Path(__file__).resolve().parents[2]
 REDIRECTS_YAML = REPO / "content" / "redirects.yaml"
 DEMO_CONTENT = Path(__file__).resolve().parents[1] / "apps" / "pages" / "demo_content"
+SITE_COPY = Path(__file__).resolve().parents[1] / "apps" / "pages" / "site_copy"
 
 
 @pytest.fixture
@@ -152,9 +153,11 @@ def test_only_superusers_may_upload_content(client, desk_staff):
     assert client.get(reverse("admin:pages_load_content")).status_code == 403
 
 
-def test_the_demo_content_loads_cleanly():
+def test_the_site_copy_and_the_demo_staff_load_cleanly():
     out = StringIO()
+    call_command("load_site_content", "--dir", str(SITE_COPY), "--commit", stdout=out)
     call_command("load_site_content", "--dir", str(DEMO_CONTENT), "--commit", stdout=out)
+    assert StaffProfile.objects.count() == 6
     pages = set(PageContent.objects.values_list("page", flat=True))
     assert {
         "home",

@@ -195,6 +195,9 @@ class PageContent(models.Model):
         "Site settings.",
     )
     format = models.CharField(max_length=5, choices=Format.choices, default=Format.PLAIN)
+    # Set when staff save it in the admin: load_site_content then leaves it as it is, unless
+    # told to overwrite.
+    edited_in_admin = models.BooleanField(default=False, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

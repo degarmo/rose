@@ -105,3 +105,23 @@ class SeedMarker(models.Model):
 
     def __str__(self):
         return f"Demo data loaded {self.created_at:%Y-%m-%d}"
+
+
+class SampleRecord(models.Model):
+    """A row load_staging_samples (or seed_demo) made: an event, an opportunity, a question,
+    a journal post or an announcement. The admin lists show these as "Sample", and
+    `load_staging_samples --purge` deletes exactly these rows and their pictures. The public
+    site never reads this table. Production refuses to start with any (rose.E014)."""
+
+    content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE)
+    object_id = models.PositiveBigIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "sample record"
+        constraints = [
+            models.UniqueConstraint(fields=["content_type", "object_id"], name="one_sample_record")
+        ]
+
+    def __str__(self):
+        return f"Sample {self.content_type.model} #{self.object_id}"

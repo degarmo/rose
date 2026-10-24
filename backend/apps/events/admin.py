@@ -19,6 +19,7 @@ from unfold.widgets import UnfoldBooleanWidget
 from apps.core.admin_display import chip, image_preview
 from apps.core.admin_widgets import RichTextWidget
 from apps.core.models import AuditLog, audit
+from apps.core.samples import SampleBadgeAdmin, with_sample_flag
 from apps.memberships import usage
 from apps.safety import roles
 
@@ -171,7 +172,7 @@ def _is_main_list(request):
 
 
 @admin.register(Event)
-class EventAdmin(ModelAdmin):
+class EventAdmin(SampleBadgeAdmin, ModelAdmin):
     """Events still to come or happening now, soonest first. Once over, an event moves to
     Past events (PastEventAdmin) on its own, and back if its dates move ahead."""
 
@@ -464,7 +465,7 @@ class DuplicateForm(forms.Form):
 
 
 @admin.register(PastEvent)
-class PastEventAdmin(ModelAdmin):
+class PastEventAdmin(SampleBadgeAdmin, ModelAdmin):
     """Past events: the archive, newest first. Read-only unless someone presses "Edit
     anyway", which is logged; editing the dates into the future moves an event back to the
     main list. Only admins may delete."""
@@ -497,7 +498,7 @@ class PastEventAdmin(ModelAdmin):
     def get_queryset(self, request):
         from apps.core import metrics
 
-        return metrics.with_event_counts(PastEvent.objects.all())
+        return with_sample_flag(metrics.with_event_counts(PastEvent.objects.all()))
 
     # Who may do what: the same as for events, but read-only until "Edit anyway".
 

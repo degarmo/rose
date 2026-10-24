@@ -49,14 +49,15 @@ def test_seed_events_journal_and_demo_users(capsys, settings):
     out = capsys.readouterr().out
     assert "demo.verified@example.org" in out
 
+    # The samples' six weeks: every Thursday, Friday and Saturday (apps.pages.samples).
     education = Event.objects.filter(category="education")
-    assert education.count() == 4
+    assert education.count() == 6
     assert all(event.opportunity_id for event in education)
     assert all(timezone.localtime(e.starts_at).weekday() == 3 for e in education)
     # Upcoming socials; the past ones come from the year of demo activity.
     socials = Event.objects.filter(category="social", starts_at__gte=timezone.now())
     assert sorted({timezone.localtime(e.starts_at).weekday() for e in socials}) == [4, 5]
-    assert socials.count() == 8
+    assert socials.count() == 12
     members = Event.objects.filter(audience="members")
     assert members.count() == 3
     # The free tiers' evenings carry their tags.

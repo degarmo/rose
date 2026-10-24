@@ -15,6 +15,7 @@ from apps.accounts.models import Profile, User
 from apps.core.admin_display import chip, flag
 from apps.core.models import AuditLog
 from apps.core.private_media import private_media
+from apps.core.samples import SampleBadgeAdmin
 from apps.memberships.access import age_gate_passes
 
 from . import services
@@ -284,7 +285,7 @@ class ReportAdmin(ModelAdmin):
 
 
 @admin.register(Announcement)
-class AnnouncementAdmin(ModelAdmin):
+class AnnouncementAdmin(SampleBadgeAdmin, ModelAdmin):
     """Short notices shown as a "News" story in the member app between start and end."""
 
     list_display = ["title", "starts_at", "ends_at", "is_published_chip"]

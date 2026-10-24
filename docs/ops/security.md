@@ -26,6 +26,7 @@ in `tests/test_deploy_checks.py`):
 | `rose.E011` | staging has no basic-auth credentials |
 | `rose.E012` | `DEV_SKIP_STAFF_2FA` is on |
 | `rose.E013` | `PREVIEW_MODE` is on in production |
+| `rose.E014` | production's database contains sample content (`load_staging_samples`) |
 
 In a staging preview (`PREVIEW_MODE=true`, see [deploy.md](deploy.md)), and only
 there, local storage and console email are reported as the warnings `rose.W006`

@@ -182,22 +182,33 @@ def _transport_errors():
 def no_demo_seed(app_configs=None, databases=None, **kwargs):
     if not deployed() or not databases:
         return []
-    from .models import SeedMarker
+    from .models import SampleRecord, SeedMarker
 
+    errors = []
     try:
         seeded = SeedMarker.objects.exists()
+        # Sample content belongs on staging; production must never carry it.
+        samples = settings.DJANGO_ENV == "production" and SampleRecord.objects.exists()
     except DatabaseError:
-        # Before the first migration there is no table, and so no seed.
+        # Before the first migration there are no tables, and so no seed or samples.
         return []
     if seeded:
-        return [
+        errors.append(
             _error(
                 "E010",
                 "Demo data (seed_demo or make_feed_member) is in this database. "
                 "Restore a clean database.",
             )
-        ]
-    return []
+        )
+    if samples:
+        errors.append(
+            _error(
+                "E014",
+                "Sample content (load_staging_samples) is in this database.",
+                "Samples belong on staging only. Restore a clean database.",
+            )
+        )
+    return errors
 
 
 def assert_deploy_safe():

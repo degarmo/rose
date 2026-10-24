@@ -1,7 +1,10 @@
 """Load drafted site copy from YAML into the database.
 
-One file per page or section, in SITE_CONTENT_DIR (default: /content). Each
-file starts with a status and the source pages it was drafted from:
+One file per page or section. The site's page copy is committed in
+apps/pages/site_copy (drafts that name no one: the club's name is a placeholder);
+SITE_CONTENT_DIR (default: /content, never committed) adds the club's own files,
+loaded after it. Each file starts with a status and the source pages it was
+drafted from:
 
     status: draft - needs club approval
     source_url:
@@ -24,7 +27,8 @@ Copy, FAQs and tier names write {display_name} or {short_name} for the club's na
 read; a tier's name and description are filled in as they load.
 
 Loading is idempotent: rows are matched on slug (or page and key, or old path)
-and updated. Nothing is ever deleted.
+and updated. Nothing is ever deleted. Copy staff have saved in the admin is left as
+it is unless the load is told to overwrite it; the report lists what was kept.
 """
 
 from dataclasses import dataclass, field
@@ -42,6 +46,9 @@ from apps.memberships.models import Tier
 
 from .content import with_club_name
 from .models import FAQItem, PageContent, Redirect, SiteSettings, SocialLink, StaffProfile
+
+# The page copy every environment starts from (drafts until the club approves them).
+SITE_COPY_DIR = Path(__file__).resolve().parent / "site_copy"
 
 SITE_SETTINGS_FIELDS = {
     "tagline",
@@ -118,14 +125,47 @@ class ContentFile:
 @dataclass
 class Report:
     counts: dict = field(default_factory=dict)
+    kept: list = field(default_factory=list)
 
     def add(self, file_name, outcome):
-        per_file = self.counts.setdefault(file_name, {"created": 0, "updated": 0, "unchanged": 0})
+        per_file = self.counts.setdefault(
+            file_name, {"created": 0, "updated": 0, "unchanged": 0, "kept": 0}
+        )
         per_file[outcome] += 1
+
+    def keep(self, file_name, label):
+        """Copy staff edited in the admin, left as it is."""
+        self.add(file_name, "kept")
+        self.kept.append(label)
 
     def lines(self):
         for name, c in self.counts.items():
-            yield f"{name}: {c['created']} new, {c['updated']} changed, {c['unchanged']} unchanged"
+            line = f"{name}: {c['created']} new, {c['updated']} changed, {c['unchanged']} unchanged"
+            if c["kept"]:
+                line += f", {c['kept']} kept as edited in the admin"
+            yield line
+        if self.kept:
+            yield (
+                "Kept as edited in the admin (overwrite to replace them): " + ", ".join(self.kept)
+            )
+
+
+def read_sources(names=None):
+    """The committed page copy, then the club's own files in SITE_CONTENT_DIR when it has
+    any. With `names`, only those files, from whichever folders have them."""
+    folders = [SITE_COPY_DIR]
+    content_dir = Path(settings.SITE_CONTENT_DIR)
+    if content_dir.is_dir() and any(content_dir.glob("*.yaml")):
+        folders.append(content_dir)
+    if not names:
+        return [content for folder in folders for content in read_files(folder)]
+    found = []
+    for name in names:
+        paths = [folder / name for folder in folders if (folder / name).is_file()]
+        if not paths:
+            raise ContentError(f"{name}: not in {' or '.join(str(f) for f in folders)}.")
+        found.extend(paths)
+    return read_files(SITE_COPY_DIR, [str(path.resolve()) for path in found])
 
 
 def read_files(directory, names=None):
@@ -232,20 +272,24 @@ def _upsert(report, file_name, model, lookup, values):
     return obj
 
 
-def apply_file(content, report):
+def apply_file(content, report, overwrite=False):
     data = content.data
     name = content.name
 
     if data.get("copy"):
         page = str(data["page"])
         for key, text, fmt in flatten_copy(data["copy"]):
-            _upsert(
-                report,
-                name,
-                PageContent,
-                {"page": page, "key": key},
-                {"value": text, "format": fmt},
-            )
+            existing = PageContent.objects.filter(page=page, key=key).first()
+            values = {"value": text, "format": fmt}
+            if existing is not None and existing.edited_in_admin:
+                if (existing.value, existing.format) == (text, fmt):
+                    report.add(name, "unchanged")
+                    continue
+                if not overwrite:
+                    report.keep(name, f"{page}: {key}")
+                    continue
+                values["edited_in_admin"] = False
+            _upsert(report, name, PageContent, {"page": page, "key": key}, values)
 
     if data.get("site_settings"):
         site = SiteSettings.load()
@@ -342,18 +386,18 @@ def _require(file_name, item, keys):
         raise ContentError(f"{file_name}: an entry is missing {', '.join(missing)}: {item!r}")
 
 
-def load(files, commit=False):
+def load(files, commit=False, overwrite=False):
     """Apply every file in one transaction. A dry run rolls everything back."""
     report = Report()
     with transaction.atomic():
         for content in files:
-            apply_file(content, report)
+            apply_file(content, report, overwrite=overwrite)
         if not commit:
             transaction.set_rollback(True)
     return report
 
 
-def load_guarded(contents, commit=False, allow_draft=False, actor=None):
+def load_guarded(contents, commit=False, allow_draft=False, actor=None, overwrite=False):
     """The production draft guard, the load, and the audit entries, in one place.
 
     In production, files still marked as drafts are refused unless allow_draft is
@@ -366,7 +410,7 @@ def load_guarded(contents, commit=False, allow_draft=False, actor=None):
             "These files are still drafts and need the club's approval before they go "
             f"live: {', '.join(drafts)}. Change their status, or allow drafts."
         )
-    report = load(contents, commit=commit)
+    report = load(contents, commit=commit, overwrite=overwrite)
     if commit:
         names = ", ".join(content.name for content in contents)
         audit(

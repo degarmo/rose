@@ -1,27 +1,9 @@
 status: placeholder - development only
 source_url: []
-page: staff
-copy:
-  hero:
-    title: Our staff
-    lede: Hosts, teachers and organisers, every one a volunteer, known here by the names they choose.
-  team:
-    title: Ask for any of us at the door.
-  roles:
-    title: Where help goes.
-    lede: Most staff began as volunteers. These are the teams you can join.
-    1:
-      title: Education
-      body: Plan and present classes, or help newer teachers find their feet.
-    2:
-      title: Events
-      body: Shape the calendar, host evenings and welcome people at the door.
-    3:
-      title: Operations
-      body: Keep the space clean, stocked, safe and in good repair.
-  cta:
-    title: Volunteers make the club.
-    lede: Start with a few shifts. Many of our staff began exactly that way.
+notes: >-
+  Development only (seed_demo and the browser tests): six made-up staff profiles for the
+  staff page. Staging and production never load this; the staff page's words are in
+  site_copy/staff.yaml.
 staff:
   - slug: marlowe
     display_name: Marlowe

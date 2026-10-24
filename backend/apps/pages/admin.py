@@ -16,6 +16,7 @@ from unfold.widgets import UnfoldAdminDecimalFieldWidget, UnfoldAdminTextareaWid
 
 from apps.core.admin_display import image_preview
 from apps.core.models import AuditLog, audit
+from apps.core.samples import SampleBadgeAdmin
 from apps.safety.roles import STAFF, has_role
 
 from .models import (
@@ -161,7 +162,7 @@ class SiteSettingsAdmin(ModelAdmin):
 
 
 @admin.register(FAQItem)
-class FAQItemAdmin(ModelAdmin):
+class FAQItemAdmin(SampleBadgeAdmin, ModelAdmin):
     list_display = ("question", "sort_order", "is_published")
     list_editable = ("sort_order", "is_published")
     list_filter = ("is_published",)
@@ -239,6 +240,11 @@ class LoadContentForm(forms.Form):
         required=False,
         label="Allow files still marked as drafts (production only; logged)",
     )
+    overwrite = forms.BooleanField(
+        required=False,
+        label="Replace copy edited here in the admin",
+        help_text="Left unticked, copy staff have changed here stays as it is.",
+    )
 
     def clean_files(self):
         texts = []
@@ -295,6 +301,7 @@ class PageContentAdmin(ModelAdmin):
                     commit=form.cleaned_data["commit"],
                     allow_draft=form.cleaned_data["allow_draft"],
                     actor=request.user,
+                    overwrite=form.cleaned_data["overwrite"],
                 )
                 committed = form.cleaned_data["commit"]
             except ContentError as exc:
@@ -309,6 +316,12 @@ class PageContentAdmin(ModelAdmin):
             "error": error,
         }
         return TemplateResponse(request, "admin/pages/load_content.html", context)
+
+    def save_model(self, request, obj, form, change):
+        # Staff wrote these words: a later load_site_content keeps them unless told otherwise.
+        if form.has_changed():
+            obj.edited_in_admin = True
+        super().save_model(request, obj, form, change)
 
     @admin.display(description="Text")
     def short_value(self, obj):
